@@ -5,15 +5,15 @@ schema_version: "1.0.0"
 repository: atc-engineering
 generated: "2026-09-14"
 generated_by: "Spec-v1.0-Uebernahme (Aurora, Owner-Direktive 14.09.2026)"
-bound_commit: 8adca3044f1e20265ec669305b0358646ee8c5bf
+bound_commit: 40f8c91391442f2b4e6813c4a3f8a444af34a081
 maturity_class: C          # C=Plattform/Anwendung (neu)
 r_level: null
 implementation:
-  status: docs_only        # substantial|partial|skeleton|docs_only
-  summary: "Specification v1.0.0 final (42 Abschnitte, Owner-Direktive 14.09.2026): 5-Ebenen-Modell, 16 Crates, CLI atc-engine, Gates G0-G9, Evidence-first; keine Crates/CLI implementiert (ROADMAP Phase 0)"
+  status: partial          # substantial|partial|skeleton|docs_only
+  summary: "Phase 0 gestartet: Rust-Workspace mit atc-core (IDs/DerivedState/CoreError/Timestamp, fail-closed) + atc-config (atc-engineering.toml Phase-0-Subset, Version Pinning); 18/18 Unit-Tests, clippy -D warnings sauber, Release-Build OK (Rust 1.98.1)"
 tests:
-  status: not_run
-  evidence: "CI Struktur-Gate live (bootstrap); Rust-Tests ab Phase 1"
+  status: local_pass
+  evidence: "cargo test --workspace = 18/18 PASS (atc-core 7, atc-config 11); clippy -D warnings = 0; cargo build --release OK; lokal Rust 1.98.1, 2026-09-14; CI-Run folgt mit Owner-Push ci-fix"
 security:
   status: not_audited
 conformance:
