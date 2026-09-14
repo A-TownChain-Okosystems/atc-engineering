@@ -5,7 +5,7 @@ schema_version: "1.0.0"
 repository: atc-engineering
 generated: "2026-09-14"
 generated_by: "Repo-Bootstrap (Aurora, Owner-Direktive 14.09.2026)"
-bound_commit: pending-bootstrap
+bound_commit: fa553abb2c4770156016cce459d6e35508c568eb
 maturity_class: C          # C=Plattform/Anwendung (neu)
 r_level: null
 implementation:
@@ -17,5 +17,5 @@ tests:
 security:
   status: not_audited
 conformance:
-  registry_entry: pending  # atc-standards/registry/repositories.yaml (ATC-REPO-ENG-001)
+  registry_entry: bound      # atc-standards@fd86a96: ATC-REPO-ENG-001, T0/L7, capability engineering_governance
   standards_bound: [ATC-STD-000, ATC-STD-VERSION-001, ATC-STD-ENG-001, ATC-AI-GOV-001]
