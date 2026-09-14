@@ -4,13 +4,13 @@
 schema_version: "1.0.0"
 repository: atc-engineering
 generated: "2026-09-14"
-generated_by: "Repo-Bootstrap (Aurora, Owner-Direktive 14.09.2026)"
-bound_commit: fa553abb2c4770156016cce459d6e35508c568eb
+generated_by: "Spec-v1.0-Uebernahme (Aurora, Owner-Direktive 14.09.2026)"
+bound_commit: 8adca3044f1e20265ec669305b0358646ee8c5bf
 maturity_class: C          # C=Plattform/Anwendung (neu)
 r_level: null
 implementation:
   status: docs_only        # substantial|partial|skeleton|docs_only
-  summary: "Specification v1.0 (ATC-ENGINEERING-SPEC-001) verabschiedet; keine Crates/CLI implementiert (ROADMAP Phase 1)"
+  summary: "Specification v1.0.0 final (42 Abschnitte, Owner-Direktive 14.09.2026): 5-Ebenen-Modell, 16 Crates, CLI atc-engine, Gates G0-G9, Evidence-first; keine Crates/CLI implementiert (ROADMAP Phase 0)"
 tests:
   status: not_run
   evidence: "CI Struktur-Gate live (bootstrap); Rust-Tests ab Phase 1"
