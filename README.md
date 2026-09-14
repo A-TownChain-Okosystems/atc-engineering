@@ -1,69 +1,194 @@
-# atc-engineering
+# ATC Engineering
 
 > **A-TownChain Engineering & Governance Platform**
-> Software platform for building, validating, governing, auditing and
-> releasing the A-TownChain ecosystem.
 
-**Status: SPECIFIED** — Specification v1.0 verabschiedet (Owner-Direktive
-14.09.2026), Implementation gemäß [ROADMAP.md](ROADMAP.md).
+"atc-engineering" is the central engineering and governance control plane for the A-TownChain ecosystem.
 
-## Zweck
+It provides the software required to build, validate, audit, govern and release the A-TownChain repository fleet.
 
-`atc-engineering` ist die **Engineering Control Plane** des A-TownChain-Ökosystems.
-Sie beantwortet die Frage: *Wie wird sichergestellt, dass die Standards gelten —
-und wie wird daraus Software gebaut?*
+## Mission
 
-| Ebene | Repository | Frage |
-|---|---|---|
-| 1. Knowledge / Authority | [`atc-standards`](https://github.com/A-TownChain-Okosystems/atc-standards) | **What must be true?** |
-| 2. Engineering / Governance | **`atc-engineering`** (dieses Repo) | **How is it built and verified?** |
-| 3. Product / Runtime | ATCLang, ShivaCore, A-TownChain, ATC-VM, Aurora, GlobusOS, Genesis | Was läuft? |
+«Build software through controlled, evidence-based engineering.»
 
-## Kernprinzipien
+ATC Engineering follows the principle:
 
-1. **Standards-Fluss ist einseitig:** atc-engineering *liest* Regeln aus
-   atc-standards — niemals umgekehrt. atc-standards bleibt normatives SSOT.
-2. **No Evidence, No Trust:** Zustände (`PRODUCTION_READY` etc.) werden nie
-   behauptet, sondern aus Commits, CI-Ergebnissen, Audits und Approvals
-   **abgeleitet** (Evidence Engine).
-3. **AD-008-konform:** Infrastruktur-Software → Rust als kanonische
-   Implementierungssprache; ATCLang/ATVM als Ausführungsgrenze greift hier
-   nicht, da keine Konsens-Semantik implementiert wird.
-4. **Control Plane ≠ Product Plane:** Dieses Repo produziert keine
-   Blockchain-Runtime, sondern die Plattform, die die Produkt-Repos baut,
-   prüft, governiert und released.
+**«No Evidence, No Trust.»**
 
-## Kernmodule (Spec v1.0)
+Repository state, compliance state and release readiness are derived from authoritative inputs and verifiable evidence rather than declarations.
 
-- **Repository Manager** — Fleet-Discovery, Klassifikation, Lifecycle, Health
-- **Standards Engine** — Rule Compiler: ATC-Standards → maschinenlesbare Policies → Validatoren
-- **Audit Engine** — `atc-engine audit` je Repo oder org-weit
-- **Repository Bootstrapper** — `atc-engine repo init`: standardisierte Repo-Erstellung
-- **CI/CD Generator** — Workflow-Generierung aus Engineering-Policy
-- **Policy Engine** — Merge-/Release-Gates, Approvals, Required Checks
-- **Evidence Engine** — Status-Derivation aus Evidenz-Bundles
-- **AI Engineering Agent Interface** — Task/Scope/Standards/Actions/Evidence pro Auftrag
-- **Dependency & Technology Intelligence** — Vulnerabilities, EOL, Technology Radar
-- **Release Engineering** — Devnet → Testnet → Release Gate → Mainnet
+## Responsibilities
 
-Vollständige Specification: [docs/architecture/ATC-ENGINEERING-SPEC-001.md](docs/architecture/ATC-ENGINEERING-SPEC-001.md)
+ATC Engineering provides:
 
-## Architektur (kurz)
+- Repository discovery and intelligence
+- Standards enforcement
+- Policy evaluation
+- Governance gates
+- Repository auditing
+- Security validation
+- Build and test orchestration
+- Evidence generation
+- Release engineering
+- Repository bootstrapping
+- GitHub integration
+- AI-agent engineering governance
+
+## Architectural Boundary
+
+ATC Engineering is not the normative source of standards.
+
+The authority chain is:
 
 ```
-CONTROL PLANE                EXECUTION PLANE
-Governance Engine            GitHub Repos
-Engineering Engine     →     CI/CD Runners
-Evidence Engine              Local Runtime
-     │
-atc-standards (liest)
+atc-standards
+      │
+      │ normative standards
+      ▼
+atc-engineering
+      │
+      │ enforcement and automation
+      ▼
+A-TownChain repository fleet
 ```
 
-## Beteiligung
+"atc-standards" defines **what** must be true.
+"atc-engineering" validates and enforces those requirements.
 
-Änderungen an dieser Plattform folgen dem etablierten SCR-Prozess
-(atc-standards). Agenten: [AGENTS.md](AGENTS.md) beachten.
+## Core Architecture
 
-## Lizenz
+```
+┌─────────────────────────────────────┐
+│         Governance Plane            │
+│ Policies / Roles / Approvals / Gates│
+├─────────────────────────────────────┤
+│          Knowledge Plane             │
+│ Standards / Schemas / Rules          │
+├─────────────────────────────────────┤
+│         Engineering Plane            │
+│ Build / Test / Audit / Security     │
+├─────────────────────────────────────┤
+│           Evidence Plane            │
+│ Evidence / Provenance / Attestation  │
+├─────────────────────────────────────┤
+│          Execution Plane            │
+│ Git / GitHub / CI / Runners          │
+└─────────────────────────────────────┘
+```
 
-Apache-2.0 — siehe [LICENSE](LICENSE).
+## Repository
+
+The implementation is primarily written in Rust.
+
+```
+crates/
+  atc-core
+  atc-config
+  atc-standards
+  atc-policy
+  atc-governance
+  atc-repository
+  atc-github
+  atc-audit
+  atc-evidence
+  atc-security
+  atc-build
+  atc-test
+  atc-release
+  atc-agent
+  atc-template
+  atc-schema
+```
+
+## CLI
+
+The primary interface is:
+
+```
+atc-engine
+```
+
+Examples:
+
+```
+atc-engine repo audit atc-node
+atc-engine org audit A-TownChain-Okosystems
+atc-engine standards validate atc-node
+atc-engine policy evaluate --repo atc-node --operation release
+atc-engine evidence collect --repo atc-node
+atc-engine release validate atc-node
+```
+
+## Governance
+
+ATC Engineering uses separation of duties.
+
+Relevant roles include:
+
+- Coder
+- Validator
+- Auditor
+- Release Authority
+- Human Approver
+
+AI agents may operate only within explicitly authorized scopes.
+
+Production release requires valid evidence and human governance approval.
+
+## Failure Policy
+
+ATC Engineering is fail-closed.
+
+Missing, invalid or unverifiable evidence blocks the affected operation.
+
+```
+UNKNOWN
+  ↓
+BLOCKED
+```
+
+## Standards
+
+The canonical standards source is:
+
+"A-TownChain-Okosystems/atc-standards"
+
+Standards are resolved, compiled and evaluated by ATC Engineering.
+
+## Security
+
+Security is a release requirement.
+
+The platform is designed to support:
+
+- dependency auditing
+- SBOM generation
+- SAST
+- secret detection
+- license validation
+- artifact integrity
+- provenance
+- supply-chain security
+
+See "SECURITY.md".
+
+## Development
+
+```
+cargo fmt --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace
+```
+
+## Status
+
+The repository is initially under active development.
+
+See:
+
+- "STATUS.md"
+- "ROADMAP.md"
+- "ARCHITECTURE.md"
+
+## License
+
+See "LICENSE".

@@ -1,47 +1,210 @@
-# AGENTS.md — Verbindliche Regeln für KI-Agenten in atc-engineering
+# AGENTS.md
 
-> Gilt für alle Agenten, die an diesem Repository arbeiten.
-> Meta-Regelwerk: `AGENT_MASTERRULES.md` (A-TownChain-Okosystems/.github)
-> Agent-Governance: ATC-AI-GOV v1.0 (Fail Closed, Evidence First, No Self-Certification).
+> **ATC Engineering Agent Governance**
 
-## 1. Rolle dieses Repos
+This repository implements the engineering and governance control plane of the A-TownChain ecosystem.
 
-atc-engineering ist Infrastruktur (Engineering Control Plane). Es implementiert
-**keine Konsens-Semantik** — AD-008 wird nicht verletzt. Kanonische Sprache:
-**Rust**. Python/TypeScript nur mit dokumentiertem Integrationsvorteil
-(GitHub-API-Glue), nie im Kern-Pfad.
+All human and AI contributors MUST follow the repository governance model.
 
-## 2. Reality-Check (Rule 1)
+## Authority
 
-Jede Aktion mit Statussymbol kennzeichnen: ✅ ausgeführt (API-Evidenz) ·
-🔄 vorbereitet · 📋 geplant · 🔲 simuliert · ❌ fehlgeschlagen · ⚠️ unklar.
-**CLAIMED != PASS.** Kein `IMPLEMENTED` ohne Test-Evidenz.
+The normative authority chain is:
 
-## 3. Grenzen der Agenten-Autorität
+```
+ATC Standards
+      ↓
+Repository Policy
+      ↓
+Engineering Gates
+      ↓
+Implementation
+      ↓
+Validation
+      ↓
+Evidence
+      ↓
+Approval
+      ↓
+Release
+```
 
-- Agenten führen Beschlüsse aus, fassen sie nicht (ATC-STD-000 §34).
-- Normative Änderungen → SCR in atc-standards mit Owner-Mandat.
-- Implementation hier → ROADMAP-Phasen + Tests + Evidenz.
-- Niemals: Standards-Registry in atc-standards direkt editieren ohne Mandat.
+"atc-standards" is the canonical source for normative standards.
 
-## 4. Engineering-Pflichten
+## Core Principle
 
-- `cargo fmt`, `cargo clippy -D warnings`, `cargo test` vor jedem Push.
-- Kein `unwrap()` in Policy-/Audit-/Evidence-kritischem Code (Owner-Regel;
-  identisch zur Konsens-Regel: fail-closed mit expliziten Fehlertypen).
-- Determinismus wo möglich: keine Wall-Clock-, keine RNG-Abhängigkeit in
-  Audit-/Policy-Entscheidungen; reproduzierbare Generierung (feste Sortierung).
-- Commits referenzieren ROADMAP-Phase bzw. SCR-ID.
+**«No Evidence, No Trust.»**
 
-## 5. Standards-Anbindung
+Declared state MUST NOT be treated as authoritative when verifiable evidence is required.
 
-Dieses Repo unterliegt u.a.: ATC-STD-000 (Verfassung), ATC-STD-VERSION-001,
-ATC-STD-README-001, ATC-STD-MD-001, ATC-AI-GOV-Familie, ATC-STD-ENG-001
-(Determinismus First-Class für D-CRITICAL-Komponenten), Registry-Compliance
-V-01..V-16. Audit-Score ≥ 85 = GATE bestanden.
+## Agent Lifecycle
 
-## 6. AI-Execution-Prinzip des Ökosystems
+Agents MUST follow:
 
-AI may propose. ATCLang specifies. ATVM executes. ATC commits.
-In diesem Repo (Infrastruktur): AI proposes → Owner genehmigt → Rust
-implementiert → CI verifiziert.
+```
+DISCOVER
+→ UNDERSTAND
+→ PLAN
+→ IMPLEMENT
+→ TEST
+→ AUDIT
+→ DOCUMENT
+→ REVIEW
+→ COMMIT
+→ PR
+→ HUMAN APPROVAL
+→ MERGE
+```
+
+An agent MUST NOT skip required governance stages.
+
+## Scope
+
+Every agent task MUST have an explicit scope.
+
+The scope SHOULD identify:
+
+- Repository
+- Branch
+- Files or subsystem
+- Applicable standards
+- Allowed operations
+- Required validation
+- Required evidence
+
+Agents MUST NOT expand their scope implicitly.
+
+## Separation of Duties
+
+The following responsibilities MUST remain logically separated:
+
+- CODER
+- VALIDATOR
+- AUDITOR
+- RELEASE AUTHORITY
+- HUMAN APPROVER
+
+An AI agent MUST NOT independently authorize a production release.
+
+## Standards
+
+Before implementation, agents MUST determine applicable standards from the canonical standards registry.
+
+Agents MUST NOT invent normative ATC standards.
+
+If a required standard cannot be resolved, the operation MUST be blocked or explicitly escalated.
+
+## Security
+
+Agents MUST:
+
+- avoid introducing secrets
+- avoid weakening security controls without authorization
+- preserve least privilege
+- preserve auditability
+- validate dependencies
+- run applicable security checks
+
+Security controls MUST NOT be bypassed merely to make CI pass.
+
+## Changes
+
+Changes MUST be minimal, scoped and reviewable.
+
+Agents SHOULD avoid unrelated refactoring.
+
+Generated files MUST be reproducible from their authoritative inputs whenever practical.
+
+## Testing
+
+Relevant tests MUST be executed before completion.
+
+At minimum, Rust changes SHOULD run:
+
+```
+cargo fmt --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace
+```
+
+Additional conformance, security and integration tests MUST be executed when affected.
+
+## Evidence
+
+Agents MUST preserve evidence required to substantiate their work.
+
+Evidence SHOULD identify:
+
+- actor
+- action
+- repository
+- commit
+- policy
+- standards
+- validation result
+- timestamp
+- artifact
+- provenance
+
+## Git
+
+Agents MUST NOT rewrite protected history.
+
+Force-push operations require explicit authorization.
+
+Commits SHOULD be atomic and semantically scoped.
+
+## Pull Requests
+
+Changes SHOULD be submitted through pull requests.
+
+A pull request MUST contain sufficient information for independent review.
+
+Required checks MUST pass before merge.
+
+## Release
+
+Production release requires:
+
+```
+valid implementation
++
+passing validation
++
+security validation
++
+valid evidence
++
+required review
++
+human approval
+```
+
+Agents MUST NOT treat a local success state as production authorization.
+
+## Failure Handling
+
+When a required gate fails:
+
+```
+STOP
+→ RECORD
+→ DIAGNOSE
+→ FIX
+→ REVALIDATE
+```
+
+Agents MUST NOT conceal failures or replace failed evidence with declarations.
+
+## Documentation
+
+Architectural changes MUST update the relevant documentation.
+
+Standards-impacting changes MUST reference the affected standards.
+
+## Final Rule
+
+When uncertain about authorization, scope or governance:
+
+**«STOP AND ESCALATE.»**
+
+Do not infer authority.

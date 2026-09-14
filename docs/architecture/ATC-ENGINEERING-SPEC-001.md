@@ -1,421 +1,1036 @@
-# ATC-ENGINEERING-SPEC-001 — atc-engineering Repository Specification v1.0
+# ATC Engineering — Repository Specification v1.0.0
 
 | Feld | Wert |
 |---|---|
-| Spec-ID | ATC-ENGINEERING-SPEC-001 |
-| Version | 1.0.0 (2026-09-14) |
-| Auslöser | Owner-Direktive 14.09.2026 — Engineering Control Plane als zentrales Repository (ausdrücklich kein Ersatz für atc-standards) |
-| Status | SPECIFIED — Implementation gemäß ROADMAP.md Phase 1ff. |
-| Sprache | Rust (kanonisch, AD-008: Infrastruktur) — Python/TypeScript nur für dokumentierte Integrations-Glue |
-| Registry | ATC-REPO-ENG-001 · Layer L7 · Domain engineering_governance · Criticality C2 · Security S2 |
+| Repository | `A-TownChain-Okosystems/atc-engineering` |
+| Version | 1.0.0 |
+| Status | DRAFT → Ziel CANDIDATE |
+| Primary Language | Rust |
+| License | gemäß zentraler ATC-Lizenzpolitik |
+| Authority | A-TownChain-Okosystems |
+| Standards Authority | `atc-standards` |
+| Owner-Direktive | 14.09.2026 — Michael Wroblewski |
 
 ---
 
-## 1. Purpose & Scope
+## 1. Zweck
 
-> A-TownChain Engineering & Governance Platform — Software platform for
-> building, validating, governing, auditing and releasing the A-TownChain
-> ecosystem.
+`atc-engineering` ist die zentrale Softwareplattform für:
 
-atc-engineering ist die **Engineering Control Plane** des Ökosystems. Sie
-operiert auf der Repository-Fleet (L0–L7), nicht auf Chain-Daten. Sie
-implementiert **keine Konsens-Semantik** und verletzt damit AD-008 nicht.
+- Software Engineering
+- Repository Governance
+- Standards Enforcement
+- Compliance Validation
+- Security Validation
+- CI/CD Orchestration
+- Build Engineering
+- Release Engineering
+- Evidence Collection
+- Audit Automation
+- AI-Agent Governance
+- Repository Bootstrap
+- Technology/Dependency Intelligence
 
-### 1.1 Drei-Ebenen-Modell
-
-```
-┌────────────────────────────────────────────────────┐
-│  1. KNOWLEDGE / AUTHORITY   — atc-standards         │
-│     "WHAT MUST BE TRUE?"                            │
-├────────────────────────────────────────────────────┤
-│  2. ENGINEERING / GOVERNANCE — atc-engineering      │
-│     "HOW IS IT BUILT AND VERIFIED?"                 │
-├────────────────────────────────────────────────────┤
-│  3. PRODUCT / RUNTIME — ATCLang, ShivaCore,         │
-│     A-TownChain, ATC-VM, Aurora, GlobusOS, Genesis │
-└────────────────────────────────────────────────────┘
-```
-
-### 1.2 Verhältnis zu atc-standards (kardinale Regel)
-
-**Standards-Fluss ist einseitig:**
+### Normative Abgrenzung
 
 ```
-atc-standards (normatives SSOT)
-        │  READ-ONLY
-        ▼
-Standards Registry (registry/standards.yaml, repositories.yaml)
-        ▼
-Rule Compiler (atc-engineering)
-        ▼
-Maschinenlesbare Policies (policies/)
-        ▼
-Repository-Validatoren (execution)
+atc-standards
+    │
+    │ normative rules
+    ▼
+atc-engineering
+    │
+    │ enforcement / validation / automation
+    ▼
+A-TownChain Repository Fleet
 ```
 
-atc-engineering **liest** Regeln aus atc-standards und kompiliert sie zu
-Policies und Validatoren. atc-standards bleibt normative Autorität
-(„Was muss gelten?"); atc-engineering beantwortet „Wie wird sichergestellt,
-dass es gilt — und wie wird daraus Software gebaut?".
-
-### 1.3 Was atc-engineering NICHT ist
-
-- Kein Ersatz für atc-standards (keine normativen Texte)
-- Kein DevOps-/Scripts-/Tools-/Admin-/CI-Sammlungs-Repo (Name bewusst:
-  Plattform, nicht Hilfsmittel-Sammlung)
-- Kein zweites Governance-SSOT (Registry bleibt in atc-standards)
-- Kein Produkt-Repo (keine Blockchain-Runtime, keine Konsens-Logik)
+`atc-engineering` darf **keine normative Regel stillschweigend überschreiben**, die in `atc-standards` definiert ist.
 
 ---
 
-## 2. Architektur
+## 2. Architekturprinzip
+
+Die Plattform basiert auf fünf Ebenen:
 
 ```
-                ATC ENGINEERING PLATFORM
-
-                     CONTROL PLANE
-                          │
-      ┌───────────────────┼───────────────────┐
-      │                   │                   │
- Governance           Engineering           Evidence
- Engine                Engine               Engine
-      │                   │                   │
-      ▼                   ▼                   ▼
- Standards            Build/CI             Audit Records
- Policies             Testing              Evidence
- Gates                Release               Provenance
- Approvals            Deployment           Compliance
-      │                   │                   │
-      └───────────────────┼───────────────────┘
-                          ▼
-                   EXECUTION PLANE
-                          │
-      ┌───────────────────┼───────────────────┐
-      ▼                   ▼                   ▼
-   GitHub              CI/CD                Local
-   Repos               Runners              Runtime
+┌─────────────────────────────────────────────┐
+│              GOVERNANCE PLANE               │
+│ Policies / Approvals / Gates / Roles        │
+├─────────────────────────────────────────────┤
+│              KNOWLEDGE PLANE                │
+│ Standards / Schemas / Rules / Registry      │
+├─────────────────────────────────────────────┤
+│             ENGINEERING PLANE               │
+│ Build / Test / Audit / Security / Release   │
+├─────────────────────────────────────────────┤
+│              EVIDENCE PLANE                  │
+│ Evidence / Provenance / Attestations        │
+├─────────────────────────────────────────────┤
+│              EXECUTION PLANE                │
+│ Git / GitHub / CI / Runners / Repositories  │
+└─────────────────────────────────────────────┘
 ```
-
-### 2.1 Engine-Verantwortlichkeiten
-
-| Engine | Verantwortung | Kern-Crates |
-|---|---|---|
-| Governance Engine | Standards-Kompilierung, Policies, Gates, Approvals | atc-standards, atc-governance, atc-policy |
-| Engineering Engine | Build, Test, Workflows, Bootstrapping, Release | atc-build, atc-test, atc-repository, atc-release |
-| Evidence Engine | Evidenz-Bündel, Status-Derivation, Provenance, Compliance | atc-evidence, atc-audit, atc-security |
 
 ---
 
-## 3. Verzeichnisstruktur
+## 3. Architekturmodell
+
+### Control Plane
+
+Die Control Plane entscheidet, was erlaubt ist und welche Gates erfüllt werden müssen.
+
+```
+Configuration
+     │
+     ▼
+Standards Registry
+     │
+     ▼
+Policy Engine
+     │
+     ▼
+Governance Engine
+     │
+     ▼
+Gate Engine
+```
+
+### Execution Plane
+
+Die Execution Plane führt autorisierte Aktionen aus.
+
+```
+Gate
+ │
+ ├── Repository operation
+ ├── Build
+ ├── Test
+ ├── Audit
+ ├── Security scan
+ ├── Release
+ └── Evidence generation
+```
+
+### Grundregel
+
+```
+CONTROL PLANE ≠ EXECUTION PLANE
+```
+
+Eine Policy darf eine Operation erlauben, aber die Policy Engine führt die Operation nicht selbst aus.
+
+---
+
+## 4. „No Evidence, No Trust"
+
+Das zentrale Integritätsprinzip lautet:
+
+> Declared state is not trusted state.
+
+Beispiel: `status: production_ready` ist lediglich eine Behauptung.
+Der tatsächliche Status wird aus Evidence abgeleitet:
+
+```
+Repository + Commit + Standards + Tests + Security + Audit
++ Approvals + Release evidence = Derived State
+```
+
+Daraus:
+
+```
+NOT_READY
+    ↓
+DEVELOPMENT
+    ↓
+VALIDATED
+    ↓
+TESTNET_READY
+    ↓
+PRODUCTION_READY
+```
+
+---
+
+## 5. Rust Workspace
+
+Die Root-Datei `Cargo.toml` definiert ein Workspace-Modell.
+
+| Crate | Verantwortung |
+|---|---|
+| `atc-core` | Fundamentale Domain Types: IDs, States, Errors, Timestamps, References, Common Traits, Result Types |
+| `atc-config` | Konfiguration: `atc-engineering.toml`, `repository.yaml`, `workspace.yaml`, `policy.yaml` |
+| `atc-standards` | Adapter für `atc-standards`: Registry laden, Standards/Requirements/Dependencies resolven, Versionen validieren, Rules kompilieren |
+| `atc-policy` | Policy Engine: Policy, Rule, Condition, Action, Exception, Expiration |
+| `atc-governance` | Governance Engine: Roles, Responsibilities, Approvals, Separation of Duties, Governance Gates, Exceptions, Escalations |
+| `atc-repository` | Repository Intelligence: Discovery, Metadata, Classification, File Inventory, State, Lifecycle, Ownership, Dependencies |
+| `atc-github` | GitHub Integration Layer: Repositories, Branches, Commits, PRs, Issues, Actions, Releases, Checks, CODEOWNERS, Metadata |
+| `atc-audit` | Audit Engine: Repository/Organization/Standard/Release/Architecture audits |
+| `atc-evidence` | Evidence Engine: erzeugt unveränderliche Evidence Records |
+| `atc-security` | Security Validation: Dependency Audit, Secret Detection, SBOM, License Validation, SAST, Container Scanning, Supply-Chain Verification |
+| `atc-build` | Build Orchestration: Build, Cross-Build, Artifact Generation, Toolchain Validation |
+| `atc-test` | Test Orchestration: Unit, Integration, System, Compliance, Conformance, Regression |
+| `atc-release` | Release Engineering: Versioning, Release Candidates, Release Gates, Artifact Verification, Provenance, Promotion |
+| `atc-agent` | AI Engineering Agent Governance: Agent Identity, Scope, Allowed Actions, Task, Plan, Execution, Evidence, Approval |
+| `atc-template` | Repository Bootstrap Templates |
+| `atc-schema` | Canonical Schemas |
+
+GitHub bleibt eine externe Execution-/Source-Control-Plattform.
+
+---
+
+## 6. Verzeichnisstruktur
 
 ```
 atc-engineering/
+│
 ├── .github/
-│   ├── workflows/          # eigene CI (generiert aus Policy, sobald Phase 3)
+│   ├── workflows/
+│   │   ├── ci.yml
+│   │   ├── security.yml
+│   │   ├── compliance.yml
+│   │   ├── audit.yml
+│   │   └── release.yml
 │   ├── CODEOWNERS
-│   └── dependabot.yml      # (Phase 1)
+│   ├── dependabot.yml
+│   └── pull_request_template.md
+│
 ├── crates/
-│   ├── atc-core/           # Domänen-Typen, Fehler-Modell, Statusleiter
-│   ├── atc-config/         # Registry-/Policy-Loader (YAML/JSON), Schema-Validierung
-│   ├── atc-governance/     # Governance Engine: Gates, Approvals, SCR-Anbindung
-│   ├── atc-policy/         # Policy Engine: Merge-/Release-Policies, Evaluation
-│   ├── atc-standards/      # Standards Engine: Registry-Loader, Rule Compiler
-│   ├── atc-audit/          # Audit Engine: Repo-/Org-Audits, Scoring
-│   ├── atc-evidence/        # Evidence Engine: Bündel, Derivation, Provenance
-│   ├── atc-repository/      # Repository Manager: Fleet, Lifecycle, Health
-│   ├── atc-build/           # Build-Orchestrierung
-│   ├── atc-test/            # Test-Orchestrierung, Determinism-Gates
-│   ├── atc-security/        # Security-Scans, Dependency-Intelligence
-│   ├── atc-release/         # Release Engineering: Devnet→Testnet→Mainnet
-│   └── atc-agent/           # AI-Agent-Schnittstelle (ATC-AI-GOV-konform)
+│   ├── atc-core/
+│   ├── atc-config/
+│   ├── atc-standards/
+│   ├── atc-policy/
+│   ├── atc-governance/
+│   ├── atc-repository/
+│   ├── atc-github/
+│   ├── atc-audit/
+│   ├── atc-evidence/
+│   ├── atc-security/
+│   ├── atc-build/
+│   ├── atc-test/
+│   ├── atc-release/
+│   ├── atc-agent/
+│   ├── atc-template/
+│   └── atc-schema/
+│
 ├── cli/
-│   └── atc-engine/          # Binär-Crate: atc-engine CLI
-├── policies/                # Generierte + handgepflegte Engineering-Policies
-├── schemas/                 # JSON-Schemas: repository, policy, evidence
-├── templates/               # repo/, rust/, python/, atclang/, github/
-├── validators/              # Standard-Validatoren (je ATC-STD eine Regel-Datei)
+│   └── atc-engine/
+│
+├── config/
+│   ├── defaults/
+│   ├── schemas/
+│   └── examples/
+│
+├── policies/
+│   ├── repository/
+│   ├── security/
+│   ├── release/
+│   ├── governance/
+│   └── agent/
+│
+├── standards/
+│   ├── registry/
+│   └── mappings/
+│
+├── schemas/
+│   ├── repository/
+│   ├── evidence/
+│   ├── policy/
+│   ├── audit/
+│   ├── release/
+│   └── agent/
+│
+├── templates/
+│   ├── repository/
+│   ├── rust/
+│   ├── python/
+│   ├── atclang/
+│   └── github/
+│
+├── validators/
+│   ├── filesystem/
+│   ├── metadata/
+│   ├── governance/
+│   ├── security/
+│   ├── standards/
+│   └── architecture/
+│
+├── generators/
+│   ├── workflows/
+│   ├── documentation/
+│   ├── manifests/
+│   └── reports/
+│
 ├── integrations/
-│   └── github/              # GitHub-API-Client (read-mostly), Checks, Webhooks
+│   ├── github/
+│   ├── git/
+│   └── ci/
+│
 ├── docs/
-│   ├── architecture/        # SPEC (dieses Dokument), Architektur-Entscheidungen
-│   ├── governance/          # Governance-Modell, Gate-Definitionen
-│   ├── engineering/         # Module-Handbücher
-│   ├── security/            # Security-Policy, Threat-Modell
-│   └── operations/          # Betrieb, Runbooks
-├── tests/                   # Integrations-Tests (CLI-End-to-End)
-├── AGENTS.md · ARCHITECTURE.md · CHANGELOG.md · CONTRIBUTING.md
-├── LICENSE · README.md · ROADMAP.md · SECURITY.md · STATUS.md
-└── .atc/evidence/evidence.yaml   # Ehrlicher Evidenz-Stand (Statusleiter)
+│   ├── architecture/
+│   ├── governance/
+│   ├── engineering/
+│   ├── security/
+│   ├── operations/
+│   └── adr/
+│
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   ├── conformance/
+│   ├── fixtures/
+│   └── golden/
+│
+├── scripts/
+│
+├── AGENTS.md
+├── ARCHITECTURE.md
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── README.md
+├── ROADMAP.md
+├── SECURITY.md
+├── STATUS.md
+├── Cargo.toml
+└── Cargo.lock
 ```
 
 ---
 
-## 4. Rust-Crates
+## 7. CLI
 
-| Crate | Zweck | Abhängigkeiten |
-|---|---|---|
-| `atc-core` | Domänen-Typen (Repository, Layer, Status), Fehler-Modell (fail-closed, kein unwrap im Policy-Pfad), Statusleiter SPECIFIED→…→RELEASED | – |
-| `atc-config` | Loader für repositories.yaml, standards.yaml, Policy-Dateien; Schema-Validierung | atc-core, serde, serde_yaml |
-| `atc-standards` | Standards-Engine: Registry-Lesen, **Rule Compiler** (ATC-STD → maschinenlesbare Policy → Validatoren-Set) | atc-core, atc-config |
-| `atc-policy` | Policy-Engine: Merge-Gates (Reviews, CI, Security-Scan), Release-Gates (Human-Approval, Evidence-Bundle, Changelog, Provenance); Evaluation fail-closed | atc-core, atc-config |
-| `atc-governance` | Gate-Orchestrierung, Approval-Trail, SCR-Referenzen, Owner-Mandat-Prüfung | atc-policy, atc-evidence |
-| `atc-repository` | Fleet-Discovery (GitHub-API), Klassifikation aus Registry, Lifecycle, Health, Maturity | atc-core, integrations/github |
-| `atc-audit` | Audit-Engine: je Repo und org-weit; Kategorien Governance/Architecture/Security/Docs/Testing/CI/Dependencies/Standards; Score 0–100, GATE ab 85 | atc-standards, atc-repository, atc-evidence |
-| `atc-evidence` | Evidenz-Bündel, **Status-Derivation** (state = f(commit, ci, security, standards, approvals)), Provenance, Compliance-Records | atc-core |
-| `atc-build` | Build-Orchestrierung, Toolchain-Pinning, Reproducibility | atc-core |
-| `atc-test` | Test-Orchestrierung inkl. **Determinism-Gates** (Org-Standard D-CRITICAL) | atc-core |
-| `atc-security` | Security-Scan-Integration (cargo audit, etc.), Dependency-Intelligence: Vulns, EOL, License-Konflikte, Technology Radar | atc-core, integrations/github |
-| `atc-release` | Release-Pipeline: Devnet→Testnet→Release-Gate→Mainnet als Policy-Kette mit Human-Approval | atc-policy, atc-evidence |
-| `atc-agent` | AI-Agent-Schnittstelle: Task+Scope+Standards+AllowedActions+EvidenceRequirements je Auftrag; **keine implizite Autorität** | atc-governance |
+Das primäre Interface ist `atc-engine`.
 
-Workspace: ein Cargo-Workspace, `cargo fmt`/`clippy -D warnings`/`test` in CI,
-kein unwrap() in Policy-/Audit-/Evidence-kritischen Pfaden (Owner-Regel,
-analog Konsens-Kritikalität).
-
----
-
-## 5. CLI — `atc-engine`
+### Repository Commands
 
 ```
-atc-engine <command> [options]
-
-Repository Manager:
-  atc-engine repo list [--layer L5] [--domain services]
-  atc-engine repo show <name>
-  atc-engine repo health [--org]
-  atc-engine repo init <name> [--template rust|python|atclang] [--layer L7]
-
-Standards Engine:
-  atc-engine standards compile          # Registry → Policies → Validatoren
-  atc-engine standards validate <repo>
-
-Audit:
-  atc-engine audit <repo>              # Kategorie-Score + Findings P0–P3
-  atc-engine audit --org               # gesamte Organisation
-
-Policy:
-  atc-engine policy check <repo>       # Merge-/Release-Policy auswerten
-  atc-engine policy apply <repo>       # Branch-Protection-Vorschlag/Owner-Aktion
-
-Generator:
-  atc-engine generate workflows <repo> # CI aus Policy (reproduzierbar)
-  atc-engine generate matrix           # Code-Quality-Matrix (SSOT: Registry)
-
-Evidence:
-  atc-engine evidence collect <repo>
-  atc-engine evidence derive <repo>    # Status-Derivation (kein Claiming)
-  atc-engine evidence verify <repo>    # Bündel gegen Realität prüfen
-
-Release:
-  atc-engine release gate <repo> [--env devnet|testnet|mainnet]
-  atc-engine release status [--org]
-
-Agent:
-  atc-engine agent task <task.yaml>    # ATC-AI-GOV-konformer Auftrag
+atc-engine repo init
+atc-engine repo inspect
+atc-engine repo audit
+atc-engine repo validate
+atc-engine repo inventory
+atc-engine repo classify
 ```
 
-Audit-Output (Beispiel):
+Beispiele:
 
 ```
-Repository: atc-node
-
-Governance        PASS
-Architecture      PASS
-Security          PASS
-Documentation     WARN
-Testing           PASS
-CI/CD             PASS
-Dependencies      WARN
-Standards         PASS
-
-Compliance: 94/100 (GATE ≥ 85: PASS)
-P0: 0 · P1: 1 · P2: 3 · P3: 5
+atc-engine repo audit atc-node
+atc-engine repo inventory atclang
 ```
 
 ---
 
-## 6. Governance-Modell
+## 8. Organization Commands
 
-### 6.1 Engineering Policy (Beispiel `policies/repository.yaml`)
+```
+atc-engine org discover
+atc-engine org inventory
+atc-engine org audit
+atc-engine org compliance
+atc-engine org report
+```
+
+Beispiel: `atc-engine org audit A-TownChain-Okosystems`
+
+Output:
+
+```
+Organization Compliance
+
+Repositories:       26
+Compliant:          19
+Warnings:            5
+Critical:            2
+
+P0: 0
+P1: 2
+P2: 11
+P3: 24
+
+Overall: 91.4%
+```
+
+---
+
+## 9. Standards CLI
+
+```
+atc-engine standards list
+atc-engine standards show ATC-STD-000
+atc-engine standards validate
+atc-engine standards sync
+atc-engine standards compile
+```
+
+Beispiel: `atc-engine standards validate atc-node`
+
+---
+
+## 10. Policy CLI
+
+```
+atc-engine policy list
+atc-engine policy show
+atc-engine policy validate
+atc-engine policy evaluate
+```
+
+Beispiel:
+
+```
+atc-engine policy evaluate \
+  --repo atc-node \
+  --operation release
+```
+
+---
+
+## 11. Audit CLI
+
+```
+atc-engine audit repository
+atc-engine audit organization
+atc-engine audit standard
+atc-engine audit release
+```
+
+Mit JSON: `atc-engine audit repository atc-node --format json`
+
+---
+
+## 12. Evidence CLI
+
+```
+atc-engine evidence collect
+atc-engine evidence verify
+atc-engine evidence export
+atc-engine evidence inspect
+```
+
+Beispiel:
+
+```
+atc-engine evidence collect \
+  --repo atc-node \
+  --commit abc123
+```
+
+---
+
+## 13. Build/Test
+
+```
+atc-engine build
+atc-engine test
+atc-engine test compliance
+atc-engine test security
+atc-engine test conformance
+```
+
+---
+
+## 14. Release
+
+```
+atc-engine release inspect
+atc-engine release prepare
+atc-engine release validate
+atc-engine release approve
+atc-engine release promote
+```
+
+Wichtig: `release promote` darf **niemals ausschließlich aus einer lokalen Konfiguration heraus funktionieren**. Es benötigt gültige Release Evidence.
+
+---
+
+## 15. Agent Commands
+
+```
+atc-engine agent inspect
+atc-engine agent authorize
+atc-engine agent task
+atc-engine agent validate
+atc-engine agent evidence
+```
+
+Beispiel:
+
+```
+atc-engine agent task \
+  --repository atc-node \
+  --scope "network subsystem"
+```
+
+---
+
+## 16. Governance-Modell
+
+Die Plattform verwendet **Separation of Duties**. Mindestens folgende Rollen:
+
+- CODER
+- VALIDATOR
+- AUDITOR
+- RELEASE_AUTHORITY
+- HUMAN_APPROVER
+
+Eine einzelne Identität darf nicht automatisch alle Rollen besitzen.
+
+### AI-Agent
+
+```
+AI Agent
+    │
+    ├── can inspect
+    ├── can plan
+    ├── can modify authorized scope
+    ├── can test
+    └── can generate evidence
+
+aber:
+
+AI Agent
+    X
+    └── cannot independently authorize production release
+```
+
+---
+
+## 17. Governance State Machine
+
+```
+IDEA
+ │
+ ▼
+PROPOSED
+ │
+ ▼
+PLANNED
+ │
+ ▼
+IMPLEMENTING
+ │
+ ▼
+VALIDATING
+ │
+ ▼
+AUDITING
+ │
+ ▼
+REVIEW
+ │
+ ▼
+APPROVED
+ │
+ ▼
+RELEASE_CANDIDATE
+ │
+ ▼
+PRODUCTION_READY
+ │
+ ▼
+RELEASED
+```
+
+Bei einem kritischen Fehler: `ANY STATE → BLOCKED`
+
+---
+
+## 18. Policy Gates
+
+Jede kritische Aktion besitzt Gates:
+
+| Gate | Prüfung |
+|---|---|
+| G0 | Identity |
+| G1 | Scope |
+| G2 | Standards |
+| G3 | Architecture |
+| G4 | Tests |
+| G5 | Security |
+| G6 | Evidence |
+| G7 | Review |
+| G8 | Approval |
+| G9 | Release |
+
+Eine Release-Aktion:
+
+```
+G0 ✓  G1 ✓  G2 ✓  G3 ✓  G4 ✓  G5 ✓  G6 ✓  G7 ✓  G8 ✓  G9 → EXECUTE
+```
+
+Fehlt ein Gate: `RELEASE = BLOCKED`
+
+---
+
+## 19. Evidence Schema
 
 ```yaml
-repository:
-  id: ATC-REPO-NODE-001
-  name: atc-node
-  layer: L7
-  domain: blockchain
-  lifecycle: development
-  criticality: critical
+evidence:
+  id: EVD-2026-000001
+  type: test-result
 
-governance:
-  standards:           # verbindlich über atc-standards Registry
-    - ATC-STD-000
-    - ATC-STD-VERSION-001
-    - ATC-STD-ENG-001
+  subject:
+    repository: atc-node
+    commit: abc123
 
-required:
-  security: true       # Security-Scan in CI
-  codeowners: true
-  ci: true
-  changelog: true
-  roadmap: true
-  determinism: true    # D-CRITICAL-Repos: Determinism-Gate
+  producer:
+    system: atc-engineering
+    component: atc-test
 
-merge:
-  required_reviews: 2
-  codeowners_required: true
-  ci_required: true
-  security_scan_required: true
+  timestamp: 2026-09-14T10:00:00Z
 
-release:
-  human_approval: required
-  evidence_bundle: required
-  changelog: required
-  provenance: required
+  result:
+    status: PASS
+
+  inputs:
+    standards:
+      - ATC-STD-000
+      - ATC-STD-016
+
+  artifacts:
+    - test-report.json
+
+  provenance:
+    workflow: ci.yml
+    run_id: 123456
+
+  integrity:
+    algorithm: SHA-256
+    digest: "..."
+
+  immutable: true
 ```
-
-### 6.2 Pipeline
-
-```
-Developer → PR → Engineering Policy ─┬─ Tests
-                                     ├─ Security
-                                     ├─ Standards
-                                     ├─ Architecture
-                                     ├─ Dependencies
-                                     └─ Evidence
-                          → Release Gate → Human Approval → Release
-```
-
-### 6.3 Release-Lifecycle (maschinenlesbar)
-
-```
-SOURCE → BUILD → TEST → DEVNET (Alpha→Beta) → TESTNET (Alpha→Beta)
-       → RELEASE GATE → HUMAN APPROVAL → MAINNET
-```
-
-### 6.4 Agent-Governance (ATC-AI-GOV v1.0)
-
-Agenten erhalten **keine implizite Autorität**. Jeder Auftrag besteht aus:
-
-```
-Task + Scope + Applicable Standards + Repository Policy
-     + Allowed Actions + Evidence Requirements
-```
-
-Workflow: DISCOVER → UNDERSTAND → PLAN → IMPLEMENT → TEST → AUDIT →
-DOCUMENT → REVIEW → COMMIT → PR → HUMAN APPROVAL → MERGE.
-
-No Self-Certification: der Agent zertifiziert nie sein eigenes Ergebnis;
-Evidence Engine verifiziert gegen die Realität (Commits, CI-Runs).
 
 ---
 
-## 7. Daten- & Evidence-Schemas
+## 20. Evidence Types
 
-### 7.1 Evidence-Bundle (`schemas/evidence-bundle.schema.json`)
+Mindestens:
 
-```json
-{
-  "repository": "atc-node",
-  "state": "PRODUCTION_READY",
-  "derived_from": [
-    "commit:abc123",
-    "ci:passed",
-    "security:passed",
-    "standards:passed",
-    "review:approved",
-    "release:evidence-001"
-  ],
-  "generated_by": "atc-engine v0.4.0",
-  "generated_at": "2026-09-14T12:00:00Z",
-  "verifiable": true
-}
-```
+BUILD · TEST · SECURITY_SCAN · SAST · DEPENDENCY_SCAN · SBOM · LICENSE_SCAN · STANDARD_VALIDATION · POLICY_EVALUATION · AUDIT · REVIEW · APPROVAL · RELEASE · ARTIFACT · PROVENANCE
 
-**Kernprinzip:** `state` wird nie behauptet, sondern aus Evidenz **abgeleitet**
-(DERIVED). Das ersetzt manuell gepflegte STATUS.md-Claims durch überprüfbare
-Derivation — STATUS.md bleibt als menschenlesbare Projektion erhalten.
+---
 
-### 7.2 Repository-Metadaten (`schemas/repository.schema.json`)
+## 21. Repository State Schema
 
 ```yaml
 repository:
   id: ATC-REPO-001
   name: atc-node
-  layer: L7
-  domain: blockchain
-  lifecycle: development
-  criticality: critical
-  canonical: true
-  evidence: .atc/evidence/evidence.yaml
-```
 
-### 7.3 Status-Derivation (Evidence Engine)
+  lifecycle:
+    phase: DEVELOPMENT
 
-```
-state = f(repository_state, commit, ci_results, security_results,
-          standards_validation, architecture_validation, approvals,
-          release_evidence)
-```
+  derived_state:
+    state: VALIDATED
 
-Konflikt-Regel: fehlende oder widersprüchliche Evidenz → Status bleibt
-niedriger / wird auf UNKNOWN gesetzt. Fail-closed, kein Guessing.
+  source:
+    commit: abc123
+    branch: main
+
+  governance:
+    policy: ATC-POLICY-001
+
+  standards:
+    registry_version: "1.3.0"
+
+  evidence:
+    required: true
+    valid: true
+```
 
 ---
 
-## 8. Standards-Anbindung
+## 22. GitHub Integration
 
-| Standards-Verantwortung | Wo |
-|---|---|
-| Normative Standards, Registry, SCR-Prozess | atc-standards (SSOT) |
-| Rule-Compiler (STD → Policy → Validator) | atc-engineering/crates/atc-standards |
-| Validatoren-Ausführung je Repo | atc-engineering/validators/ |
-| Findings (P0–P3) | atc-engineering → atc-standards Finding-Format |
+GitHub ist ein **Provider, nicht die normative Quelle**.
 
-Der Rule Compiler mappt z.B.:
+Integration über `atc-github`:
 
 ```
-ATC-STD-016 (File Inventory required)
-   → Validator: docs/inventory vorhanden & aktuell
-   → PASS / FAIL + Evidence
+atc-github
+      │
+      ├── Repository API
+      ├── Git API
+      ├── Pull Request API
+      ├── Actions API
+      ├── Checks API
+      ├── Release API
+      └── Issue API
 ```
 
-Governance-Findings folgen ATC-FINDING-Jahr-Nummer (ATC-AI-GOV).
+### Pull Request Lifecycle
+
+```
+PR → Discover → Policy Evaluation → Standards Validation → CI
+   → Security → Audit → Review → Approval → Merge
+```
 
 ---
 
-## 9. GitHub-Integration
+## 23. GitHub App
 
-- **Read-mostly API-Client** (`integrations/github/`): Fleet-Discovery,
-  Checks-Status, CI-Ergebnisse, Branch-Protection-Lesen.
-- **Schreiboperationen** (Branch-Protection setzen, Required Checks) nur als
-  **Owner-Vorschlag**: atc-engine erzeugt die exakte Konfiguration; der Owner
-  bestätigt (Token-Scope des Agenten bleibt minimal — niemals Org-Admin).
-- Webhook-Receiver (Phase 4+): PR-Events → Policy-Evaluation → Check-Status.
-- Org-weite Audits: `--org` mit-pagination, Rate-Limit-fair.
+Für produktiven Betrieb sollte `atc-engineering` langfristig über eine **GitHub App** arbeiten — statt eines permanenten persönlichen Tokens.
 
-## 10. CI/CD (dieses Repos)
+```
+GitHub App → atc-engineering
+```
 
-Phase 0 (jetzt): Struktur-Validierung — Pflichtdokumente vorhanden,
-SPEC-Version gebunden, Evidence-Datei ehrlich.
+Minimalprinzip:
 
-Phase 1+: `cargo fmt --check`, `cargo clippy --D warnings`, `cargo test`,
-`cargo audit` (analog atc-vm RustSec-Gate), Struktur-Gate. Ab Phase 3 werden
-die eigenen Workflows aus der Policy generiert (Hund-Futter-Prinzip: die
-Plattform isst ihren eigenen Hund).
+> Least Privilege + Repository Scoping + Explicit Write Operations
+
+Die App erhält nur die Berechtigungen, die für den jeweiligen Workflow notwendig sind.
 
 ---
 
-## 11. Compliance & Metrik
+## 24. Standards-Anbindung
 
-- Org-Audit V-01..V-16 (atc-standards), GATE ab Score 85.
-- Determinismus: Audit-/Policy-Entscheidungen reproduzierbar (feste
-  Sortierung, keine Wall-Clock-Abhängigkeit; ATC-STD-ENG-001).
-- Registry-Eintrag: ATC-REPO-ENG-001, Layer L7, Domain engineering_governance,
-  Criticality C2, Security S2, Maturity C, canonical: true (capability:
-  engineering_governance).
+`atc-standards` bleibt SSOT.
 
-## 12. Changelog der Spec
+```
+atc-standards
+       │
+       ▼
+Registry
+       │
+       ▼
+Standard Resolver
+       │
+       ▼
+Requirement Resolver
+       │
+       ▼
+Policy Compiler
+       │
+       ▼
+Validators
+```
 
-- v1.0.0 (2026-09-14): Erste verabschiedete Fassung (Owner-Direktive
-  14.09.2026). Änderungen nur via SCR in atc-standards + Owner-Freigabe.
+Beispiel:
+
+```
+ATC-STD-016
+     │
+     ├── REQ-STD-016-001
+     ├── REQ-STD-016-002
+     └── REQ-STD-016-003
+             │
+             ▼
+        Validator
+```
+
+Damit können einzelne Requirements maschinenlesbar geprüft werden.
+
+---
+
+## 25. Standards Version Pinning
+
+Ein Repository darf nicht unkontrolliert gegen eine beliebige aktuelle Registry-Version validiert werden.
+
+```yaml
+standards:
+  registry:
+    source: A-TownChain-Okosystems/atc-standards
+    version: 1.3.0
+
+  policy:
+    compatibility:
+      minimum: 1.3.0
+      maximum: 1.x
+```
+
+Für Major-Versionen ist ein expliziter Migration Path erforderlich.
+
+---
+
+## 26. CI/CD
+
+### Pull Request
+
+```
+checkout ↓ format ↓ clippy ↓ unit tests ↓ integration tests
+↓ conformance ↓ security ↓ dependency audit ↓ license
+↓ standards validation ↓ policy validation ↓ evidence generation
+```
+
+---
+
+## 27. Main Branch
+
+`main` darf nur über kontrollierte Änderungen verändert werden.
+
+Required:
+
+```
+PR + required checks + CODEOWNERS review + governance gate
+```
+
+---
+
+## 28. Release Pipeline
+
+```
+Commit → CI → Audit → Security → Evidence → Release Candidate
+       → Human Approval → Artifact Signing → Release → Provenance
+```
+
+---
+
+## 29. Supply-Chain Security
+
+Pflichtkomponenten:
+
+- SBOM
+- Dependency Locking
+- Dependency Audit
+- Artifact Hashing
+- Release Provenance
+- Build Metadata
+- License Validation
+- Secret Detection
+
+Optional später:
+
+- SLSA-compatible provenance
+- Sigstore/Cosign
+- Reproducible Builds
+- Binary Transparency
+
+---
+
+## 30. Repository Bootstrap
+
+`atc-engine repo init my-new-repo` führt zu:
+
+```
+Repository
+ │
+ ├── detect domain
+ ├── select template
+ ├── resolve standards
+ ├── generate governance
+ ├── generate CI
+ ├── generate documentation
+ └── validate
+```
+
+Templates: blockchain · os · kernel · language · vm · ai · sdk · service · game · documentation
+
+---
+
+## 31. Technology Stack
+
+### Core
+
+Rust · Cargo · Tokio · Serde · Clap · Tracing · thiserror/anyhow
+
+### Daten
+
+Für v1.0 wird zunächst dateibasierte, portable Schemas priorisiert:
+
+YAML · JSON · JSON Schema · TOML
+
+Eine Datenbank wird erst eingeführt, wenn der tatsächliche Persistenzbedarf nachgewiesen ist.
+
+---
+
+## 32. API Boundary
+
+Die Architektur ist von Anfang an API-fähig:
+
+```
+CLI → Application Layer → Domain Layer → Adapters
+```
+
+Später: REST API · gRPC · Web UI · Aurora integration — ohne die Domain Engine neu zu schreiben.
+
+---
+
+## 33. Domain Layer
+
+Dependency Direction:
+
+```
+            DOMAIN
+             /      \
+            /        \
+       POLICY       GOVERNANCE
+          \            /
+           \          /
+            APPLICATION
+                 │
+        ┌────────┼────────┐
+        ▼        ▼        ▼
+      GitHub    Git       CI
+```
+
+Die Domain darf nicht direkt von GitHub abhängig sein.
+
+---
+
+## 34. Failure Model
+
+Die Plattform arbeitet grundsätzlich **fail closed**.
+
+Unknown · Missing Evidence · Invalid Policy · Invalid Signature · Missing Approval · Failed Gate · Unsupported Standard · Unknown State
+
+führt zu:
+
+```
+BLOCK  (nicht ALLOW)
+```
+
+---
+
+## 35. Exceptions
+
+```yaml
+exception:
+  id: EXC-001
+  scope: repository
+  repository: atc-node
+
+  reason: "..."
+
+  requested_by: ...
+  approved_by:
+    - ...
+
+  expires_at: ...
+
+  controls:
+    compensating: true
+```
+
+Keine unbefristeten Governance Exceptions.
+
+---
+
+## 36. Audit Trail
+
+Jede mutierende Aktion muss nachvollziehbar sein:
+
+WHO · WHAT · WHEN · WHY · SCOPE · INPUT · RESULT · EVIDENCE · APPROVAL
+
+Beispiel:
+
+```
+Actor: agent-001
+Action: modify
+Repository: atc-node
+Scope: src/network/*
+Commit: abc123
+Policy: ATC-POLICY-001
+Result: PASS
+Evidence: EVD-001
+```
+
+---
+
+## 37. Initiale Priorisierung
+
+### P0
+
+Core domain · Configuration · Standards integration · Policy engine · Repository engine · Audit engine · Evidence engine · CLI · GitHub read integration · CI
+
+### P1
+
+GitHub write operations · Repository bootstrap · Security engine · Release engine · Agent governance
+
+### P2
+
+Web API · Dashboard · Technology radar · Advanced provenance · Organization-wide orchestration
+
+### P3
+
+Distributed workers · Enterprise federation · Advanced analytics · Multi-organization governance
+
+---
+
+## 41. V1.0 Definition of Done
+
+v1.0.0 wird nicht nur daran gemessen, ob der Rust-Code kompiliert. Die Plattform ist erst **PRODUCTION_READY**, wenn:
+
+```
+ATC ENGINEERING v1.0
+                                  │
+          ┌───────────────────────┼───────────────────────┐
+          │                       │                       │
+     Governance                Engineering             Evidence
+          │                       │                       │
+       Policies                Build/Test              Provenance
+       Approvals               Security                Audit
+       Gates                   Release                 Attestation
+          │                       │                       │
+          └───────────────────────┼───────────────────────┘
+                                  │
+                                  ▼
+                         Repository Fleet
+                                  │
+                                  ▼
+                       Derived System State
+```
+
+### P0
+
+- [ ] Standards können geladen werden.
+- [ ] Standards können validiert werden.
+- [ ] Policies können ausgewertet werden.
+- [ ] Repositories können auditiert werden.
+- [ ] Evidence kann erzeugt und verifiziert werden.
+- [ ] Gates können fail-closed arbeiten.
+- [ ] GitHub kann integriert werden.
+- [ ] CI/CD funktioniert.
+- [ ] Security Gates funktionieren.
+- [ ] Release Readiness ist evidence-basiert.
+
+### P1
+
+- [ ] Repository Bootstrap funktioniert.
+- [ ] GitHub Write Operations sind scoped.
+- [ ] Agent Governance funktioniert.
+- [ ] Release Promotion funktioniert.
+
+---
+
+## 42. Strategische Einordnung
+
+```
+A-TOWNCHAIN
+                         │
+          ┌──────────────┴──────────────┐
+          │                             │
+      AUTHORITY                     EXECUTION
+          │                             │
+          ▼                             ▼
+  ┌──────────────┐              ┌─────────────────┐
+  │ atc-standards│              │ atc-engineering │
+  └──────┬───────┘              └────────┬────────┘
+         │                               │
+         │ WHAT                          │ HOW
+         │                               │
+         ▼                               ▼
+    Standards                       Engineering
+    Requirements                    Governance
+    Schemas                         Audit
+    Normative Rules                 Build
+                                    Test
+                                    Security
+                                    Release
+                                         │
+                                         ▼
+                              ┌────────────────────┐
+                              │ Product Repositories│
+                              └────────────────────┘
+```
+
+**Wichtigste Leitplanke:** `atc-engineering` darf nicht zum „Mega-Repository" werden, das den eigentlichen Code von `atc-node`, `atclang`, ShivaCore, GlobusOS, Aurora usw. übernimmt. Es bleibt die **Engineering Control Plane**. Die eigentlichen Produkte bleiben in ihren spezialisierten Repositories.
+
+Damit wird `atc-engineering` das System, mit dem die gesamte A-TownChain-Organisation ihre Software baut — inklusive GSEPF-Prinzipien, Standards, Agent-Governance und Evidence-basierten Release-Gates.
+
+---
+
+*Die initialen Kerndokumente `README.md`, `AGENTS.md` und `ROADMAP.md` sind normative Ableitungen dieser Spezifikation. Phase-Detailplanung in [ROADMAP.md](../../ROADMAP.md).*

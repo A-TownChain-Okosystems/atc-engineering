@@ -1,49 +1,242 @@
-# Roadmap — atc-engineering
+# ATC Engineering Roadmap
 
-> Versionierung der Phasen gemäß ATC-STD-VERSION-001. Jede Phase schließt mit
-> Test-Evidenz + STATUS-Update (Statusleiter SPECIFIED → IMPLEMENTED → TESTED …).
+## Vision
 
-## Phase 0 — Bootstrap (abgeschlossen 2026-09-14)
+Build the engineering and governance control plane used to develop, validate, audit and release the complete A-TownChain ecosystem.
 
-- [x] Repository erstellt (Owner-Direktive 14.09.2026)
-- [x] Specification v1.0 (ATC-ENGINEERING-SPEC-001)
-- [x] README / AGENTS / ROADMAP / STATUS / SECURITY / ARCHITECTURE
-- [x] Registry-Eintrag (atc-standards/registry/repositories.yaml)
-- [x] CI: Struktur-Validierung
+---
 
-## Phase 1 — Core & Repository Manager (v0.1.0)
+## Phase 0 — Foundation
 
-- [ ] Cargo-Workspace: atc-core, atc-config, atc-repository
-- [ ] Repository-Manager: Discovery via GitHub-API, Klassifikation aus Registry
-- [ ] `atc-engine repo list|show|health`
-- [ ] Unit-Tests (fail-closed, kein unwrap in Policy-Pfaden)
+**Target: v0.1.x**
 
-## Phase 2 — Standards Engine & Audit (v0.2.0)
+### Objectives
 
-- [ ] atc-standards (Crate): Registry-Loader (YAML), Rule-Compiler
-- [ ] Validatoren: Struktur, Dokumente, Standards-Bindung
-- [ ] atc-audit: `atc-engine audit [--org]` mit Compliance-Score
-- [ ] Evidence-Schema v1 + `.atc/evidence`-Integration
+- [ ] Create Rust workspace
+- [ ] Establish repository governance
+- [ ] Implement `atc-core`
+- [ ] Implement `atc-config`
+- [ ] Establish schema conventions
+- [ ] Establish error model
+- [ ] Establish logging and tracing
+- [ ] Establish CI
+- [ ] Establish security baseline
+- [ ] Establish initial documentation
 
-## Phase 3 — Policy, Generator, Bootstrapper (v0.3.0)
+### Exit Criteria
 
-- [ ] atc-policy: Merge-/Release-Policies, Gate-Definition
-- [ ] CI/CD-Generator: Workflow-Erzeugung aus Policy (reproduzierbar)
-- [ ] Bootstrapper: `atc-engine repo init` (Templates, Standards-Bindung)
+- Repository builds
+- CI passes
+- Governance files present
+- Security baseline active
+- Architecture documented
 
-## Phase 4 — Evidence & Release Engineering (v0.4.0)
+---
 
-- [ ] atc-evidence: Status-Derivation aus Evidenz-Bündeln
-- [ ] Release-Gate: Devnet → Testnet → Mainnet als Policy-Kette
-- [ ] GitHub-Integration: Checks, Required Statuses, Branch-Protection-Vorschläge
+## Phase 1 — Standards Integration
 
-## Phase 5 — Agent Interface & Technology Intelligence (v0.5.0)
+**Target: v0.2.x**
 
-- [ ] atc-agent: Task/Scope/Standards/Actions/Evidence-Schnittstelle (ATC-AI-GOV)
-- [ ] Dependency-Intelligence: Vulns, EOL, Technology Radar
-- [ ] `atc-engine audit --org` org-weit, Compliance-Dashboard
+- [ ] Integrate `atc-standards`
+- [ ] Implement standards registry client
+- [ ] Implement standard resolver
+- [ ] Implement requirement resolver
+- [ ] Implement standards version pinning
+- [ ] Implement standards validation
+- [ ] Implement machine-readable requirement mapping
+- [ ] Implement conformance reports
 
-## Offen / blockiert
+### Exit Criteria
 
-- Org-weite Branch-Protection-Automatisierung: Owner-Rechte erforderlich
-  (Agent schlägt vor, Owner konfiguriert).
+A repository can be validated against selected ATC standards automatically.
+
+---
+
+## Phase 2 — Repository Intelligence
+
+**Target: v0.3.x**
+
+- [ ] Repository discovery
+- [ ] Repository metadata
+- [ ] Repository classification
+- [ ] File inventory
+- [ ] Repository lifecycle
+- [ ] Ownership metadata
+- [ ] Dependency discovery
+- [ ] Repository health reporting
+
+### Exit Criteria
+
+The organization repository fleet can be discovered and evaluated programmatically.
+
+---
+
+## Phase 3 — Policy & Governance Engine
+
+**Target: v0.4.x**
+
+- [ ] Policy schema
+- [ ] Policy resolver
+- [ ] Policy evaluator
+- [ ] Governance roles
+- [ ] Separation of duties
+- [ ] Governance gates
+- [ ] Exceptions
+- [ ] Expiration handling
+- [ ] Fail-closed enforcement
+
+### Exit Criteria
+
+Engineering operations can be evaluated against explicit policies.
+
+---
+
+## Phase 4 — Audit & Evidence
+
+**Target: v0.5.x**
+
+- [ ] Audit engine
+- [ ] Evidence schema
+- [ ] Evidence collection
+- [ ] Evidence verification
+- [ ] Evidence export
+- [ ] Provenance
+- [ ] Evidence integrity
+- [ ] Derived state engine
+
+### Exit Criteria
+
+Repository and release states can be derived from verifiable evidence.
+
+---
+
+## Phase 5 — GitHub Integration
+
+**Target: v0.6.x**
+
+- [ ] GitHub App integration
+- [ ] Repository discovery
+- [ ] Commit integration
+- [ ] Pull request integration
+- [ ] Checks integration
+- [ ] Actions integration
+- [ ] Release integration
+- [ ] Controlled write operations
+
+### Exit Criteria
+
+ATC Engineering can safely operate against the A-TownChain GitHub organization within explicitly authorized scopes.
+
+---
+
+## Phase 6 — Security Engineering
+
+**Target: v0.7.x**
+
+- [ ] Dependency auditing
+- [ ] Secret detection
+- [ ] SBOM
+- [ ] SAST integration
+- [ ] License validation
+- [ ] Artifact hashing
+- [ ] Supply-chain validation
+- [ ] Security evidence
+
+### Exit Criteria
+
+Security validation becomes an enforceable release gate.
+
+---
+
+## Phase 7 — Repository Bootstrap
+
+**Target: v0.8.x**
+
+- [ ] Repository templates
+- [ ] Governance templates
+- [ ] GitHub workflow generation
+- [ ] Documentation generation
+- [ ] CODEOWNERS generation
+- [ ] Standards mapping generation
+- [ ] Repository initialization CLI
+
+### Exit Criteria
+
+New A-TownChain repositories can be initialized from governed templates.
+
+---
+
+## Phase 8 — Release Engineering
+
+**Target: v0.9.x**
+
+- [ ] Build orchestration
+- [ ] Release candidate generation
+- [ ] Release gates
+- [ ] Artifact verification
+- [ ] Provenance
+- [ ] Approval workflow
+- [ ] Release promotion
+- [ ] Devnet release support
+- [ ] Testnet release support
+- [ ] Mainnet release support
+
+### Exit Criteria
+
+A complete evidence-based release lifecycle is operational.
+
+---
+
+## Phase 9 — AI Engineering Governance
+
+**Target: v0.10.x**
+
+- [ ] Agent identity
+- [ ] Agent scopes
+- [ ] Agent authorization
+- [ ] Agent task model
+- [ ] Agent evidence
+- [ ] Agent audit
+- [ ] Human approval boundaries
+- [ ] AI engineering workflow enforcement
+
+### Exit Criteria
+
+AI agents can participate in engineering workflows without bypassing governance controls.
+
+---
+
+## Phase 10 — Production Platform
+
+**Target: v1.0.0**
+
+- [ ] Stable domain APIs
+- [ ] Stable schemas
+- [ ] Stable CLI
+- [ ] Production GitHub integration
+- [ ] Organization-wide governance
+- [ ] Production release gates
+- [ ] Evidence-backed readiness state
+- [ ] Security hardening
+- [ ] Reproducible builds
+- [ ] Complete operational documentation
+
+### v1.0 Definition
+
+ATC Engineering v1.0 is production-ready when it can govern and validate the complete applicable A-TownChain repository lifecycle without relying on undocumented manual steps.
+
+---
+
+## Long-Term
+
+Potential future capabilities:
+
+- Distributed workers
+- Remote execution
+- Web dashboard
+- Multi-organization governance
+- Advanced technology radar
+- Reproducible-build verification
+- Artifact transparency
+- Enterprise federation
+- Advanced AI engineering orchestration
