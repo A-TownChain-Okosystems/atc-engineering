@@ -5,15 +5,15 @@ schema_version: "1.0.0"
 repository: atc-engineering
 generated: "2026-09-14"
 generated_by: "Spec-v1.0-Uebernahme (Aurora, Owner-Direktive 14.09.2026)"
-bound_commit: 40f8c91391442f2b4e6813c4a3f8a444af34a081
+bound_commit: 1ce256f87f1c56273b304db71ce0aae5bdfaf75e
 maturity_class: C          # C=Plattform/Anwendung (neu)
 r_level: null
 implementation:
   status: partial          # substantial|partial|skeleton|docs_only
-  summary: "Phase 0 + Phase 1 (partiell): atc-core (IDs/DerivedState/CoreError/Timestamp/semver), atc-config (atc-engineering.toml, Version Pinning), atc-standards (Registry-Client: laedt ECHTE Registry — 505 Standards/31 Repos, Lifecycle-fail-closed, require_normative_released); 39/39 Unit-Tests, clippy -D warnings sauber, Release-Build OK (Rust 1.98.1)"
+  summary: "Phase 0/1 + MAINT-Code-Welle (SCR-0124): atc-core, atc-config, atc-standards (ECHTE Registry: 505 Standards/31 Repos) + atc-maintenance (MAINT-001 M0-M3 fail-closed; MAINT-000 Par.7.2 Readiness-Gate: Fake-PASS-Erkennung, ehrliches FAIL=BLOCK; gegen ECHTE Records beider Live-Komponenten korrekt BLOCK); 51/51 Unit-Tests, clippy sauber, Release-Build OK (Rust 1.98.1)"
 tests:
   status: local_pass
-  evidence: "cargo test --workspace = 39/39 PASS (atc-core 14, atc-config 7, atc-standards 18); clippy -D warnings = 0; cargo build --release OK; examples/load_registry gegen echte atc-standards-Registry: 505 Standards (465 approved/40 draft), 31 Repos (29 governed); lokal Rust 1.98.1, 2026-09-14; CI-Run folgt mit Owner-Push ci-fix"
+  evidence: "cargo test --workspace = 51/51 PASS (atc-core 14, atc-config 7, atc-standards 18, atc-maintenance 12); clippy -D warnings = 0; examples/load_registry: 505 Standards (505 approved/0 draft nach SCR-0124), 31 Repos; examples/readiness_gate gegen echte Records: a-townchain-os + atc-standards beide BLOCK (security_process, rollback_strategy, compatibility_strategy, monitoring), Coverage 2/2 PASS, Exit 1 — deckungsgleich mit SCR-0123 Welle-1; lokal Rust 1.98.1, 2026-09-14; CI-Run folgt mit Owner-Push ci-fix"
 security:
   status: not_audited
 conformance:

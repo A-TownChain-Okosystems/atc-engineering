@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/atc-core",
     "crates/atc-standards",
+    "crates/atc-maintenance",
     "crates/atc-config",
 ]
 

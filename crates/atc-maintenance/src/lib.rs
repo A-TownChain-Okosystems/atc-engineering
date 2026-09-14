@@ -1,0 +1,11 @@
+//! atc-maintenance — operative Umsetzung der Maintenance-Standards (SCR-0123/SCR-0124).
+//!
+//! MAINT-001: Klassifizierung jeder Maintenance-Aufgabe in M0–M3 (fail-closed,
+//! Im-Zweifel-höhere-Klasse, Gates + Separation of Duties).
+//! MAINT-000 §7.2: Readiness-Gate — "No honest PASS = No Release".
+
+pub mod classification;
+pub mod readiness;
+
+pub use classification::{Gate, MaintenanceClass};
+pub use readiness::{evaluate_coverage, evaluate_record, GateOutcome, ReadinessRecord};

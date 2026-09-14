@@ -5,7 +5,7 @@
 | Status | **IMPLEMENTED (Phase 0, partiell)** (Statusleiter: SPECIFIED → IMPLEMENTED → TESTED → VERIFIED → AUDITED → RELEASED) |
 | Version | v1.0.0 (Specification final, Owner-Direktive 14.09.2026) |
 | Letzte Änderung | 2026-09-14 — Voll-Spec v1.0 + initiale Kerndokumente übernommen |
-| Implementation | Phase 0 gestartet: `atc-core` + `atc-config` implementiert (0.1.0), 39/39 Tests, clippy `-D warnings` sauber, Release-Build OK; Phase 1 gestartet: `atc-standards` liest die echte Registry (505 Standards, 31 Repos) |
+| Implementation | Phase 0 gestartet: `atc-core` + `atc-config` implementiert (0.1.0), 51/51 Tests, clippy `-D warnings` sauber, Release-Build OK; Phase 1 + MAINT-Code-Welle: `atc-standards` (Registry: 505 Standards, 31 Repos) + `atc-maintenance` (MAINT-001 Klassifizierung, MAINT-000 §7.2 Readiness-Gate — BLOCK gegen echte Records) |
 | Registry | ATC-REPO-ENG-001 (atc-standards/repositories.yaml, C2/S2/L7) |
 
 ## Was existiert
@@ -14,9 +14,10 @@
   - `crates/atc-core` 0.1.0 — Domain Types: `RepositoryId`/`StandardId`/`EvidenceId` (fail-closed Validierung), `DerivedState` (NOT_READY→…→PRODUCTION_READY, `FromStr` fail-closed, Advance-Regeln), `CoreError`/`Result` (kein unwrap im Bibliothekspfad), `Timestamp` (deterministisch, keine Systemuhr im Kern)
   - `crates/atc-config` 0.1.0 — Phase-0-Subset von `atc-engineering.toml`: Sektionen `[repository]`/`[standards]`/`[evidence]`, Standards Version Pinning inkl. `minimum<=version`-Prüfung und Wildcard-Ablehnung, Duplikat-/Unbekannt-Fehler mit Zeilenkontext
   - `crates/atc-standards` 0.1.0 — Phase-1-Registry-Client: Inline-Flow-Map-Parser (fail-closed), `StandardsRegistry` (Lifecycle idea→retired, Duplikat-/Status-Validierung, `require_normative_released`), `RepoRegistry` (Fleet-Metadaten, `governed()`, Duplikat-Prüfung), `examples/load_registry.rs` — lädt die **echte** atc-standards-Registry: 505 Standards (465 approved / 40 draft), 31 Repos (29 governed)
+  - `crates/atc-maintenance` 0.1.0 — MAINT-001 (freigegeben SCR-0124): `MaintenanceClass` M0–M3 fail-closed, Im-Zweifel-höhere-Klasse (REQ-MAINT-017), Gates je Klasse (§3), Separation-of-Duties für M2/M3 (REQ-MAINT-020); MAINT-000 §7.2 Readiness-Gate: Schema-Prüfung (10 Pflichtfelder), Fake-PASS-Erkennung, ehrliches FAIL = legitimer BLOCK, Coverage-Pflicht für Live-Komponenten; `examples/readiness_gate.rs` läuft gegen die ECHTEN Records → beide Komponenten BLOCK (security_process, rollback_strategy u.a.), Coverage 2/2, Exit 1 — deckungsgleich mit SCR-0123 Welle-1-Evidenz
   - `config/examples/atc-engineering.toml` — kanonisches Beispiel
   - `atc-core::version` — `semver_key`/`is_semver` public (keine Duplikate); `RepositoryId` akzeptiert Punkt (`.github`-Repo)
-- Evidenz (2026-09-14, lokal, Rust 1.98.1 stable): `cargo fmt --check` OK · `cargo clippy --workspace --all-targets --all-features -- -D warnings` = 0 Fehler · `cargo test --workspace` = 39/39 PASS (atc-core 14, atc-config 7, atc-standards 18 — frühere Angabe „atc-core 7, atc-config 11" war vertauscht) · `cargo build --release` OK
+- Evidenz (2026-09-14, lokal, Rust 1.98.1 stable): `cargo fmt --check` OK · `cargo clippy --workspace --all-targets --all-features -- -D warnings` = 0 Fehler · `cargo test --workspace` = 51/51 PASS (atc-core 14, atc-config 7, atc-standards 18, atc-maintenance 12 — frühere Angabe „atc-core 7, atc-config 11" war vertauscht) · `cargo build --release` OK
 - Specification v1.0.0 vollständig: `docs/architecture/ATC-ENGINEERING-SPEC-001.md` (42 Abschnitte: 5-Ebenen-Modell, 16 Crates, CLI-Suite, Governance State Machine, Gates G0–G9, Evidence/Repository-State-Schemas, GitHub-App-Pfad, Version Pinning, Supply-Chain, P0–P3, v1.0-DoD)
 - Initiale Kerndokumente verbindlich: `README.md`, `AGENTS.md`, `ROADMAP.md` (Phase 0–10), `ARCHITECTURE.md`
 - Governance-Dokumentation (`docs/governance/`), Engineering-Docs (`docs/engineering/`), Threat-Model (`docs/security/`)
@@ -25,7 +26,7 @@
 
 ## Was NICHT existiert (ehrlich)
 
-- 13 der 16 Crates noch nicht implementiert; kein CLI (`atc-engine`).
+- 12 der 16 Crates noch nicht implementiert; kein CLI (`atc-engine`). MAINT-002..024-Tooling folgt in Folgewellen; Readiness-Gate bewertet noch nicht die M2/M3-critical_maintenance-Bloecke.
 - Keine Policy-/Audit-/Evidence-Engine — nur deren Spezifikation.
 - Tests bisher nur lokal, nicht in CI (Workflow liegt in `ci-fix/`, Owner-Push offen).
 - Rust 1.98.1 im Sandbox; Formatierung auf 2024er-Edition-Anforderungen geprüft mit fmt.
@@ -33,4 +34,4 @@
 
 ## Nächster Schritt
 
-Phase-1-Rest: Requirement-Resolver (§24: REQ-STD-XXX-NNN maschinenlesbar), Version-Pinning gegen Registry-Version, Konformitäts-Reports; parallel CI live schalten (Owner-Push `ci-fix/apply.sh`).
+MAINT-Folgewellen (MAINT-002..024-Tooling, critical_maintenance-Bloecke im Gate), danach Phase-1-Rest: Requirement-Resolver (§24: REQ-STD-XXX-NNN maschinenlesbar), Version-Pinning gegen Registry-Version, Konformitäts-Reports; parallel CI live schalten (Owner-Push `ci-fix/apply.sh`).
