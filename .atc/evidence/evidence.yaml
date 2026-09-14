@@ -10,10 +10,10 @@ maturity_class: C          # C=Plattform/Anwendung (neu)
 r_level: null
 implementation:
   status: partial          # substantial|partial|skeleton|docs_only
-  summary: "Phase 0 gestartet: Rust-Workspace mit atc-core (IDs/DerivedState/CoreError/Timestamp, fail-closed) + atc-config (atc-engineering.toml Phase-0-Subset, Version Pinning); 18/18 Unit-Tests, clippy -D warnings sauber, Release-Build OK (Rust 1.98.1)"
+  summary: "Phase 0 + Phase 1 (partiell): atc-core (IDs/DerivedState/CoreError/Timestamp/semver), atc-config (atc-engineering.toml, Version Pinning), atc-standards (Registry-Client: laedt ECHTE Registry — 505 Standards/31 Repos, Lifecycle-fail-closed, require_normative_released); 39/39 Unit-Tests, clippy -D warnings sauber, Release-Build OK (Rust 1.98.1)"
 tests:
   status: local_pass
-  evidence: "cargo test --workspace = 18/18 PASS (atc-core 7, atc-config 11); clippy -D warnings = 0; cargo build --release OK; lokal Rust 1.98.1, 2026-09-14; CI-Run folgt mit Owner-Push ci-fix"
+  evidence: "cargo test --workspace = 39/39 PASS (atc-core 14, atc-config 7, atc-standards 18); clippy -D warnings = 0; cargo build --release OK; examples/load_registry gegen echte atc-standards-Registry: 505 Standards (465 approved/40 draft), 31 Repos (29 governed); lokal Rust 1.98.1, 2026-09-14; CI-Run folgt mit Owner-Push ci-fix"
 security:
   status: not_audited
 conformance:

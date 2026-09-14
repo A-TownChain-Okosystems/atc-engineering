@@ -22,7 +22,9 @@
 //! required = true
 //! ```
 
-use atc_core::{DerivedState, RepositoryId, Result as CoreResult, StandardId};
+use atc_core::{
+    is_semver, semver_key, DerivedState, RepositoryId, Result as CoreResult, StandardId,
+};
 use std::collections::BTreeMap;
 use std::fmt;
 use std::path::Path;
@@ -71,8 +73,8 @@ impl StandardsPin {
                 return Err(bad(&format!("standards.{label} is empty")));
             }
         }
-        if !self.version.starts_with(|c: char| c.is_ascii_digit()) {
-            return Err(bad("standards.version must be SemVer (x.y.z)"));
+        if !is_semver(&self.version) || !is_semver(&self.minimum) {
+            return Err(bad("standards.version/minimum must be SemVer (x.y.z)"));
         }
         if self.minimum.starts_with('*') || self.version.starts_with('*') {
             return Err(bad("wildcards are not supported in version/minimum"));
@@ -214,19 +216,6 @@ fn required<'a>(
 
 fn cfg_err(msg: &str) -> atc_core::CoreError {
     atc_core::CoreError::ConfigInvalid(msg.to_string())
-}
-
-/// Deterministischer SemVer-Vergleichsschluessel (numerische Tupel; non-numerisch = 0).
-fn semver_key(v: &str) -> (u64, u64, u64) {
-    let mut parts = [0u64; 3];
-    for (i, p) in v.split('.').take(3).enumerate() {
-        parts[i] = p
-            .split(|c: char| !c.is_ascii_digit())
-            .next()
-            .and_then(|d| d.parse().ok())
-            .unwrap_or(0);
-    }
-    (parts[0], parts[1], parts[2])
 }
 
 #[cfg(test)]

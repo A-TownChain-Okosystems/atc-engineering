@@ -8,8 +8,10 @@ pub mod error;
 pub mod ids;
 pub mod state;
 pub mod timestamp;
+pub mod version;
 
 pub use error::{CoreError, Result};
 pub use ids::{EvidenceId, RepositoryId, StandardId};
 pub use state::DerivedState;
 pub use timestamp::Timestamp;
+pub use version::{is_semver, semver_key};

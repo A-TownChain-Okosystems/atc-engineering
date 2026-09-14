@@ -6,7 +6,8 @@
 use crate::error::{CoreError, Result};
 use std::fmt;
 
-/// Repository-ID: kebab-case, `[a-z0-9-]`, 1..=100 Zeichen (z. B. `atc-node`).
+/// Repository-ID: kebab-case plus Punkt, `[a-z0-9.-]`, 1..=100 Zeichen
+/// (z. B. `atc-node`, Spezial-Repo `.github`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct RepositoryId(String);
 
@@ -29,10 +30,10 @@ impl RepositoryId {
         }
         if !s
             .chars()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '.')
         {
             return Err(CoreError::InvalidId(format!(
-                "repository id '{s}': only [a-z0-9-] allowed"
+                "repository id '{s}': only [a-z0-9.-] allowed"
             )));
         }
         Ok(Self(s.to_string()))
@@ -124,6 +125,12 @@ mod tests {
         assert!(RepositoryId::new("").is_err());
         assert!(RepositoryId::new("Atc_Node").is_err());
         assert!(RepositoryId::new("atc node").is_err());
+        assert!(RepositoryId::new("atc_node").is_err());
+    }
+
+    #[test]
+    fn repository_id_accepts_dot_repos() {
+        assert_eq!(RepositoryId::new(".github").unwrap().as_str(), ".github");
     }
 
     #[test]
