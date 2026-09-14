@@ -1,0 +1,21 @@
+# ATC Evidence SSOT — maschinenlesbar und EHRLICH
+# Statusleiter: SPECIFIED -> IMPLEMENTED -> TESTED -> VERIFIED -> AUDITED -> RELEASED
+# Regel: Kein Status-Claim ohne Evidence-Bundle. CLAIMED != PASS.
+schema_version: "1.0.0"
+repository: atc-engineering
+generated: "2026-09-14"
+generated_by: "Repo-Bootstrap (Aurora, Owner-Direktive 14.09.2026)"
+bound_commit: pending-bootstrap
+maturity_class: C          # C=Plattform/Anwendung (neu)
+r_level: null
+implementation:
+  status: docs_only        # substantial|partial|skeleton|docs_only
+  summary: "Specification v1.0 (ATC-ENGINEERING-SPEC-001) verabschiedet; keine Crates/CLI implementiert (ROADMAP Phase 1)"
+tests:
+  status: not_run
+  evidence: "CI Struktur-Gate live (bootstrap); Rust-Tests ab Phase 1"
+security:
+  status: not_audited
+conformance:
+  registry_entry: pending  # atc-standards/registry/repositories.yaml (ATC-REPO-ENG-001)
+  standards_bound: [ATC-STD-000, ATC-STD-VERSION-001, ATC-STD-ENG-001, ATC-AI-GOV-001]
