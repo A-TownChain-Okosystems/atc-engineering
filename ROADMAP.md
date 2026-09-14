@@ -6,30 +6,50 @@ Build the engineering and governance control plane used to develop, validate, au
 
 ---
 
+## Current State — 2026-09-14
+
+**Implementation level:** `IMPLEMENTED (Phase 0, partial) + Phase 1 partial`.
+
+Evidence in `STATUS.md` is authoritative for what actually exists. The roadmap describes target capabilities and must not be interpreted as an implementation claim.
+
+Implemented on main:
+
+- `atc-core`
+- `atc-config`
+- `atc-standards` registry client
+- `atc-maintenance`
+- Rust workspace and baseline CI structure
+- Standards lifecycle validation and normative/released checks
+- Standards version-pinning primitives
+
+Not yet implemented:
+
+- `atc-engine` CLI
+- Policy/audit/evidence engines
+- GitHub App integration
+- Most target crates from the v1.0 architecture
+- Live CI enforcement for the complete workspace
+
+---
+
 ## Phase 0 — Foundation
 
 **Target: v0.1.x**
 
-### Objectives
-
-- [ ] Create Rust workspace
-- [ ] Establish repository governance
-- [ ] Implement `atc-core`
-- [ ] Implement `atc-config`
-- [ ] Establish schema conventions
-- [ ] Establish error model
-- [ ] Establish logging and tracing
-- [ ] Establish CI
-- [ ] Establish security baseline
-- [ ] Establish initial documentation
+- [x] Create Rust workspace
+- [x] Establish repository governance
+- [x] Implement `atc-core`
+- [x] Implement `atc-config`
+- [x] Establish schema conventions
+- [x] Establish error model
+- [x] Establish initial documentation
+- [x] Establish security baseline
+- [ ] Complete CI enforcement
+- [ ] Complete logging/tracing platform
 
 ### Exit Criteria
 
-- Repository builds
-- CI passes
-- Governance files present
-- Security baseline active
-- Architecture documented
+Phase 0 is **partially complete**. Build and local test evidence exists; production CI enforcement remains open.
 
 ---
 
@@ -37,18 +57,18 @@ Build the engineering and governance control plane used to develop, validate, au
 
 **Target: v0.2.x**
 
-- [ ] Integrate `atc-standards`
-- [ ] Implement standards registry client
-- [ ] Implement standard resolver
-- [ ] Implement requirement resolver
-- [ ] Implement standards version pinning
-- [ ] Implement standards validation
+- [x] Integrate `atc-standards` registry client
+- [x] Implement standard resolver
+- [x] Implement lifecycle and normative/released validation
+- [x] Implement standards version-pinning primitives
+- [ ] Implement requirement resolver (`REQ-STD-XXX-NNN`)
+- [ ] Implement complete standards validation workflow
 - [ ] Implement machine-readable requirement mapping
 - [ ] Implement conformance reports
 
 ### Exit Criteria
 
-A repository can be validated against selected ATC standards automatically.
+A repository can be validated against selected ATC standards automatically, with complete requirement-level evidence.
 
 ---
 
@@ -85,10 +105,6 @@ The organization repository fleet can be discovered and evaluated programmatical
 - [ ] Expiration handling
 - [ ] Fail-closed enforcement
 
-### Exit Criteria
-
-Engineering operations can be evaluated against explicit policies.
-
 ---
 
 ## Phase 4 — Audit & Evidence
@@ -103,10 +119,6 @@ Engineering operations can be evaluated against explicit policies.
 - [ ] Provenance
 - [ ] Evidence integrity
 - [ ] Derived state engine
-
-### Exit Criteria
-
-Repository and release states can be derived from verifiable evidence.
 
 ---
 
@@ -123,10 +135,6 @@ Repository and release states can be derived from verifiable evidence.
 - [ ] Release integration
 - [ ] Controlled write operations
 
-### Exit Criteria
-
-ATC Engineering can safely operate against the A-TownChain GitHub organization within explicitly authorized scopes.
-
 ---
 
 ## Phase 6 — Security Engineering
@@ -142,10 +150,6 @@ ATC Engineering can safely operate against the A-TownChain GitHub organization w
 - [ ] Supply-chain validation
 - [ ] Security evidence
 
-### Exit Criteria
-
-Security validation becomes an enforceable release gate.
-
 ---
 
 ## Phase 7 — Repository Bootstrap
@@ -159,10 +163,6 @@ Security validation becomes an enforceable release gate.
 - [ ] CODEOWNERS generation
 - [ ] Standards mapping generation
 - [ ] Repository initialization CLI
-
-### Exit Criteria
-
-New A-TownChain repositories can be initialized from governed templates.
 
 ---
 
@@ -181,10 +181,6 @@ New A-TownChain repositories can be initialized from governed templates.
 - [ ] Testnet release support
 - [ ] Mainnet release support
 
-### Exit Criteria
-
-A complete evidence-based release lifecycle is operational.
-
 ---
 
 ## Phase 9 — AI Engineering Governance
@@ -199,10 +195,6 @@ A complete evidence-based release lifecycle is operational.
 - [ ] Agent audit
 - [ ] Human approval boundaries
 - [ ] AI engineering workflow enforcement
-
-### Exit Criteria
-
-AI agents can participate in engineering workflows without bypassing governance controls.
 
 ---
 
@@ -223,7 +215,7 @@ AI agents can participate in engineering workflows without bypassing governance 
 
 ### v1.0 Definition
 
-ATC Engineering v1.0 is production-ready when it can govern and validate the complete applicable A-TownChain repository lifecycle without relying on undocumented manual steps.
+ATC Engineering v1.0 is production-ready only when it can govern and validate the complete applicable A-TownChain repository lifecycle without relying on undocumented manual steps.
 
 ---
 
