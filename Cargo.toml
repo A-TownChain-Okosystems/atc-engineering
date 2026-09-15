@@ -5,6 +5,7 @@ members = [
     "crates/atc-standards",
     "crates/atc-maintenance",
     "crates/atc-config",
+    "crates/atc-integration",
 ]
 
 [workspace.package]
