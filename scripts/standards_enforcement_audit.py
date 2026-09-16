@@ -3,14 +3,7 @@
 
 Audits a checked-out organization workspace against the normative repository
 baseline in ATC-STD-201/202/203 and records machine-readable findings.
-
-No network access is performed. The caller is expected to provide a directory
-containing one subdirectory per checked-out repository.
-
-Exit status:
-  0 = no blocking findings
-  1 = one or more blocking findings
-  2 = invalid invocation
+No network access is performed.
 """
 from __future__ import annotations
 
@@ -22,17 +15,6 @@ import sys
 from pathlib import Path
 
 ORG = "A-TownChain-Okosystems"
-REQUIRED_BASELINE = {
-    "README.md": "M-02",
-    "LICENSE": "M-01",
-    "SECURITY.md": "M-08",
-    "CHANGELOG.md": "M-09",
-    "CODEOWNERS": "M-05",
-    "ARCHITECTURE.md": "baseline",
-    "AGENTS.md": "agent-governance",
-    "AGENT_MANIFEST.md": "agent-governance",
-}
-
 CLASSIFICATION = {
     "P0": "security/critical correctness or governance bypass",
     "P1": "correctness/security/integration blocking readiness",
@@ -48,8 +30,8 @@ def read(path: Path) -> str:
         return ""
 
 
-def exists(repo: Path, rel: str) -> bool:
-    return (repo / rel).is_file()
+def path_exists(repo: Path, rel: str) -> bool:
+    return (repo / rel).exists()
 
 
 def extract_scalar(text: str, key: str) -> str | None:
@@ -78,7 +60,6 @@ def audit_repo(repo: Path) -> list[dict]:
     metadata = read(repo / ".atc/repository.yaml")
     compliance = read(repo / ".atc/compliance.yaml")
     maturity = extract_scalar(metadata, "maturity") or extract_scalar(compliance, "level") or "R0"
-    classification = extract_scalar(metadata, "classification") or "UNKNOWN"
 
     if metadata:
         declared_name = extract_scalar(metadata, "name")
@@ -93,36 +74,32 @@ def audit_repo(repo: Path) -> list[dict]:
                                 f"ATC-STD-201 M-04 requires .atc/repository.yaml for {maturity}.",
                                 "Add a valid .atc/repository.yaml matching the repository and registry."))
 
-    # Normative M-01..M-16 checks, conditioned by declared maturity.
     required = ["LICENSE", "README.md"]
     if maturity in {"R2", "R3", "R4"}:
         required += ["SECURITY.md", "CHANGELOG.md", ".atc/ownership.yaml",
                      ".atc/lifecycle.yaml", ".atc/compliance.yaml"]
     if maturity in {"R1", "R2", "R3", "R4"}:
         required += [".atc/repository.yaml", "docs/REPOSITORY_STANDARD.md"]
-    if maturity in {"R2", "R3", "R4"}:
-        if not exists(repo, "docs/decisions") and not exists(repo, "DECISIONS_REGISTER.md"):
-            findings.append(finding(name, "P1", "completeness", "governance/decisions",
-                                    ["M-14", "ATC-STD-201", maturity, "ADR"], "docs/decisions",
-                                    "R2+ repository has neither docs/decisions/ nor a central DECISIONS_REGISTER reference.",
-                                    "Add ADR storage or an explicit, valid central decisions-register reference."))
-    if maturity in {"R1", "R2", "R3", "R4"}:
-        required += ["tests"]
-        if not exists(repo, ".github/workflows"):
+        if not path_exists(repo, ".github/workflows"):
             findings.append(finding(name, "P1", "ci", "governance/ci",
                                     ["M-13", "ATC-STD-201", "CI"], ".github/workflows",
                                     "R1+ repository has no .github/workflows directory; ATC-STD-201 M-13 requires running CI.",
                                     "Install a governance workflow plus product-specific validation where applicable."))
+        if not path_exists(repo, "tests") and not any(repo.glob("**/*test*")):
+            findings.append(finding(name, "P1", "testing", "governance/ci",
+                                    ["M-13", "ATC-STD-201", maturity, "tests"], "tests",
+                                    "No tests directory or test-named file found for an R1+ repository.",
+                                    "Add executable tests appropriate to the repository's language and maturity."))
+    if maturity in {"R2", "R3", "R4"}:
+        required += []
+        if not path_exists(repo, "docs/decisions") and not path_exists(repo, "DECISIONS_REGISTER.md"):
+            findings.append(finding(name, "P1", "completeness", "governance/decisions",
+                                    ["M-14", "ATC-STD-201", maturity, "ADR"], "docs/decisions",
+                                    "R2+ repository has neither docs/decisions/ nor a central DECISIONS_REGISTER reference.",
+                                    "Add ADR storage or an explicit, valid central decisions-register reference."))
 
     for rel in required:
-        if rel == "tests":
-            if not exists(repo, "tests") and not any(repo.glob("**/*test*")):
-                findings.append(finding(name, "P1", "testing", "governance/ci",
-                                        ["M-13", "ATC-STD-201", maturity, "tests"], "tests",
-                                        "No tests directory or test-named file found for an R1+ repository.",
-                                        "Add executable tests appropriate to the repository's language and maturity."))
-            continue
-        if not exists(repo, rel):
+        if not path_exists(repo, rel):
             sev = "P1" if rel in {"LICENSE", "README.md", ".atc/repository.yaml", ".atc/compliance.yaml"} else "P2"
             findings.append(finding(name, sev, "completeness", "repository-governance",
                                     ["ATC-STD-201", maturity, rel.replace("/", "-")], rel,
@@ -143,7 +120,6 @@ def audit_repo(repo: Path) -> list[dict]:
                                     "R3/R4 README is missing the mandatory ATC Compliance badge.",
                                     "Add a machine-detectable compliance badge whose gate values are evidence-backed."))
 
-    # Agent governance baseline: detect stale or contradictory registry counts.
     manifest = read(repo / "AGENT_MANIFEST.md")
     if not manifest and name != "demo-repository":
         findings.append(finding(name, "P1", "governance", "agent-governance",
@@ -158,7 +134,6 @@ def audit_repo(repo: Path) -> list[dict]:
                                     f"Manifest advertises {m.group(1)} standards while the current registry matrix is 505.",
                                     "Regenerate AGENT_MANIFEST.md from the current standards registry and verify its digest."))
 
-    # Security/hygiene scans required by ATC-STD-201 M-12 and ATC-STD-203.
     secret_patterns = [
         r"BEGIN (?:RSA|EC|OPENSSH|PRIVATE) KEY",
         r"\bAKIA[0-9A-Z]{16}\b",
@@ -169,8 +144,7 @@ def audit_repo(repo: Path) -> list[dict]:
         for p in repo.rglob("*"):
             if not p.is_file() or ".git" in p.parts or "archive" in p.parts:
                 continue
-            text = read(p)
-            if re.search(pattern, text):
+            if re.search(pattern, read(p)):
                 findings.append(finding(name, "P0", "security", "credential-exposure",
                                         ["M-12", "secret", "ATC-STD-203"], str(p.relative_to(repo)),
                                         f"Credential/private-key pattern matched: {pattern}.",
@@ -197,20 +171,17 @@ def audit_repo(repo: Path) -> list[dict]:
                                         "Workflow has no explicit permissions block.",
                                         "Declare least-privilege workflow/job permissions explicitly."))
 
-    # Active placeholders are blockers only in executable-looking source trees.
     for p in repo.rglob("*"):
         if not p.is_file() or ".git" in p.parts or "archive" in p.parts or "target" in p.parts:
             continue
         if p.suffix not in {".rs", ".py", ".js", ".ts", ".tsx", ".sh", ".go", ".c", ".h"}:
             continue
-        text = read(p)
-        if re.search(r"\b(unimplemented!\(\)|NotImplementedError|TODO\(\)|todo!\(\))", text):
+        if re.search(r"\b(unimplemented!\(\)|NotImplementedError|TODO\(\)|todo!\(\))", read(p)):
             findings.append(finding(name, "P1", "completeness", "stub/placeholder",
                                     ["stub", "TODO", "implementation", "ATC-STD-BUG"], str(p.relative_to(repo)),
                                     "Active source contains an unimplemented/TODO placeholder that may represent an incomplete function.",
                                     "Classify it explicitly as planned/non-canonical or implement it with tests and re-audit."))
 
-    # Exact duplicate content groups, excluding generated/legacy trees.
     hashes: dict[str, list[str]] = {}
     for p in repo.rglob("*"):
         if not p.is_file() or ".git" in p.parts or "archive" in p.parts or "target" in p.parts or "node_modules" in p.parts:
@@ -226,7 +197,6 @@ def audit_repo(repo: Path) -> list[dict]:
                                     ["duplicate-content", "hygiene"], ";".join(paths),
                                     f"Exact duplicate content group ({len(paths)} files), sha256={digest[:16]}.",
                                     "Classify intentional copies or consolidate duplicate implementation/documentation."))
-
     return findings
 
 
@@ -238,12 +208,8 @@ def main() -> int:
     if not args.root.is_dir():
         print(f"error: not a directory: {args.root}", file=sys.stderr)
         return 2
-
-    all_findings: list[dict] = []
     repos = sorted(p for p in args.root.iterdir() if (p / ".git").is_dir())
-    for repo in repos:
-        all_findings.extend(audit_repo(repo))
-
+    all_findings = [f for repo in repos for f in audit_repo(repo)]
     report = {
         "audit": "ATC-STD-ENFORCEMENT-OFFLINE-001",
         "organization": ORG,
