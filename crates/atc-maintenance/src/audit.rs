@@ -31,8 +31,13 @@ pub struct AuditReport {
 }
 
 impl AuditReport {
-    pub fn is_clean(&self) -> bool { self.findings.is_empty() }
-    pub fn has_kind(&self, kind: FindingKind) -> bool { self.findings.iter().any(|f| f.kind == kind) }
+    pub fn is_clean(&self) -> bool {
+        self.findings.is_empty()
+    }
+
+    pub fn has_kind(&self, kind: FindingKind) -> bool {
+        self.findings.iter().any(|finding| finding.kind == kind)
+    }
 }
 
 pub fn audit_repository(root: &Path) -> Result<AuditReport, std::io::Error> {
@@ -45,58 +50,146 @@ pub fn audit_repository(root: &Path) -> Result<AuditReport, std::io::Error> {
     Ok(report)
 }
 
-fn require_file(root: &Path, relative: &str, code: &'static str, report: &mut AuditReport) -> Result<(), std::io::Error> {
+fn require_file(
+    root: &Path,
+    relative: &str,
+    code: &'static str,
+    report: &mut AuditReport,
+) -> Result<(), std::io::Error> {
     if !root.join(relative).is_file() {
-        report.findings.push(Finding { kind: FindingKind::Error, code, path: Some(PathBuf::from(relative)), message: format!("required governance file is missing: {relative}") });
+        report.findings.push(Finding {
+            kind: FindingKind::Error,
+            code,
+            path: Some(PathBuf::from(relative)),
+            message: format!("required governance file is missing: {relative}"),
+        });
     }
     Ok(())
 }
 
 fn audit_readme_identity(root: &Path, report: &mut AuditReport) -> Result<(), std::io::Error> {
-    let Some(repo_name) = root.file_name().and_then(OsStr::to_str) else { return Ok(()); };
+    let Some(repo_name) = root.file_name().and_then(OsStr::to_str) else {
+        return Ok(());
+    };
     let readme = fs::read_to_string(root.join("README.md"))?;
-    if !readme.to_ascii_lowercase().contains(&repo_name.to_ascii_lowercase()) {
-        report.findings.push(Finding { kind: FindingKind::Consistency, code: "CONS-AUDIT-002", path: Some(PathBuf::from("README.md")), message: format!("README does not identify repository `{repo_name}`") });
+    if !readme
+        .to_ascii_lowercase()
+        .contains(&repo_name.to_ascii_lowercase())
+    {
+        report.findings.push(Finding {
+            kind: FindingKind::Consistency,
+            code: "CONS-AUDIT-002",
+            path: Some(PathBuf::from("README.md")),
+            message: format!("README does not identify repository `{repo_name}`"),
+        });
     }
     Ok(())
 }
 
-fn scan_tree(root: &Path, current: &Path, duplicates: &mut HashMap<u64, PathBuf>, report: &mut AuditReport) -> Result<(), std::io::Error> {
+fn scan_tree(
+    root: &Path,
+    current: &Path,
+    duplicates: &mut HashMap<u64, PathBuf>,
+    report: &mut AuditReport,
+) -> Result<(), std::io::Error> {
     for entry in fs::read_dir(current)? {
         let path = entry?.path();
         let relative = path.strip_prefix(root).unwrap_or(&path);
-        if relative.components().any(|c| c.as_os_str() == ".git") { continue; }
-        if path.is_dir() { scan_tree(root, &path, duplicates, report)?; continue; }
-        if !is_text_candidate(&path) { continue; }
+        if relative
+            .components()
+            .any(|component| component.as_os_str() == ".git")
+        {
+            continue;
+        }
+        if path.is_dir() {
+            scan_tree(root, &path, duplicates, report)?;
+            continue;
+        }
+        if !is_text_candidate(&path) {
+            continue;
+        }
         let bytes = fs::read(&path)?;
-        let Ok(text) = std::str::from_utf8(&bytes) else { continue; };
+        let Ok(text) = std::str::from_utf8(&bytes) else {
+            continue;
+        };
         let archived_or_documentation = is_non_production_path(relative);
 
         if !archived_or_documentation && contains_secret_pattern(text) {
-            report.findings.push(Finding { kind: FindingKind::Security, code: "SEC-AUDIT-001", path: Some(relative.to_path_buf()), message: "high-confidence credential material pattern detected".into() });
+            report.findings.push(Finding {
+                kind: FindingKind::Security,
+                code: "SEC-AUDIT-001",
+                path: Some(relative.to_path_buf()),
+                message: "high-confidence credential material pattern detected".into(),
+            });
         }
-        if !archived_or_documentation && contains_dangerous_shell_pattern(path.extension().and_then(OsStr::to_str), text) {
-            report.findings.push(Finding { kind: FindingKind::Security, code: "SEC-AUDIT-002", path: Some(relative.to_path_buf()), message: "potentially unsafe command execution/download pattern detected".into() });
+        if !archived_or_documentation
+            && contains_dangerous_shell_pattern(path.extension().and_then(OsStr::to_str), text)
+        {
+            report.findings.push(Finding {
+                kind: FindingKind::Security,
+                code: "SEC-AUDIT-002",
+                path: Some(relative.to_path_buf()),
+                message: "potentially unsafe command execution/download pattern detected".into(),
+            });
         }
-        if !archived_or_documentation && path.file_name().and_then(|n| n.to_str()) == Some("Cargo.toml") && text.contains("[workspace") && !root.join("Cargo.lock").is_file() {
-            report.findings.push(Finding { kind: FindingKind::Consistency, code: "CONS-AUDIT-001", path: Some(relative.to_path_buf()), message: "Rust workspace has no committed Cargo.lock evidence".into() });
+        if !archived_or_documentation
+            && path.file_name().and_then(|name| name.to_str()) == Some("Cargo.toml")
+            && text.contains("[workspace")
+            && !root.join("Cargo.lock").is_file()
+        {
+            report.findings.push(Finding {
+                kind: FindingKind::Consistency,
+                code: "CONS-AUDIT-001",
+                path: Some(relative.to_path_buf()),
+                message: "Rust workspace has no committed Cargo.lock evidence".into(),
+            });
         }
-        if !archived_or_documentation && path.file_name().and_then(|n| n.to_str()) == Some("Cargo.toml") {
+        if !archived_or_documentation
+            && path.file_name().and_then(|name| name.to_str()) == Some("Cargo.toml")
+        {
             audit_cargo_path_dependencies(root, relative, text, report);
         }
-        if !archived_or_documentation && relative.starts_with(Path::new(".github/workflows")) && text.contains("uses:") && !text.contains("permissions:") {
-            report.findings.push(Finding { kind: FindingKind::Security, code: "SEC-AUDIT-003", path: Some(relative.to_path_buf()), message: "GitHub Actions workflow uses actions without an explicit permissions policy".into() });
+        if !archived_or_documentation
+            && relative.starts_with(Path::new(".github/workflows"))
+            && text.contains("uses:")
+            && !text.contains("permissions:")
+        {
+            report.findings.push(Finding {
+                kind: FindingKind::Security,
+                code: "SEC-AUDIT-003",
+                path: Some(relative.to_path_buf()),
+                message:
+                    "GitHub Actions workflow uses actions without an explicit permissions policy"
+                        .into(),
+            });
         }
-        let is_source = matches!(path.extension().and_then(|e| e.to_str()), Some("rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "sh" | "bash"));
-        if !archived_or_documentation && is_source && relative != Path::new("docs/ENGINEERING_AUDIT.md") && contains_todo_marker(text) {
-            report.findings.push(Finding { kind: FindingKind::Error, code: "AUDIT-003", path: Some(relative.to_path_buf()), message: "unresolved TODO/FIXME marker requires triage".into() });
+        let is_source = matches!(
+            path.extension().and_then(|extension| extension.to_str()),
+            Some("rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "sh" | "bash")
+        );
+        if !archived_or_documentation
+            && is_source
+            && relative != Path::new("docs/ENGINEERING_AUDIT.md")
+            && contains_todo_marker(text)
+        {
+            report.findings.push(Finding {
+                kind: FindingKind::Error,
+                code: "AUDIT-003",
+                path: Some(relative.to_path_buf()),
+                message: "unresolved TODO/FIXME marker requires triage".into(),
+            });
         }
         if !archived_or_documentation && is_duplicate_candidate(&path) {
             let mut hasher = DefaultHasher::new();
             bytes.hash(&mut hasher);
             let fingerprint = hasher.finish();
             if let Some(first) = duplicates.insert(fingerprint, relative.to_path_buf()) {
-                report.findings.push(Finding { kind: FindingKind::Consistency, code: "CONS-AUDIT-003", path: Some(relative.to_path_buf()), message: format!("duplicate file content matches {}", first.display()) });
+                report.findings.push(Finding {
+                    kind: FindingKind::Consistency,
+                    code: "CONS-AUDIT-003",
+                    path: Some(relative.to_path_buf()),
+                    message: format!("duplicate file content matches {}", first.display()),
+                });
             }
         }
     }
@@ -105,25 +198,49 @@ fn scan_tree(root: &Path, current: &Path, duplicates: &mut HashMap<u64, PathBuf>
 
 fn is_non_production_path(path: &Path) -> bool {
     let mut components = path.components();
-    matches!(components.next(), Some(std::path::Component::Normal(name)) if name == "docs")
-        && matches!(components.next(), Some(std::path::Component::Normal(name)) if name == "archive" || name == "wiki")
-        || path.starts_with(Path::new("wiki"))
+    (matches!(
+        components.next(),
+        Some(std::path::Component::Normal(name)) if name == "docs"
+    ) && matches!(
+        components.next(),
+        Some(std::path::Component::Normal(name)) if name == "archive" || name == "wiki"
+    )) || path.starts_with(Path::new("wiki"))
 }
 
-fn audit_cargo_path_dependencies(root: &Path, relative: &Path, text: &str, report: &mut AuditReport) {
+fn audit_cargo_path_dependencies(
+    root: &Path,
+    relative: &Path,
+    text: &str,
+    report: &mut AuditReport,
+) {
     let manifest_dir = relative.parent().unwrap_or_else(|| Path::new("."));
     for line in text.lines() {
-        let Some(path_pos) = line.find("path") else { continue; };
+        let Some(path_pos) = line.find("path") else {
+            continue;
+        };
         let tail = &line[path_pos + 4..];
-        let Some(eq) = tail.find('=') else { continue; };
+        let Some(eq) = tail.find('=') else {
+            continue;
+        };
         let value = tail[eq + 1..].trim();
-        let Some(start) = value.find('"') else { continue; };
+        let Some(start) = value.find('"') else {
+            continue;
+        };
         let rest = &value[start + 1..];
-        let Some(end) = rest.find('"') else { continue; };
+        let Some(end) = rest.find('"') else {
+            continue;
+        };
         let dep_path = &rest[..end];
-        if dep_path.is_empty() { continue; }
+        if dep_path.is_empty() {
+            continue;
+        }
         if !root.join(manifest_dir).join(dep_path).exists() {
-            report.findings.push(Finding { kind: FindingKind::Connectivity, code: "CONN-AUDIT-001", path: Some(relative.to_path_buf()), message: format!("Cargo path dependency does not exist: {dep_path}") });
+            report.findings.push(Finding {
+                kind: FindingKind::Connectivity,
+                code: "CONN-AUDIT-001",
+                path: Some(relative.to_path_buf()),
+                message: format!("Cargo path dependency does not exist: {dep_path}"),
+            });
         }
     }
 }
@@ -136,16 +253,43 @@ fn contains_todo_marker(text: &str) -> bool {
 }
 
 fn is_duplicate_candidate(path: &Path) -> bool {
-    matches!(path.extension().and_then(|e| e.to_str()), Some("rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "sh" | "bash" | "toml" | "yaml" | "yml"))
+    matches!(
+        path.extension().and_then(|extension| extension.to_str()),
+        Some("rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "sh" | "bash" | "toml" | "yaml" | "yml")
+    )
 }
 
 fn is_text_candidate(path: &Path) -> bool {
-    matches!(path.extension().and_then(|e| e.to_str()), Some("rs" | "toml" | "yaml" | "yml" | "json" | "md" | "txt" | "py" | "ts" | "tsx" | "js" | "jsx" | "sh" | "bash"))
+    matches!(
+        path.extension().and_then(|extension| extension.to_str()),
+        Some(
+            "rs" | "toml"
+                | "yaml"
+                | "yml"
+                | "json"
+                | "md"
+                | "txt"
+                | "py"
+                | "ts"
+                | "tsx"
+                | "js"
+                | "jsx"
+                | "sh"
+                | "bash"
+        )
+    )
 }
 
 fn contains_secret_pattern(text: &str) -> bool {
-    ["-----BEGIN RSA PRIVATE KEY-----", "-----BEGIN EC PRIVATE KEY-----", "-----BEGIN OPENSSH PRIVATE KEY-----", "github_pat_", "ghp_"]
-        .iter().any(|pattern| text.contains(pattern))
+    [
+        "-----BEGIN RSA PRIVATE KEY-----",
+        "-----BEGIN EC PRIVATE KEY-----",
+        "-----BEGIN OPENSSH PRIVATE KEY-----",
+        "github_pat_",
+        "ghp_",
+    ]
+    .iter()
+    .any(|pattern| text.contains(pattern))
         || text.lines().any(|line| {
             let trimmed = line.trim();
             trimmed.starts_with("AKIA") && trimmed.len() >= 20
@@ -153,9 +297,12 @@ fn contains_secret_pattern(text: &str) -> bool {
 }
 
 fn contains_dangerous_shell_pattern(extension: Option<&str>, text: &str) -> bool {
-    if !matches!(extension, Some("sh" | "bash" | "yml" | "yaml")) { return false; }
+    if !matches!(extension, Some("sh" | "bash" | "yml" | "yaml")) {
+        return false;
+    }
     let normalized = text.replace('\n', " ");
-    (normalized.contains("curl ") || normalized.contains("wget ")) && (normalized.contains("| sh") || normalized.contains("| bash"))
+    (normalized.contains("curl ") || normalized.contains("wget "))
+        && (normalized.contains("| sh") || normalized.contains("| bash"))
 }
 
 #[cfg(test)]
@@ -164,8 +311,13 @@ mod tests {
 
     #[test]
     fn secret_patterns_are_detected() {
-        assert!(contains_secret_pattern(&format!("prefix {}suffix", "ghp_".to_owned() + &"1".repeat(40))));
-        assert!(contains_secret_pattern("-----BEGIN OPENSSH PRIVATE KEY-----"));
+        assert!(contains_secret_pattern(&format!(
+            "prefix {}suffix",
+            "ghp_".to_owned() + &"1".repeat(40)
+        )));
+        assert!(contains_secret_pattern(
+            "-----BEGIN OPENSSH PRIVATE KEY-----"
+        ));
         assert!(!contains_secret_pattern("public documentation only"));
         assert!(!contains_secret_pattern("ghp_123"));
     }
@@ -179,9 +331,18 @@ mod tests {
 
     #[test]
     fn unsafe_download_pipelines_are_detected() {
-        assert!(contains_dangerous_shell_pattern(Some("sh"), "curl https://example.test/a.sh | sh"));
-        assert!(!contains_dangerous_shell_pattern(Some("sh"), "curl https://example.test/a.sh -o a.sh"));
-        assert!(!contains_dangerous_shell_pattern(Some("rs"), "curl https://example.test/a.sh | sh"));
+        assert!(contains_dangerous_shell_pattern(
+            Some("sh"),
+            "curl https://example.test/a.sh | sh"
+        ));
+        assert!(!contains_dangerous_shell_pattern(
+            Some("sh"),
+            "curl https://example.test/a.sh -o a.sh"
+        ));
+        assert!(!contains_dangerous_shell_pattern(
+            Some("rs"),
+            "curl https://example.test/a.sh | sh"
+        ));
     }
 
     #[test]
