@@ -16,12 +16,20 @@ log "Organization: A-TownChain-Okosystems"
 log "Mode: source/static only; GitHub Actions runtime evidence is not inferred"
 log "Workspace: $ROOT"
 
+STATUS=0
+
 if ! python3 "$(dirname "$0")/standards_enforcement_audit.py" "$ROOT" --json "$ROOT/STANDARDS_ENFORCEMENT_AUDIT.json" >>"$OUT" 2>&1; then
   log "STANDARDS ENFORCEMENT: FINDINGS"
   STATUS=1
 else
   log "STANDARDS ENFORCEMENT: PASS"
-  STATUS=0
+fi
+
+if ! python3 "$(dirname "$0")/file_format_language_audit.py" "$ROOT" >>"$OUT" 2>&1; then
+  log "FILE FORMAT / LANGUAGE POLICY: FINDINGS"
+  STATUS=1
+else
+  log "FILE FORMAT / LANGUAGE POLICY: PASS"
 fi
 
 if ! "$(dirname "$0")/fleet_static_audit.sh" "$ROOT" >>"$OUT" 2>&1; then
