@@ -7,6 +7,8 @@ on:
     - cron: "17 2 * * 1"
   workflow_dispatch:
 
+# GITHUB_TOKEN is intentionally read-only. Private repositories require an
+# organization secret ATC_FLEET_READ_TOKEN with read access to every target repo.
 permissions:
   contents: read
 
@@ -27,8 +29,8 @@ jobs:
       - name: Tests
         run: cargo test --workspace --all-features
 
-  public-fleet:
-    name: Audit public repository fleet
+  fleet:
+    name: Audit complete repository fleet
     runs-on: ubuntu-latest
     needs: engineering
     steps:
@@ -38,45 +40,48 @@ jobs:
       - name: Build audit CLI
         run: cargo build --release -p atc-audit-cli
 
-      - name: Discover public repositories
+      - name: Discover organization repositories
         id: repos
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.ATC_FLEET_READ_TOKEN || github.token }}
         run: |
+          set -euo pipefail
           gh repo list A-TownChain-Okosystems --limit 100 --json name,isPrivate \
-            --jq '.[] | select(.isPrivate == false) | .name' > /tmp/repos.txt
-          test -s /tmp/repos.txt
+            --jq '.[] | [.name, (.isPrivate|tostring)] | @tsv' > /tmp/repos.tsv
+          test -s /tmp/repos.tsv
+          echo "Discovered $(wc -l < /tmp/repos.tsv) repositories."
 
       - name: Audit repositories
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.ATC_FLEET_READ_TOKEN || github.token }}
         run: |
-          set -u
+          set -uo pipefail
           mkdir -p audit-results
           failed=0
-          while IFS= read -r repo; do
-            echo "=== $repo ==="
+          : > audit-results/SUMMARY.md
+          printf '# Fleet Audit Summary\n\n' >> audit-results/SUMMARY.md
+
+          while IFS=$'\t' read -r repo private; do
+            echo "=== $repo (private=$private) ==="
             rm -rf "/tmp/$repo"
-            if ! git clone --depth 1 "https://github.com/A-TownChain-Okosystems/$repo.git" "/tmp/$repo"; then
+            if ! git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/A-TownChain-Okosystems/$repo.git" "/tmp/$repo"; then
               echo "CLONE ERROR: $repo" | tee "audit-results/$repo.txt"
+              printf -- '- **BLOCKED:** `%s` — clone failed (private repos require ATC_FLEET_READ_TOKEN)\n' "$repo" >> audit-results/SUMMARY.md
               failed=1
               continue
             fi
+
             if ! ./target/release/atc-audit-cli "/tmp/$repo" > "audit-results/$repo.txt" 2>&1; then
               failed=1
             fi
             cat "audit-results/$repo.txt"
-          done < /tmp/repos.txt
 
-          printf '\nFleet audit summary\n' > audit-results/SUMMARY.md
-          for file in audit-results/*.txt; do
-            repo=$(basename "$file" .txt)
-            if grep -q '^AUDIT PASS:' "$file"; then
-              printf -- '- PASS: `%s`\n' "$repo" >> audit-results/SUMMARY.md
+            if grep -q '^AUDIT PASS:' "audit-results/$repo.txt"; then
+              printf -- '- **PASS:** `%s`\n' "$repo" >> audit-results/SUMMARY.md
             else
-              printf -- '- FINDINGS: `%s`\n' "$repo" >> audit-results/SUMMARY.md
+              printf -- '- **FINDINGS:** `%s`\n' "$repo" >> audit-results/SUMMARY.md
             fi
-          done
+          done < /tmp/repos.tsv
 
           cat audit-results/SUMMARY.md
           exit "$failed"
@@ -87,3 +92,4 @@ jobs:
         with:
           name: fleet-audit-results
           path: audit-results/
+          retention-days: 30
