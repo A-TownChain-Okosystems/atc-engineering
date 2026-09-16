@@ -1,10 +1,10 @@
 ---
 document_id: ATC-ENG-AUDIT-SNAPSHOT-20260916
 title: Organization-wide Engineering Audit Snapshot
-version: 1.2.0
+version: 1.2.1
 status: active
 updated: 2026-09-16
-updated_time: 12:xx CEST
+updated_time: 13:27:01 CEST
 ---
 
 # Organization-wide Engineering Audit — 2026-09-16
