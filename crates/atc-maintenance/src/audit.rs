@@ -281,19 +281,42 @@ fn is_text_candidate(path: &Path) -> bool {
 }
 
 fn contains_secret_pattern(text: &str) -> bool {
-    [
+    if [
         "-----BEGIN RSA PRIVATE KEY-----",
         "-----BEGIN EC PRIVATE KEY-----",
         "-----BEGIN OPENSSH PRIVATE KEY-----",
-        "github_pat_",
-        "ghp_",
     ]
     .iter()
     .any(|pattern| text.contains(pattern))
-        || text.lines().any(|line| {
-            let trimmed = line.trim();
-            trimmed.starts_with("AKIA") && trimmed.len() >= 20
-        })
+    {
+        return true;
+    }
+
+    text.lines().any(|line| {
+        let trimmed = line.trim();
+        contains_token_prefix(trimmed, "github_pat_", 20)
+            || contains_token_prefix(trimmed, "ghp_", 20)
+            || (trimmed.starts_with("AKIA") && trimmed.len() >= 20)
+    })
+}
+
+fn contains_token_prefix(text: &str, prefix: &str, minimum_suffix_len: usize) -> bool {
+    let mut offset = 0;
+    while let Some(relative) = text[offset..].find(prefix) {
+        let start = offset + relative + prefix.len();
+        let suffix_len = text[start..]
+            .chars()
+            .take_while(|character| character.is_ascii_alphanumeric() || *character == '_')
+            .count();
+        if suffix_len >= minimum_suffix_len {
+            return true;
+        }
+        offset = start;
+        if offset >= text.len() {
+            break;
+        }
+    }
+    false
 }
 
 fn contains_dangerous_shell_pattern(extension: Option<&str>, text: &str) -> bool {
@@ -318,6 +341,7 @@ mod tests {
         ));
         assert!(!contains_secret_pattern("public documentation only"));
         assert!(!contains_secret_pattern("ghp_123"));
+        assert!(!contains_secret_pattern("github_pat_placeholder"));
     }
 
     #[test]
