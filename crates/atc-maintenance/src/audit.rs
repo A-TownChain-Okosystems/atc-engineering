@@ -247,8 +247,19 @@ fn is_text_candidate(path: &Path) -> bool {
     matches!(
         path.extension().and_then(|ext| ext.to_str()),
         Some(
-            "rs" | "toml" | "yaml" | "yml" | "json" | "md" | "txt" | "py" | "ts" | "tsx"
-                | "js" | "jsx" | "sh" | "bash"
+            "rs" | "toml"
+                | "yaml"
+                | "yml"
+                | "json"
+                | "md"
+                | "txt"
+                | "py"
+                | "ts"
+                | "tsx"
+                | "js"
+                | "jsx"
+                | "sh"
+                | "bash"
         )
     )
 }
