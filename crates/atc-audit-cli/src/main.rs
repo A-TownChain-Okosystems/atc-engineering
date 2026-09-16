@@ -4,7 +4,10 @@ use std::path::PathBuf;
 use atc_maintenance::{audit_repository, FindingKind};
 
 fn main() {
-    let root = env::args_os().nth(1).map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."));
+    let root = env::args_os()
+        .nth(1)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
 
     match audit_repository(&root) {
         Ok(report) => {
@@ -14,7 +17,10 @@ fn main() {
                     .as_deref()
                     .map(|path| path.display().to_string())
                     .unwrap_or_else(|| "<repository>".to_string());
-                println!("{:?} {} {}: {}", finding.kind, finding.code, path, finding.message);
+                println!(
+                    "{:?} {} {}: {}",
+                    finding.kind, finding.code, path, finding.message
+                );
             }
 
             if report.is_clean() {
