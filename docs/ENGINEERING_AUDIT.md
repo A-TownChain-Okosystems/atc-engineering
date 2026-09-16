@@ -48,7 +48,14 @@ Private repositories require the organization secret `ATC_FLEET_READ_TOKEN`; wit
 - Fleet cloning workflow hardened in `eb707e31983f233713d1a581d94a7570289a69e2`.
 - Offline audit implementation added in `907c384ba934a979c323a5a0a570ca3714b7cecc` and extended in `dc0661e5ee42a60552ca1e8fcebc9d0acfae3f08`.
 - `atc-sdk` documentation/structure inconsistency was corrected and re-read after remediation.
+- `atc-algorithm`: PoH slot overflow was hardened with `checked_add`; missing-genesis state now returns `PohError::MissingGenesis` instead of panicking; regression tests and changelog entries were added and the changed files were re-read.
+- `globus-os`: VFS inode-tree mutation no longer relies on `unwrap()` for the parent lookup; GPT parsing no longer relies on `try_into().unwrap()` after fixed-offset slicing; both changed files were re-read after remediation.
 - Current architecture/repository map is maintained in `a-townchain-os-docs/docs/REPOSITORY_MAP_CURRENT.md`.
+
+## Active blockers / findings
+
+- `atc-shivacore/modules/atc-shivacore/kernel/src/lkm.rs`: `DependencyGraph::dependencies()` remains an `unimplemented!()` placeholder. The graph stores dependencies in `BTreeSet<String>` while the API promises `&[String]`. The correct remediation must change the API or representation without returning a reference to temporary storage, then update callers/tests and re-run validation. This remains **OPEN / BLOCKING** and is not represented as production-ready functionality.
+- The GitHub search index can expose historical commits and archived documentation alongside current `main`. Audit conclusions must therefore be based on the current default-branch file read whenever a finding is actionable.
 
 ## Runtime limitation
 
