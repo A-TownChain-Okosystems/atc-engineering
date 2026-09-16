@@ -7,8 +7,7 @@ on:
     - cron: "17 2 * * 1"
   workflow_dispatch:
 
-# GITHUB_TOKEN is intentionally read-only. Private repositories require an
-# organization secret ATC_FLEET_READ_TOKEN with read access to every target repo.
+# Read-only by design. Private repositories require ATC_FLEET_READ_TOKEN.
 permissions:
   contents: read
 
@@ -19,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Format
         run: cargo fmt --all -- --check
@@ -36,6 +37,8 @@ jobs:
     steps:
       - name: Checkout engineering platform
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Build audit CLI
         run: cargo build --release -p atc-audit-cli
@@ -64,9 +67,9 @@ jobs:
           while IFS=$'\t' read -r repo private; do
             echo "=== $repo (private=$private) ==="
             rm -rf "/tmp/$repo"
-            if ! git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/A-TownChain-Okosystems/$repo.git" "/tmp/$repo"; then
+            if ! gh repo clone "A-TownChain-Okosystems/$repo" "/tmp/$repo" -- --depth 1; then
               echo "CLONE ERROR: $repo" | tee "audit-results/$repo.txt"
-              printf -- '- **BLOCKED:** `%s` — clone failed (private repos require ATC_FLEET_READ_TOKEN)\n' "$repo" >> audit-results/SUMMARY.md
+              printf -- '- **BLOCKED:** `%s` — clone failed; private repositories require `ATC_FLEET_READ_TOKEN`.\n' "$repo" >> audit-results/SUMMARY.md
               failed=1
               continue
             fi
