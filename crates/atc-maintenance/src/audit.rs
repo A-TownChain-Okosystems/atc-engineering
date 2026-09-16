@@ -314,7 +314,7 @@ mod tests {
         assert!(contains_secret_pattern(&format!(
             "prefix {}suffix",
             "ghp_".to_owned() + &"1".repeat(40)
-        )));
+        ));
         assert!(contains_secret_pattern(
             "-----BEGIN OPENSSH PRIVATE KEY-----"
         ));
@@ -354,7 +354,9 @@ mod tests {
 
     #[test]
     fn documentation_and_archives_are_non_production() {
-        assert!(is_non_production_path(Path::new("docs/archive/legacy/a.py")));
+        assert!(is_non_production_path(Path::new(
+            "docs/archive/legacy/a.py"
+        )));
         assert!(is_non_production_path(Path::new("docs/wiki/a.py")));
         assert!(is_non_production_path(Path::new("wiki/a.py")));
         assert!(!is_non_production_path(Path::new("src/a.py")));
