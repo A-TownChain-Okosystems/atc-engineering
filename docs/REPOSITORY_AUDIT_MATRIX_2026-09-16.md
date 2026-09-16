@@ -2,6 +2,7 @@
 
 > Date: 2026-09-16
 > Status: **IN PROGRESS**
+> CI mode: **source/static audit while GitHub Actions evidence is unavailable or incomplete**
 > Purpose: one auditable inventory for the organization-wide engineering audit.
 
 ## Audit contract
@@ -47,7 +48,7 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 | `atc-vm` | IN PROGRESS | deterministic VM / ATCLang boundary |
 | `atc-zkp` | IN PROGRESS | proof verification/integration |
 | `aurora-ai` | IN PROGRESS | AI boundary / OS integration |
-| `globus-os` | **P1 OPEN** | canonical ShivaCore LKM stub + symbol export/import semantics |
+| `globus-os` | **P1 OPEN** | canonical ShivaCore LKM stub + graph ordering + symbol validation |
 | `genesis-engine` | IN PROGRESS | engine subsystem completeness |
 | `genesis-chronicles` | IN PROGRESS | game/application integration |
 | `atc-mining` | IN PROGRESS | mining/runtime integration |
@@ -64,11 +65,55 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 
 ## Confirmed findings currently tracked
 
-### GlobusOS #18
-`DependencyGraph::dependencies()` is an `unimplemented!()` placeholder. Class **P1**, category **correctness/completeness**, family **kernel/LKM/dependency-resolution**.
+### GlobusOS #18 — LKM dependency API stub
+- Class: **P1**
+- Category: **correctness / completeness**
+- Family: **kernel / LKM / dependency-resolution**
+- Tags: `P1`, `stub`, `kernel`, `lkm`, `dependency-graph`, `correctness`, `completeness`, `api`
+- Status: **OPEN**
 
-### GlobusOS #19
-`with_export()` and `ModuleBuilder::export()` incorrectly register exported symbols as imports. Class **P1**, category **logic/API semantics**, family **kernel/LKM/symbol-resolution/reference-accounting**.
+`DependencyGraph::dependencies()` is an `unimplemented!()` placeholder. The graph stores dependencies in `BTreeSet<String>`, so the declared borrowed-slice API cannot safely expose that storage. The existing owned `get_dependencies()` representation preserves deterministic ordering and is the appropriate canonical API shape.
+
+### GlobusOS #19 — export/import semantic contradiction
+- Class: **P1**
+- Category: **logic / correctness / API semantics**
+- Family: **kernel / LKM / symbol-resolution / reference-accounting**
+- Tags: `P1`, `kernel`, `lkm`, `symbols`, `imports`, `exports`, `refcount`, `logic`
+- Status: **OPEN**
+
+`ModuleDescriptor::with_export()` currently adds the exported symbol to `imports` as well as `exports`. Export and import are distinct provider/consumer edges and must remain explicit.
+
+### F-20260916-005 — topological-sort direction
+- Repository: `globus-os`
+- Path: `modules/atc-shivacore/kernel/src/lkm.rs`
+- Class: **P1**
+- Category: **correctness / logic / integration**
+- Family: **kernel / LKM / dependency-resolution / graph-algorithm**
+- Tags: `P1`, `kernel`, `lkm`, `dependency-graph`, `topological-sort`, `logic`
+- Status: **OPEN**
+
+The graph represents `module → dependency`. The current Kahn implementation increments the dependency node's indegree and therefore produces the reverse of the required dependency-first ordering. The load path separately implements dependency-first DFS, creating two competing ordering semantics. The graph API must have one canonical dependency-first meaning, with deterministic ordering and regression tests.
+
+### F-20260916-006 — required symbol validation is not universally fail-closed
+- Repository: `globus-os`
+- Path: `modules/atc-shivacore/kernel/src/lkm.rs`
+- Class: **P1**
+- Category: **correctness / security / logic**
+- Family: **kernel / LKM / symbol-resolution / load-validation**
+- Tags: `P1`, `kernel`, `lkm`, `symbols`, `security`, `validation`, `logic`
+- Status: **OPEN**
+
+The load path computes unresolved imports but only enters the rejection branch when `optional_deps` is non-empty. Required unresolved imports therefore do not have a universal fail-closed gate. Required imports must always be rejected; optionality must be represented explicitly rather than inferred from the presence of the optional-dependency list.
+
+## Static security checks
+
+Organization-wide indexed source searches currently show no matches for:
+
+- `pull_request_target`
+- `actions/checkout@main`
+- `actions/checkout@master`
+
+Scanner definitions containing token/private-key regular expressions are not themselves credential exposure. Kernel `unsafe` and `panic!()` occurrences require contextual review and are not automatically vulnerabilities.
 
 ## CI mode
 
