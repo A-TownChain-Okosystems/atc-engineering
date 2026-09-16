@@ -54,7 +54,7 @@ jobs:
           test -s /tmp/repos.tsv
           echo "Discovered $(wc -l < /tmp/repos.tsv) repositories."
 
-      - name: Audit repositories
+      - name: Audit, syntax-check and test repositories
         env:
           GH_TOKEN: ${{ secrets.ATC_FLEET_READ_TOKEN || github.token }}
         run: |
@@ -74,15 +74,62 @@ jobs:
               continue
             fi
 
-            if ! ./target/release/atc-audit-cli "/tmp/$repo" > "audit-results/$repo.txt" 2>&1; then
-              failed=1
-            fi
-            cat "audit-results/$repo.txt"
+            result="audit-results/$repo.txt"
+            : > "$result"
+            repo_failed=0
 
-            if grep -q '^AUDIT PASS:' "audit-results/$repo.txt"; then
-              printf -- '- **PASS:** `%s`\n' "$repo" >> audit-results/SUMMARY.md
+            if ! ./target/release/atc-audit-cli "/tmp/$repo" >> "$result" 2>&1; then
+              repo_failed=1
+            fi
+
+            {
+              echo
+              echo '## Native verification'
+              cd "/tmp/$repo"
+
+              if find . -name Cargo.toml -not -path '*/target/*' -print -quit | grep -q .; then
+                echo '### Rust: cargo check/test'
+                while IFS= read -r manifest; do
+                  dir="$(dirname "$manifest")"
+                  echo "-- manifest: $manifest"
+                  if ! timeout 10m cargo check --manifest-path "$manifest" --all-targets; then repo_failed=1; fi
+                  if ! timeout 10m cargo test --manifest-path "$manifest"; then repo_failed=1; fi
+                done < <(find . -name Cargo.toml -not -path '*/target/*' -not -path '*/archive/*' -print | sort -u)
+              fi
+
+              if find . -name package.json -not -path '*/node_modules/*' -print -quit | grep -q .; then
+                echo '### Node: package validation'
+                while IFS= read -r package; do
+                  dir="$(dirname "$package")"
+                  echo "-- package: $package"
+                  if [ -f "$dir/package-lock.json" ]; then
+                    if ! timeout 10m npm ci --ignore-scripts --prefix "$dir"; then repo_failed=1; fi
+                  fi
+                  if ! timeout 10m npm test --if-present --prefix "$dir"; then repo_failed=1; fi
+                done < <(find . -name package.json -not -path '*/node_modules/*' -not -path '*/archive/*' -print | sort -u)
+              fi
+
+              if find . -name '*.py' -not -path '*/.venv/*' -not -path '*/archive/*' -print -quit | grep -q .; then
+                echo '### Python: syntax validation'
+                if ! timeout 10m python -m compileall -q . -x '(^|/)(\.git|\.venv|node_modules|archive)(/|$)'; then repo_failed=1; fi
+              fi
+
+              if find . -name '*.sh' -not -path '*/archive/*' -print -quit | grep -q .; then
+                echo '### Shell: syntax validation'
+                while IFS= read -r script; do
+                  if ! bash -n "$script"; then repo_failed=1; fi
+                done < <(find . -name '*.sh' -not -path '*/archive/*' -print | sort -u)
+              fi
+            } >> "$result" 2>&1
+
+            cd /workspace 2>/dev/null || cd "$GITHUB_WORKSPACE"
+            cat "$result"
+
+            if [ "$repo_failed" -eq 0 ] && grep -q '^AUDIT PASS:' "$result"; then
+              printf -- '- **PASS:** `%s` — audit + native verification passed.\n' "$repo" >> audit-results/SUMMARY.md
             else
-              printf -- '- **FINDINGS:** `%s`\n' "$repo" >> audit-results/SUMMARY.md
+              printf -- '- **FINDINGS:** `%s` — audit and/or native verification requires remediation/evidence.\n' "$repo" >> audit-results/SUMMARY.md
+              failed=1
             fi
           done < /tmp/repos.tsv
 
