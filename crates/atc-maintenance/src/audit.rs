@@ -51,7 +51,10 @@ pub fn audit_repository(root: &Path) -> Result<AuditReport, std::io::Error> {
         return Err(error);
     }
 
-    scan_tree(root, root, &mut report)?;
+    // Keep the duplicate index at repository scope. A per-directory index can
+    // miss duplicates that are split across source/configuration directories.
+    let mut duplicate_candidates: HashMap<u64, PathBuf> = HashMap::new();
+    scan_tree(root, root, &mut duplicate_candidates, &mut report)?;
     Ok(report)
 }
 
@@ -89,9 +92,12 @@ fn audit_readme_identity(root: &Path, report: &mut AuditReport) -> Result<(), st
     Ok(())
 }
 
-fn scan_tree(root: &Path, current: &Path, report: &mut AuditReport) -> Result<(), std::io::Error> {
-    let mut duplicate_candidates: HashMap<u64, PathBuf> = HashMap::new();
-
+fn scan_tree(
+    root: &Path,
+    current: &Path,
+    duplicate_candidates: &mut HashMap<u64, PathBuf>,
+    report: &mut AuditReport,
+) -> Result<(), std::io::Error> {
     for entry in fs::read_dir(current)? {
         let entry = entry?;
         let path = entry.path();
@@ -102,7 +108,7 @@ fn scan_tree(root: &Path, current: &Path, report: &mut AuditReport) -> Result<()
         }
 
         if path.is_dir() {
-            scan_tree(root, &path, report)?;
+            scan_tree(root, &path, duplicate_candidates, report)?;
             continue;
         }
 
@@ -150,7 +156,10 @@ fn scan_tree(root: &Path, current: &Path, report: &mut AuditReport) -> Result<()
             audit_cargo_path_dependencies(root, relative, text, report);
         }
 
-        if relative.starts_with(Path::new(".github/workflows")) && text.contains("uses:") && !text.contains("permissions:") {
+        if relative.starts_with(Path::new(".github/workflows"))
+            && text.contains("uses:")
+            && !text.contains("permissions:")
+        {
             report.findings.push(Finding {
                 kind: FindingKind::Security,
                 code: "SEC-AUDIT-003",
@@ -200,7 +209,9 @@ fn audit_cargo_path_dependencies(
         let Some(raw) = line.split_once("path") else { continue };
         let Some((_, value)) = raw.1.split_once('=') else { continue };
         let path = value.trim().trim_matches('"').trim_matches('\'');
-        if path.is_empty() { continue; }
+        if path.is_empty() {
+            continue;
+        }
         let manifest_dir = relative.parent().unwrap_or_else(|| Path::new("."));
         if !root.join(manifest_dir).join(path).exists() {
             report.findings.push(Finding {
@@ -245,10 +256,8 @@ fn contains_dangerous_shell_pattern(extension: Option<&str>, text: &str) -> bool
         return false;
     }
     let normalized = text.replace('\n', " ");
-    normalized.contains("curl ") && normalized.contains("| sh")
-        || normalized.contains("wget ") && normalized.contains("| sh")
-        || normalized.contains("curl ") && normalized.contains("| bash")
-        || normalized.contains("wget ") && normalized.contains("| bash")
+    (normalized.contains("curl ") || normalized.contains("wget "))
+        && (normalized.contains("| sh") || normalized.contains("| bash"))
 }
 
 #[cfg(test)]
