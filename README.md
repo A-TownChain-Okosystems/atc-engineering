@@ -2,9 +2,7 @@
 
 > **A-TownChain Engineering & Governance Platform**
 
-`atc-engineering` is the central engineering and governance control plane for the A-TownChain ecosystem.
-
-It provides the software required to build, validate, audit, govern and release the A-TownChain repository fleet.
+`atc-engineering` is the central engineering and governance control plane for the A-TownChain repository fleet.
 
 ## Mission
 
@@ -43,28 +41,43 @@ A-TownChain repository fleet
 
 `atc-standards` defines **what** must be true. `atc-engineering` validates and enforces those requirements.
 
-## Current Implementation
+## Implemented Audit Runtime
 
-The current main branch contains these implemented workspace crates:
+The `atc-maintenance` crate provides a dependency-free, fail-closed repository scanner covering:
 
-```text
-crates/
-  atc-core
-  atc-config
-  atc-standards
-  atc-maintenance
-  atc-integration
+- required governance files
+- high-confidence credential patterns
+- unsafe download/command pipelines
+- GitHub Actions permission policy checks
+- Rust workspace lock evidence
+- broken Rust path dependencies
+- unresolved source TODO/FIXME markers
+- duplicate source/config content
+- README/repository identity consistency
+
+The `atc-audit-cli` crate exposes the scanner as an executable and is used by the organization-wide fleet workflow.
+
+```bash
+cargo run --release -p atc-audit-cli -- /path/to/repository
 ```
 
-The larger target architecture in `docs/architecture/ATC-ENGINEERING-SPEC-001.md` remains partially unimplemented. Documentation must not present target crates as existing software.
+The CLI exits non-zero when findings are present, preserving fail-closed behavior.
 
-`atc-maintenance` now exposes a dependency-free repository audit scanner covering required governance files, high-confidence credential patterns, Rust workspace lock evidence and unresolved source TODO/FIXME markers.
+## Fleet Audit
+
+`.github/workflows/fleet-audit.yml` validates the engineering platform itself and audits every discoverable **public** repository in `A-TownChain-Okosystems` on push, pull request, weekly schedule and manual dispatch.
+
+Private repositories are not silently treated as clean; they require a separate authenticated audit path with credentials authorized for those repositories.
 
 ## CLI
 
-The target primary interface is `atc-engine`. **It is not yet implemented.**
+The audit CLI is implemented. The broader target interface remains under development.
 
-Examples of the planned interface:
+```text
+atc-audit-cli /path/to/repository
+```
+
+Planned higher-level commands remain:
 
 ```text
 atc-engine repo audit atc-node
@@ -106,9 +119,9 @@ See `SECURITY.md`.
 ## Development
 
 ```bash
-cargo fmt --check
+cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace
+cargo test --workspace --all-features
 cargo build --release
 ```
 
