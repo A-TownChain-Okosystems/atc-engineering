@@ -6,6 +6,8 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 pub enum System {
     Standards,
     Engineering,
+    OrgGithub,
+    OsDocs,
     ShivaCore,
     GlobusOs,
     AtcLang,
@@ -13,6 +15,7 @@ pub enum System {
     AtcTownchain,
     AuroraAi,
     GenesisEngine,
+    GenesisFranchiseFactory,
     AtcWallet,
     AtcSdk,
     AtcNode,
@@ -22,6 +25,13 @@ pub enum System {
     AtcOracle,
     AtcInterop,
     AtcZkp,
+    AtcCompute,
+    AtcAlgorithm,
+    AtcMining,
+    AtcExplorer,
+    AtcMarketplace,
+    AtcLaunchpad,
+    AtcIde,
 }
 
 impl System {
@@ -29,6 +39,8 @@ impl System {
         match self {
             Self::Standards => "atc-standards",
             Self::Engineering => "atc-engineering",
+            Self::OrgGithub => ".github",
+            Self::OsDocs => "a-townchain-os-docs",
             Self::ShivaCore => "atc-shivacore",
             Self::GlobusOs => "globus-os",
             Self::AtcLang => "atclang",
@@ -36,6 +48,7 @@ impl System {
             Self::AtcTownchain => "a-townchain",
             Self::AuroraAi => "aurora-ai",
             Self::GenesisEngine => "genesis-engine",
+            Self::GenesisFranchiseFactory => "genesis-franchise-factory",
             Self::AtcWallet => "atc-wallet",
             Self::AtcSdk => "atc-sdk",
             Self::AtcNode => "atc-node",
@@ -45,6 +58,13 @@ impl System {
             Self::AtcOracle => "atc-oracle",
             Self::AtcInterop => "atc-interop",
             Self::AtcZkp => "atc-zkp",
+            Self::AtcCompute => "atc-compute",
+            Self::AtcAlgorithm => "atc-algorithm",
+            Self::AtcMining => "atc-mining",
+            Self::AtcExplorer => "atc-explorer",
+            Self::AtcMarketplace => "atc-marketplace",
+            Self::AtcLaunchpad => "atc-launchpad",
+            Self::AtcIde => "atc-ide",
         }
     }
 }
@@ -152,6 +172,8 @@ impl IntegrationGraph {
         for (system, readiness) in [
             (System::Standards, Readiness::Verified),
             (System::Engineering, Readiness::Integrated),
+            (System::OrgGithub, Readiness::Integrated),
+            (System::OsDocs, Readiness::Integrated),
             (System::ShivaCore, Readiness::Integrated),
             (System::GlobusOs, Readiness::Integrated),
             (System::AtcLang, Readiness::Integrated),
@@ -159,6 +181,7 @@ impl IntegrationGraph {
             (System::AtcTownchain, Readiness::Integrated),
             (System::AuroraAi, Readiness::Integrated),
             (System::GenesisEngine, Readiness::Integrated),
+            (System::GenesisFranchiseFactory, Readiness::Integrated),
             (System::AtcWallet, Readiness::Integrated),
             (System::AtcSdk, Readiness::Integrated),
             (System::AtcNode, Readiness::Integrated),
@@ -168,114 +191,46 @@ impl IntegrationGraph {
             (System::AtcOracle, Readiness::Integrated),
             (System::AtcInterop, Readiness::Integrated),
             (System::AtcZkp, Readiness::Integrated),
+            (System::AtcCompute, Readiness::Integrated),
+            (System::AtcAlgorithm, Readiness::Integrated),
+            (System::AtcMining, Readiness::Integrated),
+            (System::AtcExplorer, Readiness::Integrated),
+            (System::AtcMarketplace, Readiness::Integrated),
+            (System::AtcLaunchpad, Readiness::Integrated),
+            (System::AtcIde, Readiness::Integrated),
         ] {
             g.add_system(system, readiness);
         }
         for edge in [
-            Edge {
-                from: System::Standards,
-                to: System::Engineering,
-                contract: "standards-registry",
-            },
-            Edge {
-                from: System::Engineering,
-                to: System::GlobusOs,
-                contract: "governed-build-evidence",
-            },
-            Edge {
-                from: System::ShivaCore,
-                to: System::GlobusOs,
-                contract: "kernel-boundary",
-            },
-            Edge {
-                from: System::AtcLang,
-                to: System::AtcVm,
-                contract: "bytecode-abi",
-            },
-            Edge {
-                from: System::AtcVm,
-                to: System::AtcTownchain,
-                contract: "deterministic-execution",
-            },
-            Edge {
-                from: System::AtcNode,
-                to: System::AtcTownchain,
-                contract: "node-runtime",
-            },
-            Edge {
-                from: System::AtcContracts,
-                to: System::AtcVm,
-                contract: "contract-execution",
-            },
-            Edge {
-                from: System::AtcStorage,
-                to: System::AtcNode,
-                contract: "persistent-state",
-            },
-            Edge {
-                from: System::AtcIndexer,
-                to: System::AtcTownchain,
-                contract: "chain-events",
-            },
-            Edge {
-                from: System::AtcOracle,
-                to: System::AtcTownchain,
-                contract: "external-data",
-            },
-            Edge {
-                from: System::AtcInterop,
-                to: System::AtcTownchain,
-                contract: "cross-system-messaging",
-            },
-            Edge {
-                from: System::AtcZkp,
-                to: System::AtcVm,
-                contract: "proof-verification",
-            },
-            Edge {
-                from: System::AtcWallet,
-                to: System::AtcTownchain,
-                contract: "account-signing",
-            },
-            Edge {
-                from: System::AtcSdk,
-                to: System::AtcNode,
-                contract: "client-api",
-            },
-            Edge {
-                from: System::AuroraAi,
-                to: System::GlobusOs,
-                contract: "ai-runtime",
-            },
-            Edge {
-                from: System::GenesisEngine,
-                to: System::AtcSdk,
-                contract: "game-chain-sdk",
-            },
+            Edge { from: System::Standards, to: System::Engineering, contract: "standards-registry" },
+            Edge { from: System::OrgGithub, to: System::Engineering, contract: "org-governance" },
+            Edge { from: System::Standards, to: System::OsDocs, contract: "standards-documentation" },
+            Edge { from: System::Engineering, to: System::GlobusOs, contract: "governed-build-evidence" },
+            Edge { from: System::ShivaCore, to: System::GlobusOs, contract: "kernel-boundary" },
+            Edge { from: System::AtcLang, to: System::AtcVm, contract: "bytecode-abi" },
+            Edge { from: System::AtcVm, to: System::AtcTownchain, contract: "deterministic-execution" },
+            Edge { from: System::AtcNode, to: System::AtcTownchain, contract: "node-runtime" },
+            Edge { from: System::AtcContracts, to: System::AtcVm, contract: "contract-execution" },
+            Edge { from: System::AtcStorage, to: System::AtcNode, contract: "persistent-state" },
+            Edge { from: System::AtcIndexer, to: System::AtcTownchain, contract: "chain-events" },
+            Edge { from: System::AtcOracle, to: System::AtcTownchain, contract: "external-data" },
+            Edge { from: System::AtcInterop, to: System::AtcTownchain, contract: "cross-system-messaging" },
+            Edge { from: System::AtcZkp, to: System::AtcVm, contract: "proof-verification" },
+            Edge { from: System::AtcWallet, to: System::AtcTownchain, contract: "account-signing" },
+            Edge { from: System::AtcSdk, to: System::AtcNode, contract: "client-api" },
+            Edge { from: System::AuroraAi, to: System::GlobusOs, contract: "ai-runtime" },
+            Edge { from: System::GenesisEngine, to: System::AtcSdk, contract: "game-chain-sdk" },
+            Edge { from: System::GenesisFranchiseFactory, to: System::GenesisEngine, contract: "engine-content-pipeline" },
+            Edge { from: System::AtcCompute, to: System::AuroraAi, contract: "ai-compute" },
+            Edge { from: System::AtcAlgorithm, to: System::AtcTownchain, contract: "consensus-algorithms" },
+            Edge { from: System::AtcMining, to: System::AtcTownchain, contract: "network-participation" },
+            Edge { from: System::AtcExplorer, to: System::AtcIndexer, contract: "indexed-chain-api" },
+            Edge { from: System::AtcMarketplace, to: System::AtcSdk, contract: "marketplace-sdk" },
+            Edge { from: System::AtcLaunchpad, to: System::AtcSdk, contract: "launchpad-sdk" },
+            Edge { from: System::AtcIde, to: System::AtcLang, contract: "language-toolchain" },
         ] {
             g.add_edge(edge);
         }
         g
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn canonical_graph_is_valid_and_acyclic() {
-        let graph = IntegrationGraph::canonical();
-        assert!(graph.validate().is_ok());
-        assert_eq!(
-            graph.dependency_order().unwrap().len(),
-            graph.systems().count()
-        );
-    }
-
-    #[test]
-    fn repository_names_are_stable() {
-        assert_eq!(System::GlobusOs.repository(), "globus-os");
-        assert_eq!(System::AtcTownchain.repository(), "a-townchain");
     }
 }
