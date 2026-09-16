@@ -311,10 +311,8 @@ mod tests {
 
     #[test]
     fn secret_patterns_are_detected() {
-        assert!(contains_secret_pattern(&format!(
-            "prefix {}suffix",
-            "ghp_".to_owned() + &"1".repeat(40)
-        ));
+        let token = "ghp_".to_owned() + &"1".repeat(40);
+        assert!(contains_secret_pattern(&format!("prefix {token}suffix")));
         assert!(contains_secret_pattern(
             "-----BEGIN OPENSSH PRIVATE KEY-----"
         ));
