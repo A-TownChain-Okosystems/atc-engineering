@@ -113,8 +113,7 @@ impl IntegrationGraph {
 
     pub fn dependency_order(&self) -> Result<Vec<System>, &'static str> {
         self.validate()?;
-        let mut indegree: BTreeMap<System, usize> =
-            self.nodes.iter().map(|n| (*n, 0)).collect();
+        let mut indegree: BTreeMap<System, usize> = self.nodes.iter().map(|n| (*n, 0)).collect();
         let mut outgoing: BTreeMap<System, Vec<System>> = BTreeMap::new();
         for edge in &self.edges {
             *indegree.get_mut(&edge.to).ok_or("missing edge target")? += 1;
