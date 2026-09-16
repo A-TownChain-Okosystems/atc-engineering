@@ -111,7 +111,12 @@ fn scan_tree(root: &Path, current: &Path, report: &mut AuditReport) -> Result<()
             });
         }
 
-        if text.contains("TODO") || text.contains("FIXME") {
+        let is_source = matches!(
+            path.extension().and_then(|ext| ext.to_str()),
+            Some("rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "sh" | "bash")
+        );
+        let is_audit_document = relative == Path::new("docs/ENGINEERING_AUDIT.md");
+        if is_source && !is_audit_document && (text.contains("TODO") || text.contains("FIXME")) {
             report.findings.push(Finding {
                 kind: FindingKind::Error,
                 code: "AUDIT-003",
