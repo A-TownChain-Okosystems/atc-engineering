@@ -1,7 +1,7 @@
 ---
 document_id: ATC-ENG-AUDIT-SNAPSHOT-20260916
 title: Organization-wide Engineering Audit Snapshot
-version: 1.0.0
+version: 1.1.0
 status: active
 updated: 2026-09-16
 ---
@@ -59,9 +59,24 @@ The active kernel implementation was migrated to `globus-os/modules/atc-shivacor
 - Category: **consistency / documentation**
 - Family: **documentation-lifecycle / historical-archive**
 - Tags: `P2`, `documentation`, `consistency`, `legacy`, `archive`
-- Status: **OPEN FOR DOCUMENTATION SWEEP**
+- Status: **PARTIALLY REMEDIATED**
 
-Legacy TODO and Wiki datasets contain historical completion claims and old architecture terminology. These must remain explicitly marked as historical/archive material and must not be used as current readiness evidence.
+Legacy TODO and Wiki datasets contain historical completion claims and old architecture terminology. The current master TODO page was corrected on 2026-09-16 to remove the stale `100% ABGESCHLOSSEN` claim and to reference current audit evidence. Remaining legacy/archive pages require classification and synchronization.
+
+### F-20260916-004 — LKM export/import semantic contradiction
+
+- Repository: `globus-os`
+- Path: `modules/atc-shivacore/kernel/src/lkm.rs`
+- Class: **P1**
+- Category: **logic / correctness / API semantics**
+- Family: **kernel / loadable-kernel-modules / symbol-resolution / reference-accounting**
+- Tags: `P1`, `kernel`, `lkm`, `symbols`, `imports`, `exports`, `refcount`, `logic`
+- Status: **OPEN — implementation required**
+- Tracking issue: **GlobusOS #19**
+
+`ModuleDescriptor::with_export()` adds an exported symbol to `imports` as well as `exports`. `ModuleBuilder::export()` repeats the same error. Exporting a symbol and importing a symbol are distinct operations. The current implementation therefore creates self-import metadata, can resolve a module's own exports as imports, inflates imported-symbol statistics, and makes unload reference accounting asymmetric because exports are removed before imported symbols are released.
+
+**Best ecosystem solution:** make export builders modify only `exports`; keep imports explicit through `import_symbol()`; add regression tests for export-only modules and for imported-symbol reference release. This preserves the architecture's separation between provider and consumer edges, avoids implicit dependency edges, and keeps the dependency/symbol graph deterministic.
 
 ## Security static checks
 
@@ -100,4 +115,4 @@ A repository can only be marked audit-complete when all applicable gates are sat
 
 ## Current release posture
 
-The fleet is **not globally audit-complete**. The canonical GlobusOS ShivaCore LKM dependency API blocker is still open, and CI execution evidence is incomplete for the latest runs.
+The fleet is **not globally audit-complete**. The canonical GlobusOS ShivaCore LKM dependency API blocker and the LKM export/import semantic contradiction are still open, and CI execution evidence is incomplete for the latest runs.
