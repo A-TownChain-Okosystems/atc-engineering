@@ -4,8 +4,10 @@
 //! Im-Zweifel-höhere-Klasse, Gates + Separation of Duties).
 //! MAINT-000 §7.2: Readiness-Gate — "No honest PASS = No Release".
 
+pub mod audit;
 pub mod classification;
 pub mod readiness;
 
+pub use audit::{audit_repository, AuditReport, Finding, FindingKind};
 pub use classification::{Gate, MaintenanceClass};
 pub use readiness::{evaluate_coverage, evaluate_record, GateOutcome, ReadinessRecord};
