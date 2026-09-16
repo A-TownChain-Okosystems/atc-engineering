@@ -43,30 +43,9 @@ A-TownChain repository fleet
 
 `atc-standards` defines **what** must be true. `atc-engineering` validates and enforces those requirements.
 
-## Core Architecture
-
-```text
-┌─────────────────────────────────────┐
-│         Governance Plane            │
-│ Policies / Roles / Approvals / Gates│
-├─────────────────────────────────────┤
-│          Knowledge Plane            │
-│ Standards / Schemas / Rules         │
-├─────────────────────────────────────┤
-│         Engineering Plane           │
-│ Build / Test / Audit / Security     │
-├─────────────────────────────────────┤
-│           Evidence Plane            │
-│ Evidence / Provenance / Attestation │
-├─────────────────────────────────────┤
-│          Execution Plane            │
-│ Git / GitHub / CI / Runners         │
-└─────────────────────────────────────┘
-```
-
 ## Current Implementation
 
-The current main branch is **Phase 0 partial + Phase 1 partial**. The implemented workspace currently contains:
+The current main branch contains these implemented workspace crates:
 
 ```text
 crates/
@@ -74,9 +53,12 @@ crates/
   atc-config
   atc-standards
   atc-maintenance
+  atc-integration
 ```
 
-The larger 16-crate target architecture is specified in `docs/architecture/ATC-ENGINEERING-SPEC-001.md` but is not yet implemented. Documentation must not present target crates as existing software.
+The larger target architecture in `docs/architecture/ATC-ENGINEERING-SPEC-001.md` remains partially unimplemented. Documentation must not present target crates as existing software.
+
+`atc-maintenance` now exposes a dependency-free repository audit scanner covering required governance files, high-confidence credential patterns, Rust workspace lock evidence and unresolved source TODO/FIXME markers.
 
 ## CLI
 
