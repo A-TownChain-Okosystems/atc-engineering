@@ -1,9 +1,10 @@
 ---
 document_id: ATC-ENG-AUDIT-SNAPSHOT-20260916
 title: Organization-wide Engineering Audit Snapshot
-version: 1.1.0
+version: 1.2.0
 status: active
 updated: 2026-09-16
+updated_time: 12:xx CEST
 ---
 
 # Organization-wide Engineering Audit — 2026-09-16
@@ -11,6 +12,8 @@ updated: 2026-09-16
 ## Scope
 
 This snapshot covers the active A-TownChain-Okosystems repository fleet and records findings that can be verified through GitHub source search/read/write while CI execution/log retrieval is unavailable or incomplete.
+
+The fleet audit scope is the current 31-repository organization inventory recorded in `docs/REPOSITORY_AUDIT_MATRIX_2026-09-16.md`.
 
 ## Verification policy
 
@@ -74,9 +77,37 @@ Legacy TODO and Wiki datasets contain historical completion claims and old archi
 - Status: **OPEN — implementation required**
 - Tracking issue: **GlobusOS #19**
 
-`ModuleDescriptor::with_export()` adds an exported symbol to `imports` as well as `exports`. `ModuleBuilder::export()` repeats the same error. Exporting a symbol and importing a symbol are distinct operations. The current implementation therefore creates self-import metadata, can resolve a module's own exports as imports, inflates imported-symbol statistics, and makes unload reference accounting asymmetric because exports are removed before imported symbols are released.
+`ModuleDescriptor::with_export()` adds an exported symbol to `imports` as well as `exports`. Exporting a symbol and importing a symbol are distinct operations. The current implementation therefore creates self-import metadata and can make imported-symbol statistics/reference accounting inconsistent.
 
-**Best ecosystem solution:** make export builders modify only `exports`; keep imports explicit through `import_symbol()`; add regression tests for export-only modules and for imported-symbol reference release. This preserves the architecture's separation between provider and consumer edges, avoids implicit dependency edges, and keeps the dependency/symbol graph deterministic.
+**Resolution:** export builders must modify only `exports`; imports remain explicit. Regression coverage must verify export-only modules and imported-symbol reference release.
+
+### F-20260916-005 — LKM topological-sort direction is inconsistent with dependency semantics
+
+- Repository: `globus-os`
+- Path: `modules/atc-shivacore/kernel/src/lkm.rs`
+- Class: **P1**
+- Category: **correctness / logic / integration**
+- Family: **kernel / LKM / dependency-resolution / graph-algorithm**
+- Tags: `P1`, `kernel`, `lkm`, `dependency-graph`, `topological-sort`, `logic`
+- Status: **OPEN — implementation required**
+
+The dependency graph stores edges as `module -> dependency`. The current Kahn implementation increments the dependency node's indegree, which produces dependent-before-dependency ordering. The module load path separately performs dependency-first DFS, so the two ordering APIs encode different semantics.
+
+**Resolution:** define the canonical graph contract as dependency-first loading and implement Kahn's algorithm against the reverse/dependent relation so every topological result has the same semantics. Add deterministic chain and diamond regression tests.
+
+### F-20260916-006 — Required unresolved symbol imports are not always rejected
+
+- Repository: `globus-os`
+- Path: `modules/atc-shivacore/kernel/src/lkm.rs`
+- Class: **P1**
+- Category: **correctness / security / logic**
+- Family: **kernel / LKM / symbol-resolution / load-validation**
+- Tags: `P1`, `kernel`, `lkm`, `symbols`, `security`, `validation`, `logic`
+- Status: **OPEN — implementation required**
+
+The load path computes unresolved imports but only enters rejection logic when `optional_deps` is non-empty. A required unresolved import can therefore bypass the intended fail-closed validation when the optional dependency list is empty.
+
+**Resolution:** always reject unresolved required symbols. Optional dependencies must be represented and checked explicitly; an empty optional-dependency set must never weaken required-import validation.
 
 ## Security static checks
 
@@ -86,7 +117,9 @@ The following organization-wide source searches produced no matches in the index
 - `actions/checkout@main`
 - `actions/checkout@master`
 
-Kernel `unsafe` usage remains subject to manual invariant review; presence of `unsafe` alone is not classified as a vulnerability.
+Private-key/token pattern matches were limited to known scanner/validator pattern definitions in `.github`, `atc-engineering`, and `atc-standards`; they were not confirmed credential material. This is a static-source result, not a substitute for secret scanning or runtime security testing.
+
+The LKM unresolved-symbol validation issue (F-20260916-006) remains security-relevant because incorrect fail-open loading can permit an invalid module state.
 
 ## CI evidence state
 
@@ -96,6 +129,8 @@ The organization fleet CI and GlobusOS CI execution/log endpoints were not provi
 - source-level findings continue to be audited statically;
 - a finding requiring runtime/CI proof remains OPEN until CI evidence is available;
 - historical PASS claims are not reused as current evidence.
+
+The CI evidence-gating correction in GlobusOS is implemented in source, but its current runtime verification remains pending.
 
 ## Required completion gates
 
@@ -115,4 +150,4 @@ A repository can only be marked audit-complete when all applicable gates are sat
 
 ## Current release posture
 
-The fleet is **not globally audit-complete**. The canonical GlobusOS ShivaCore LKM dependency API blocker and the LKM export/import semantic contradiction are still open, and CI execution evidence is incomplete for the latest runs.
+The fleet is **not globally audit-complete**. The canonical GlobusOS ShivaCore LKM dependency API blocker, topological-sort inconsistency, unresolved-symbol validation flaw, and export/import semantic contradiction are still open, and CI execution evidence is incomplete for the latest runs.
