@@ -1,0 +1,89 @@
+name: Fleet Audit
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  engineering:
+    name: Engineering self-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace --all-features
+
+  public-fleet:
+    name: Audit public repository fleet
+    runs-on: ubuntu-latest
+    needs: engineering
+    steps:
+      - name: Checkout engineering platform
+        uses: actions/checkout@v4
+
+      - name: Build audit CLI
+        run: cargo build --release -p atc-audit-cli
+
+      - name: Discover public repositories
+        id: repos
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh repo list A-TownChain-Okosystems --limit 100 --json name,isPrivate \
+            --jq '.[] | select(.isPrivate == false) | .name' > /tmp/repos.txt
+          test -s /tmp/repos.txt
+
+      - name: Audit repositories
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          mkdir -p audit-results
+          failed=0
+          while IFS= read -r repo; do
+            echo "=== $repo ==="
+            rm -rf "/tmp/$repo"
+            if ! git clone --depth 1 "https://github.com/A-TownChain-Okosystems/$repo.git" "/tmp/$repo"; then
+              echo "CLONE ERROR: $repo" | tee "audit-results/$repo.txt"
+              failed=1
+              continue
+            fi
+            if ! ./target/release/atc-audit-cli "/tmp/$repo" > "audit-results/$repo.txt" 2>&1; then
+              failed=1
+            fi
+            cat "audit-results/$repo.txt"
+          done < /tmp/repos.txt
+
+          printf '\nFleet audit summary\n' > audit-results/SUMMARY.md
+          for file in audit-results/*.txt; do
+            repo=$(basename "$file" .txt)
+            if grep -q '^AUDIT PASS:' "$file"; then
+              printf -- '- PASS: `%s`\n' "$repo" >> audit-results/SUMMARY.md
+            else
+              printf -- '- FINDINGS: `%s`\n' "$repo" >> audit-results/SUMMARY.md
+            fi
+          done
+
+          cat audit-results/SUMMARY.md
+          exit "$failed"
+
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fleet-audit-results
+          path: audit-results/
