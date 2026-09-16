@@ -6,6 +6,7 @@ members = [
     "crates/atc-maintenance",
     "crates/atc-config",
     "crates/atc-integration",
+    "crates/atc-audit-cli",
 ]
 
 [workspace.package]
