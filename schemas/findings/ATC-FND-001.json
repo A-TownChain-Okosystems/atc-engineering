@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ATC-FND-001",
+  "title": "ATC Engineering Finding Registry",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["schema", "version", "findings", "immutable"],
+  "properties": {
+    "schema": {"const": "ATC-FND-001"},
+    "version": {"const": "1.0.0"},
+    "immutable": {"const": true},
+    "findings": {"type": "array"}
+  },
+  "additionalProperties": false
+}
