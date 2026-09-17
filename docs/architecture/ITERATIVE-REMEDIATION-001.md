@@ -6,19 +6,31 @@
 
 ATC Engineering shall not stop after detecting a finding. It shall re-audit after every safe remediation and continue until the repository is clean, no further safe progress is possible, or a hard iteration limit is reached.
 
-## Control Loop
+## Executable Lifecycle
 
 ```text
 DISCOVER
+  -> DOCUMENT
   -> AUDIT
   -> CLASSIFY
-  -> SAFE REMEDIATION
-  -> UPDATE AFFECTED ARTIFACTS
+  -> WRITE / IMPLEMENT SAFE CHANGE
+  -> REMEDIATE
+  -> UPDATE IMPACTED ARTIFACTS
   -> RE-AUDIT
-       | clean -> VERIFIED CLEAN
+       | clean -> VERIFY -> READY
        | changed -> loop
        | unchanged -> BLOCKED
 ```
+
+The lifecycle is implemented by `engineer_until_clean()` in `atc-maintenance` and exposed through `atc-audit-cli --engineer`.
+
+## Finding State
+
+Findings are documented as they are detected and are only considered closed when a subsequent executable audit proves the exact finding absent:
+
+`DETECTED -> CLASSIFIED -> REMEDIATED -> VERIFIED`
+
+A finding that cannot be safely changed by the deterministic remediation layer remains open and therefore blocks readiness.
 
 ## Safety Model
 
@@ -40,30 +52,36 @@ The engine does **not** silently rewrite:
 - CI permissions;
 - semantic configuration.
 
-Those findings remain `blocked` and must be resolved through an explicit engineering change followed by another audit.
+Those findings remain `BLOCKED` and require an explicit engineering change followed by another audit.
+
+## Evidence
+
+When evidence output is enabled, the orchestrator writes:
+
+- `docs/engineering/ENGINEERING-LIFECYCLE.md`
+- `docs/engineering/FINDINGS.md`
+- `docs/engineering/ENGINEERING-RESULT.md` for a verified clean state
+
+Every iteration records findings, and resolved findings receive a `VERIFIED` record only after re-audit.
 
 ## Deterministic Termination
 
-`repair_until_stable` accepts a hard `max_iterations` bound. It also calculates a deterministic finding signature. If two consecutive audits produce the same finding set, the engine stops instead of looping indefinitely.
+The orchestrator has a hard maximum iteration limit and calculates a deterministic finding signature. If consecutive audit states do not change, it stops as `BLOCKED` instead of looping indefinitely.
 
-A clean result is emitted only after a fresh audit reports zero findings.
+A `READY` result is emitted only after a fresh executable audit reports zero findings.
 
 ## CLI
 
 ```bash
-cargo run --release -p atc-audit-cli -- /path/to/repository --repair
+cargo run --release -p atc-audit-cli -- /path/to/repository --engineer
+cargo run --release -p atc-audit-cli -- /path/to/repository --engineer --max-repair-iterations 12
 cargo run --release -p atc-audit-cli -- /path/to/repository --repair --max-repair-iterations 12
 ```
 
-The command prints every applied repair and a final summary. A non-clean result remains fail-closed.
+`--engineer` is the full closed-loop lifecycle. `--repair` is the lower-level remediation primitive.
 
-## Evidence
+The command prints the phase, iteration count, applied repairs, findings and final readiness state. Non-clean or blocked results remain fail-closed.
 
-Each applied repair records:
+## Scope Boundary
 
-- iteration number;
-- deterministic repair action;
-- affected path;
-- final audit state.
-
-This preserves the platform principle **No Evidence, No Trust**: remediation is not considered complete merely because a write occurred; it is complete only after re-audit verification.
+The current implementation provides deterministic documentation, auditing, classification, safe remediation, re-audit and evidence generation. It does **not** claim autonomous semantic source-code generation for arbitrary findings. Such code changes require an explicit implementation executor and must still pass the same verification loop before readiness can be granted.
