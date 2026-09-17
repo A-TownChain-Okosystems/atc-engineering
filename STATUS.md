@@ -2,55 +2,50 @@
 
 | Feld | Wert |
 |---|---|
-| Status | **IMPLEMENTED (Phase 1, partiell)** |
-| Version | v1.0.0 |
+| Status | **IMPLEMENTED (Phase 1, Foundation Wave 2)** |
+| Version | v0.1.0 |
 | Engineering Loop | DISCOVER → DOCUMENT → AUDIT → CLASSIFY → REMEDIATE → IMPACT-UPDATE → RE-AUDIT → VERIFY → COMPLETE/BLOCKED |
 | Evidence Plane | `atc-evidence` implementiert — `ATC-EVD-001` v1.0.0 |
-| Readiness | fail-closed; `READY` nur nach sauberem Audit und gültiger Verification |
+| Finding Registry | `atc-findings` implementiert — `ATC-FND-001` v1.0.0 |
+| Impact Graph | `atc-graph` implementiert — typed nodes, relations, deterministic traversal |
+| Verification | `atc-verification` implementiert — fail-closed result model |
+| Readiness | fail-closed; `READY` darf nur nach gültiger Verification, Governance, SoD und erforderlicher Human Approval entstehen |
 
-## Aktueller Implementierungsstand
+## Vorhanden
 
-### Vorhanden
-
-- `atc-core` — Domain IDs, Derived State, Errors, Timestamp und Versionierung.
+- `atc-core` — Domain IDs, Errors und zentrale Engineering-Domain-Typen.
 - `atc-config` — fail-closed Konfiguration und Standards-Version-Pinning.
 - `atc-standards` — Registry-/Repository-Adapter.
 - `atc-maintenance` — Audit, MAINT-001-Klassifizierung M0–M3, Readiness, sichere Remediation und iterative Engineering-Schleife.
 - `atc-requirements` — Requirements-Grundlage.
 - `atc-gates` — fail-closed Control-/Release-Gates und SoD-Prüfung.
 - `atc-audit-cli` — Repository-Audit und Engineering-Loop CLI.
-- `atc-evidence` — maschinenlesbare Evidence Records mit Schema/Version, Status, Provenance und Integrity-Feldern.
+- `atc-evidence` — maschinenlesbare Evidence Records mit Schema, Provenance und Integrity-Feldern.
+- `atc-findings` — Finding Registry mit erzwungenem Lifecycle und append-only Registry-Persistenz.
+- `atc-graph` — typisierter Dependency-/Impact-Graph mit deterministischer Traversierung.
+- `atc-verification` — Verification-Resultate und fail-closed Readiness-Auswertung.
 
-## Evidence Plane
+## Finding Lifecycle
 
-`atc-evidence` implementiert:
+```text
+DETECTED → CLASSIFIED → PLANNED → FIXED → VERIFIED → CLOSED
+                         ↘ BLOCKED
+```
 
-- `ATC-EVD-001` / `1.0.0`;
-- `EvidenceStatus::{PASS, FAIL, UNKNOWN, MISSING}`;
-- nur `PASS` ist vertrauenswürdig;
-- Pflichtfeldvalidierung;
-- deterministische JSON-Ausgabe;
-- append-only Schreibsemantik auf Record-Ebene;
-- `.atc/evidence/EVD-YYYY-NNNNNN.json` als Persistenzziel.
-
-## Closed-Loop Engineering
-
-Der Orchestrator dokumentiert Findings mit Maintenance-Klasse, führt Impact-Updates durch und re-auditiert nach jeder sicheren Remediation. Wiederholte Finding-Signaturen oder fehlender Fortschritt führen zu `BLOCKED` statt Endlosschleifen.
+Ungültige Übergänge und doppelte Finding-IDs werden abgelehnt.
 
 ## Noch nicht vollständig implementiert
 
-- vollständiger maschinenlesbarer Finding Registry Store;
-- echter Repository-/Dependency-/Impact-Graph;
+- Orchestrator-Integration von `atc-findings` in jeden Audit-Lauf;
+- automatische Befüllung des vollständigen Impact-Graphs aus Repository-/Cargo-/Workflow-Daten;
+- ausführbare Build/Test/Security/Conformance-Runner im Verification Engine;
+- automatische Evidence-Erzeugung aus jedem Verification Result;
 - generischer `ImplementationExecutor` für autorisierte semantische Codeänderungen;
-- vollständige Verification-Orchestrierung für Build/Test/Security/Conformance;
-- Policy Engine und vollständige Governance Engine;
-- GitHub Provider/PR/Checks/Release Adapter als eigener Crate;
+- vollständige Policy-/Governance-Orchestrierung;
+- GitHub Provider/PR/Checks/Release Adapter;
 - Organization-wide Orchestrator;
-- vollständiges `atc-engine` CLI über alle spezifizierten Subsysteme;
 - produktive GitHub-App-Integration.
-
-Diese Komponenten dürfen nicht durch Dokumentation als bereits implementiert ausgegeben werden.
 
 ## Verification Hinweis
 
-Die Änderungen dieser Welle wurden über GitHub Source Operations geschrieben und anschließend gegen den Repository-Dateistand geprüft. Ein erfolgreicher Cargo-Build, Testlauf oder CI-Lauf wird daraus nicht abgeleitet.
+Diese Welle wurde über GitHub Source Operations geschrieben. Ein erfolgreicher Cargo-Build, Test-, Format-, Clippy- oder CI-Lauf wird daraus **nicht** abgeleitet. Runtime-Verifikation bleibt eine separate Evidence-erzeugende Phase.
