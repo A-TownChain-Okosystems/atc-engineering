@@ -14,6 +14,13 @@ name = "atc-core"
 version = "0.1.0"
 
 [[package]]
+name = "atc-gates"
+version = "0.1.0"
+dependencies = [
+ "atc-core",
+]
+
+[[package]]
 name = "atc-maintenance"
 version = "0.1.0"
 dependencies = [
