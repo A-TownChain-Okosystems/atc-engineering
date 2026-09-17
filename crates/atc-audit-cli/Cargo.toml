@@ -9,3 +9,4 @@ publish = false
 atc-core = { path = "../atc-core" }
 atc-gates = { path = "../atc-gates" }
 atc-maintenance = { path = "../atc-maintenance" }
+atc-requirements = { path = "../atc-requirements" }
