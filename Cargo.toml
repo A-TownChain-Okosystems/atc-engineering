@@ -11,6 +11,9 @@ members = [
     "crates/atc-requirements",
     "crates/atc-atclang",
     "crates/atc-evidence",
+    "crates/atc-findings",
+    "crates/atc-graph",
+    "crates/atc-verification",
 ]
 
 [workspace.package]
