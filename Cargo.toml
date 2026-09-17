@@ -9,6 +9,7 @@ members = [
     "crates/atc-audit-cli",
     "crates/atc-gates",
     "crates/atc-requirements",
+    "crates/atc-atclang",
 ]
 
 [workspace.package]
