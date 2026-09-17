@@ -63,6 +63,41 @@ cargo run --release -p atc-audit-cli -- /path/to/repository
 
 The CLI exits non-zero when findings are present, preserving fail-closed behavior.
 
+## Release Gate and Machine-Readable Evidence
+
+The `atc-gates` crate now provides the deterministic enforcement boundary between audit evidence and release state. `UNKNOWN`, `MISSING` and `FAIL` evidence block the gate. Production additionally requires valid separation of duties and explicit human approval.
+
+Run the gate-integrated audit with:
+
+```bash
+cargo run --release -p atc-audit-cli -- /path/to/repository --gate
+```
+
+The command emits one deterministic `GATE_REPORT` JSON record using schema `atc.gate-report/v1`. The schema contains the requested state, decision, blocking controls, SoD validity and human-approval state. The report contains no secrets.
+
+The gate can be configured through environment variables:
+
+```text
+ATC_REQUESTED_STATE=TESTNET_READY|PRODUCTION_READY|...
+ATC_CODER=<principal>
+ATC_VALIDATOR=<principal>
+ATC_AUDITOR=<principal>
+ATC_RELEASE_AUTHORITY=<principal>
+ATC_HUMAN_APPROVAL=true|false
+```
+
+For production, empty or duplicated principals and missing human approval remain blocking conditions.
+
+## CI Enforcement
+
+`.github/workflows/engineering-ci.yml` now enforces formatting, workspace tests, Clippy with `-D warnings`, release build, the audit gate, gate-report schema validation and artifact publication. This creates the execution path:
+
+```text
+Standards → Controls → Evidence → Audit → GateReport → CI Artifact → Release Gate
+```
+
+The workflow is intentionally fail-closed. A gate failure is evidence of a blocking condition; it is not converted into a successful CI result.
+
 ## Fleet Audit
 
 `.github/workflows/fleet-audit.yml` validates the engineering platform itself and audits every discoverable **public** repository in `A-TownChain-Okosystems` on push, pull request, weekly schedule and manual dispatch.
@@ -75,6 +110,7 @@ The audit CLI is implemented. The broader target interface remains under develop
 
 ```text
 atc-audit-cli /path/to/repository
+atc-audit-cli /path/to/repository --gate
 ```
 
 Planned higher-level commands remain:
