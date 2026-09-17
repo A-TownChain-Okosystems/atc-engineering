@@ -18,6 +18,7 @@ Repository state, compliance state and release readiness are derived from author
 - Policy evaluation
 - Governance gates
 - Repository auditing
+- Iterative remediation and re-audit
 - Security validation
 - Build and test orchestration
 - Evidence generation
@@ -89,6 +90,19 @@ cargo run --release -p atc-audit-cli -- /path/to/repository
 
 The CLI exits non-zero when findings are present, preserving fail-closed behavior.
 
+## Iterative Remediation
+
+ATC Engineering can execute a bounded closed-loop remediation run. It audits, applies only deterministic safe fixes, updates the affected artifact, and immediately re-audits. The loop stops only when the repository is clean, the finding set is stable, or the hard iteration limit is reached.
+
+```bash
+cargo run --release -p atc-audit-cli -- /path/to/repository --repair
+cargo run --release -p atc-audit-cli -- /path/to/repository --repair --max-repair-iterations 12
+```
+
+Safe remediation currently includes creation of a missing engineering-audit document and correction of missing repository identity in `README.md`. Semantic source changes, security fixes, dependency repairs and CI policy changes remain explicit engineering work and are reported as blocked rather than guessed.
+
+See `docs/architecture/ITERATIVE-REMEDIATION-001.md`.
+
 ## Release Gate and Machine-Readable Evidence
 
 The `atc-gates` crate provides the deterministic enforcement boundary between audit evidence and release state. `UNKNOWN`, `MISSING` and `FAIL` evidence block the gate. Production additionally requires valid separation of duties and explicit human approval.
@@ -106,7 +120,7 @@ The command emits one deterministic `GATE_REPORT` JSON record using schema `atc.
 `.github/workflows/engineering-ci.yml` enforces formatting, workspace tests, Clippy with `-D warnings`, release build, the audit gate, gate-report schema validation and artifact publication.
 
 ```text
-Target Requirements → Standards/Controls → Evidence → Audit → GateReport → CI Artifact → Release Gate
+Target Requirements → Standards/Controls → Evidence → Audit → Remediation → Re-Audit → GateReport → CI Artifact → Release Gate
 ```
 
 ## Fleet Audit
@@ -120,6 +134,7 @@ Private repositories are not silently treated as clean; they require a separate 
 ```text
 atc-audit-cli /path/to/repository
 atc-audit-cli /path/to/repository --requirements
+atc-audit-cli /path/to/repository --repair
 atc-audit-cli /path/to/repository --gate
 ```
 
