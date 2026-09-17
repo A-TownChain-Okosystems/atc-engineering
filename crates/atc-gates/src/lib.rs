@@ -1,6 +1,9 @@
 //! Deterministic engineering release gates.
 //! `UNKNOWN` is never promoted: missing evidence is a blocking condition.
 
+mod report;
+pub use report::GateReport;
+
 use atc_core::DerivedState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,7 +39,6 @@ impl SeparationOfDuties {
             && self.validator != self.auditor
             && self.validator != self.release_authority
             && self.auditor != self.release_authority
-            && self.human_approval
     }
 }
 
@@ -48,13 +50,12 @@ pub struct ReadinessInput {
 }
 
 pub fn evaluate(input: &ReadinessInput) -> GateDecision {
-    if input.requested_state == DerivedState::ProductionReady && !input.sod.valid() {
-        return GateDecision::Block;
-    }
     if input.evidence.iter().any(|e| e.status.is_blocking()) {
         return GateDecision::Block;
     }
-    if input.requested_state == DerivedState::ProductionReady && !input.sod.human_approval {
+    if input.requested_state == DerivedState::ProductionReady
+        && (!input.sod.valid() || !input.sod.human_approval)
+    {
         return GateDecision::Block;
     }
     GateDecision::Allow
@@ -84,5 +85,15 @@ mod tests {
     fn all_controls_pass_allows() {
         let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001", status: EvidenceStatus::Pass }], sod: sod(true), requested_state: DerivedState::ProductionReady };
         assert_eq!(evaluate(&input), GateDecision::Allow);
+    }
+
+    #[test]
+    fn duplicate_principals_block_production() {
+        let input = ReadinessInput {
+            evidence: vec![EvidenceCheck { control_id: "SEC-001", status: EvidenceStatus::Pass }],
+            sod: SeparationOfDuties { coder: "same", validator: "same", auditor: "auditor", release_authority: "release", human_approval: true },
+            requested_state: DerivedState::ProductionReady,
+        };
+        assert_eq!(evaluate(&input), GateDecision::Block);
     }
 }
