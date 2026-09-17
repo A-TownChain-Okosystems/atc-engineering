@@ -2,10 +2,10 @@ use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use atc_atclang::{create_source, inspect, replace_source, ArtifactKind, CompilerRequest};
+use atc_atclang::{create_source, inspect, replace_source, CompilerRequest};
 use atc_core::DerivedState;
 use atc_gates::{EvidenceCheck, EvidenceStatus, GateReport, ReadinessInput, SeparationOfDuties};
-use atc_maintenance::{audit_repository, FindingKind};
+use atc_maintenance::{audit_repository, repair_until_stable, FindingKind};
 use atc_requirements::{analyze, detect_signals};
 
 fn env_value(name: &str, fallback: &str) -> String {
@@ -22,13 +22,14 @@ fn option_value(options: &[String], name: &str) -> Option<String> {
 
 fn main() {
     let mut args = env::args_os().skip(1);
-    let root = args
-        .next()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("."));
+    let root = args.next().map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."));
     let options: Vec<String> = args.map(|arg| arg.to_string_lossy().into_owned()).collect();
     let gate_requested = options.iter().any(|arg| arg == "--gate");
     let requirements_requested = options.iter().any(|arg| arg == "--requirements");
+    let repair_requested = options.iter().any(|arg| arg == "--repair");
+    let repair_iterations = option_value(&options, "--max-repair-iterations")
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(8);
     let atclang_inspect = options.iter().any(|arg| arg == "--atclang-inspect");
     let atclang_create = options.iter().any(|arg| arg == "--atclang-create");
     let atclang_edit = options.iter().any(|arg| arg == "--atclang-edit");
@@ -83,10 +84,7 @@ fn main() {
     if requirements_requested {
         let signals = match detect_signals(&root) {
             Ok(signals) => signals,
-            Err(error) => {
-                eprintln!("REQUIREMENTS ERROR: {error}");
-                std::process::exit(2);
-            }
+            Err(error) => { eprintln!("REQUIREMENTS ERROR: {error}"); std::process::exit(2); }
         };
         let profile = analyze(signals);
         println!("REQUIREMENTS technologies={:?} complete={}", profile.technologies, profile.is_complete());
@@ -99,11 +97,20 @@ fn main() {
         }
     }
 
-    let report = match audit_repository(&root) {
-        Ok(report) => report,
-        Err(error) => {
-            eprintln!("AUDIT ERROR: {error}");
-            std::process::exit(2);
+    let report = if repair_requested {
+        let run = match repair_until_stable(&root, repair_iterations) {
+            Ok(run) => run,
+            Err(error) => { eprintln!("REPAIR ERROR: {error}"); std::process::exit(2); }
+        };
+        for event in &run.events {
+            println!("REPAIR iteration={} action={:?} path={}", event.iteration, event.action, event.path.display());
+        }
+        println!("REPAIR SUMMARY iterations={} applied={} blocked={}", run.iterations, run.events.len(), run.blocked.len());
+        run.final_report
+    } else {
+        match audit_repository(&root) {
+            Ok(report) => report,
+            Err(error) => { eprintln!("AUDIT ERROR: {error}"); std::process::exit(2); }
         }
     };
 
