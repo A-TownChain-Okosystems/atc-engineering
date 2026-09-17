@@ -1,21 +1,33 @@
 # ATC Evidence SSOT — maschinenlesbar und EHRLICH
 # Statusleiter: SPECIFIED -> IMPLEMENTED -> TESTED -> VERIFIED -> AUDITED -> RELEASED
 # Regel: Kein Status-Claim ohne Evidence-Bundle. CLAIMED != PASS.
-schema_version: "1.0.0"
+schema_version: "1.1.0"
 repository: atc-engineering
-generated: "2026-09-14"
-generated_by: "Spec-v1.0-Uebernahme (Aurora, Owner-Direktive 14.09.2026)"
-bound_commit: 1ce256f87f1c56273b304db71ce0aae5bdfaf75e
-maturity_class: C          # C=Plattform/Anwendung (neu)
+generated: "2026-09-17"
+generated_by: "ATC Engineering gate integration"
+bound_commit: 55f4a5d018a0724cacdd9a10f2dc6882c845f15c
+maturity_class: C
 r_level: null
 implementation:
-  status: partial          # substantial|partial|skeleton|docs_only
-  summary: "Phase 0/1 + MAINT-Code-Welle (SCR-0124): atc-core, atc-config, atc-standards (ECHTE Registry: 505 Standards/31 Repos) + atc-maintenance (MAINT-001 M0-M3 fail-closed; MAINT-000 Par.7.2 Readiness-Gate: Fake-PASS-Erkennung, ehrliches FAIL=BLOCK; gegen ECHTE Records beider Live-Komponenten korrekt BLOCK); 51/51 Unit-Tests, clippy sauber, Release-Build OK (Rust 1.98.1)"
+  status: partial
+  summary: "Phase 0/1 + gate integration: atc-core, atc-config, atc-standards, atc-maintenance and atc-gates; deterministic GateReport schema atc.gate-report/v1; atc-audit-cli emits gate evidence; engineering CI enforces fmt/test/clippy/release-build/audit-gate and publishes gate artifacts."
 tests:
-  status: local_pass
-  evidence: "cargo test --workspace = 51/51 PASS (atc-core 14, atc-config 7, atc-standards 18, atc-maintenance 12); clippy -D warnings = 0; examples/load_registry: 505 Standards (505 approved/0 draft nach SCR-0124), 31 Repos; examples/readiness_gate gegen echte Records: a-townchain-os + atc-standards beide BLOCK (security_process, rollback_strategy, compatibility_strategy, monitoring), Coverage 2/2 PASS, Exit 1 — deckungsgleich mit SCR-0123 Welle-1; lokal Rust 1.98.1, 2026-09-14; CI-Run folgt mit Owner-Push ci-fix"
+  status: pending_ci
+  evidence: "Source-level implementation is committed. CI execution is required to establish fresh runtime evidence for this revision; no CI result is inferred from source inspection."
 security:
   status: not_audited
 conformance:
-  registry_entry: bound      # atc-standards@fd86a96: ATC-REPO-ENG-001, T0/L7, capability engineering_governance
+  registry_entry: bound
   standards_bound: [ATC-STD-000, ATC-STD-VERSION-001, ATC-STD-ENG-001, ATC-AI-GOV-001]
+gate:
+  schema_version: "atc.gate-report/v1"
+  fail_closed: true
+  unknown_evidence: block
+  missing_evidence: block
+  failed_evidence: block
+  production_requires_human_approval: true
+  production_requires_separation_of_duties: true
+ci:
+  workflow: .github/workflows/engineering-ci.yml
+  artifact: atc-engineering-gate-evidence
+  required_checks: [fmt, test, clippy, release-build, audit-gate, gate-schema]
