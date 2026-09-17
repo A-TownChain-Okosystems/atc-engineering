@@ -13,6 +13,7 @@ Repository state, compliance state and release readiness are derived from author
 ## Responsibilities
 
 - Repository discovery and intelligence
+- Target software requirements discovery
 - Standards enforcement
 - Policy evaluation
 - Governance gates
@@ -25,6 +26,31 @@ Repository state, compliance state and release readiness are derived from author
 - GitHub integration
 - AI-agent engineering governance
 
+## Target Software Requirements Discovery
+
+The `atc-requirements` crate analyzes the software being built and derives what that target needs before it can be considered complete. It separates **observable facts** from **required architecture and content**.
+
+The planner covers:
+
+- runtime and architectural components
+- configuration and schemas
+- dependency/integration contracts
+- specifications and component inventories
+- unit, integration and negative tests
+- architecture and operations documentation
+- ownership and change control
+- security and supply-chain controls
+- reproducible build and release evidence
+- technology-specific CI requirements
+
+A detected file or technology is only a signal; it does not prove implementation completeness.
+
+```bash
+cargo run --release -p atc-audit-cli -- /path/to/target --requirements
+```
+
+The command exits non-zero while mandatory requirements remain missing. See `docs/architecture/REQUIREMENTS-DISCOVERY-001.md`.
+
 ## Architectural Boundary
 
 ATC Engineering is not the normative source of standards.
@@ -34,12 +60,12 @@ atc-standards
       │ normative standards
       ▼
 atc-engineering
-      │ enforcement and automation
+      │ requirements, enforcement and automation
       ▼
 A-TownChain repository fleet
 ```
 
-`atc-standards` defines **what** must be true. `atc-engineering` validates and enforces those requirements.
+`atc-standards` defines **what** must be true. `atc-engineering` determines the target requirements and validates/enforces those requirements.
 
 ## Implemented Audit Runtime
 
@@ -65,7 +91,7 @@ The CLI exits non-zero when findings are present, preserving fail-closed behavio
 
 ## Release Gate and Machine-Readable Evidence
 
-The `atc-gates` crate now provides the deterministic enforcement boundary between audit evidence and release state. `UNKNOWN`, `MISSING` and `FAIL` evidence block the gate. Production additionally requires valid separation of duties and explicit human approval.
+The `atc-gates` crate provides the deterministic enforcement boundary between audit evidence and release state. `UNKNOWN`, `MISSING` and `FAIL` evidence block the gate. Production additionally requires valid separation of duties and explicit human approval.
 
 Run the gate-integrated audit with:
 
@@ -73,30 +99,15 @@ Run the gate-integrated audit with:
 cargo run --release -p atc-audit-cli -- /path/to/repository --gate
 ```
 
-The command emits one deterministic `GATE_REPORT` JSON record using schema `atc.gate-report/v1`. The schema contains the requested state, decision, blocking controls, SoD validity and human-approval state. The report contains no secrets.
-
-The gate can be configured through environment variables:
-
-```text
-ATC_REQUESTED_STATE=TESTNET_READY|PRODUCTION_READY|...
-ATC_CODER=<principal>
-ATC_VALIDATOR=<principal>
-ATC_AUDITOR=<principal>
-ATC_RELEASE_AUTHORITY=<principal>
-ATC_HUMAN_APPROVAL=true|false
-```
-
-For production, empty or duplicated principals and missing human approval remain blocking conditions.
+The command emits one deterministic `GATE_REPORT` JSON record using schema `atc.gate-report/v1`.
 
 ## CI Enforcement
 
-`.github/workflows/engineering-ci.yml` now enforces formatting, workspace tests, Clippy with `-D warnings`, release build, the audit gate, gate-report schema validation and artifact publication. This creates the execution path:
+`.github/workflows/engineering-ci.yml` enforces formatting, workspace tests, Clippy with `-D warnings`, release build, the audit gate, gate-report schema validation and artifact publication.
 
 ```text
-Standards → Controls → Evidence → Audit → GateReport → CI Artifact → Release Gate
+Target Requirements → Standards/Controls → Evidence → Audit → GateReport → CI Artifact → Release Gate
 ```
-
-The workflow is intentionally fail-closed. A gate failure is evidence of a blocking condition; it is not converted into a successful CI result.
 
 ## Fleet Audit
 
@@ -106,10 +117,9 @@ Private repositories are not silently treated as clean; they require a separate 
 
 ## CLI
 
-The audit CLI is implemented. The broader target interface remains under development.
-
 ```text
 atc-audit-cli /path/to/repository
+atc-audit-cli /path/to/repository --requirements
 atc-audit-cli /path/to/repository --gate
 ```
 
@@ -133,12 +143,6 @@ AI agents may operate only within explicitly authorized scopes. Production relea
 ## Failure Policy
 
 ATC Engineering is fail-closed. Missing, invalid or unverifiable evidence blocks the affected operation.
-
-```text
-UNKNOWN
-  ↓
-BLOCKED
-```
 
 ## Standards
 
