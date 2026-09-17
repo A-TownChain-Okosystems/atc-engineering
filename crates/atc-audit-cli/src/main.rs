@@ -5,7 +5,7 @@ use std::str::FromStr;
 use atc_atclang::{create_source, inspect, replace_source, CompilerRequest};
 use atc_core::DerivedState;
 use atc_gates::{EvidenceCheck, EvidenceStatus, GateReport, ReadinessInput, SeparationOfDuties};
-use atc_maintenance::{audit_repository, repair_until_stable, FindingKind};
+use atc_maintenance::{audit_repository, engineer_until_clean, repair_until_stable, EngineeringPolicy, FindingKind};
 use atc_requirements::{analyze, detect_signals};
 
 fn env_value(name: &str, fallback: &str) -> String {
@@ -27,6 +27,7 @@ fn main() {
     let gate_requested = options.iter().any(|arg| arg == "--gate");
     let requirements_requested = options.iter().any(|arg| arg == "--requirements");
     let repair_requested = options.iter().any(|arg| arg == "--repair");
+    let engineer_requested = options.iter().any(|arg| arg == "--engineer");
     let repair_iterations = option_value(&options, "--max-repair-iterations")
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(8);
@@ -47,36 +48,24 @@ fn main() {
                 Err(error) => { eprintln!("ATCLANG ERROR: {error}"); std::process::exit(2); }
             }
         }
-
         if atclang_create {
             let path = output.or(input).map(PathBuf::from).unwrap_or_else(|| root.join("main.atc"));
             let source = env::var("ATC_SOURCE").unwrap_or_else(|_| "contract Main {}\n".into());
-            if let Err(error) = create_source(&path, &source) {
-                eprintln!("ATCLANG CREATE ERROR: {error}");
-                std::process::exit(2);
-            }
+            if let Err(error) = create_source(&path, &source) { eprintln!("ATCLANG CREATE ERROR: {error}"); std::process::exit(2); }
             println!("ATCLANG CREATE PASS: {}", path.display());
         }
-
         if atclang_edit {
             let path = input.map(PathBuf::from).unwrap_or_else(|| root.join("main.atc"));
             let source = env::var("ATC_SOURCE").unwrap_or_else(|_| "contract Main {}\n".into());
-            if let Err(error) = replace_source(&path, &source) {
-                eprintln!("ATCLANG EDIT ERROR: {error}");
-                std::process::exit(2);
-            }
+            if let Err(error) = replace_source(&path, &source) { eprintln!("ATCLANG EDIT ERROR: {error}"); std::process::exit(2); }
             println!("ATCLANG EDIT PASS: {}", path.display());
         }
-
         if atclang_compile {
             let input = input.map(PathBuf::from).unwrap_or_else(|| root.join("main.atc"));
             let output = output.map(PathBuf::from).unwrap_or_else(|| root.join("main.atvm"));
             let executable = env_value("ATCLANG_COMPILER", "atclang");
             let request = CompilerRequest::new(executable, input, output);
-            if let Err(error) = request.run() {
-                eprintln!("ATCLANG COMPILE ERROR: {error}");
-                std::process::exit(2);
-            }
+            if let Err(error) = request.run() { eprintln!("ATCLANG COMPILE ERROR: {error}"); std::process::exit(2); }
             println!("ATCLANG COMPILE PASS: {} -> {}", request.input.display(), request.output.display());
         }
     }
@@ -91,13 +80,24 @@ fn main() {
         for requirement in &profile.requirements {
             println!("REQUIREMENT {} {:?} {:?} {} — {}", requirement.id, requirement.kind, requirement.status, requirement.name, requirement.reason);
         }
-        if !profile.is_complete() {
-            eprintln!("REQUIREMENTS BLOCK: target software is not complete");
-            std::process::exit(1);
-        }
+        if !profile.is_complete() { eprintln!("REQUIREMENTS BLOCK: target software is not complete"); std::process::exit(1); }
     }
 
-    let report = if repair_requested {
+    let report = if engineer_requested {
+        let policy = EngineeringPolicy {
+            max_iterations: repair_iterations,
+            write_evidence: true,
+        };
+        let result = match engineer_until_clean(&root, &policy) {
+            Ok(result) => result,
+            Err(error) => { eprintln!("ENGINEERING ERROR: {error}"); std::process::exit(2); }
+        };
+        println!("ENGINEERING phase={:?} iterations={} repairs={} ready={}", result.phase, result.iterations, result.repair_events.len(), result.ready);
+        for event in &result.repair_events {
+            println!("ENGINEERING_REPAIR iteration={} action={:?} path={}", event.iteration, event.action, event.path.display());
+        }
+        result.final_report
+    } else if repair_requested {
         let run = match repair_until_stable(&root, repair_iterations) {
             Ok(run) => run,
             Err(error) => { eprintln!("REPAIR ERROR: {error}"); std::process::exit(2); }
