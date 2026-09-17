@@ -1,0 +1,54 @@
+name: engineering-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Test workspace
+        run: cargo test --workspace --all-features
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Release build
+        run: cargo build --release
+
+      - name: Audit gate report
+        run: |
+          mkdir -p artifacts
+          cargo run -p atc-audit-cli -- . --gate > artifacts/gate-report.txt
+          grep '^GATE_REPORT ' artifacts/gate-report.txt | sed 's/^GATE_REPORT //' > artifacts/gate-report.json
+
+      - name: Validate gate report schema
+        run: |
+          test -s artifacts/gate-report.json
+          grep -q '"schema_version":"atc.gate-report/v1"' artifacts/gate-report.json
+
+      - name: Upload gate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: atc-engineering-gate-evidence
+          path: artifacts/gate-report.*
+          if-no-files-found: error
