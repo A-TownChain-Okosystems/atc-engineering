@@ -5,6 +5,7 @@ use std::str::FromStr;
 use atc_core::DerivedState;
 use atc_gates::{EvidenceCheck, EvidenceStatus, GateReport, ReadinessInput, SeparationOfDuties};
 use atc_maintenance::{audit_repository, FindingKind};
+use atc_requirements::{analyze, detect_signals};
 
 fn env_value(name: &str, fallback: &str) -> String {
     env::var(name).unwrap_or_else(|_| fallback.to_string())
@@ -20,8 +21,32 @@ fn main() {
         .next()
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."));
-    let gate_requested = args.any(|arg| arg == "--gate");
+    let options: Vec<_> = args.collect();
+    let gate_requested = options.iter().any(|arg| arg == "--gate");
+    let requirements_requested = options.iter().any(|arg| arg == "--requirements");
     let requested_state = env_value("ATC_REQUESTED_STATE", "TESTNET_READY");
+
+    if requirements_requested {
+        let signals = match detect_signals(&root) {
+            Ok(signals) => signals,
+            Err(error) => {
+                eprintln!("REQUIREMENTS ERROR: {error}");
+                std::process::exit(2);
+            }
+        };
+        let profile = analyze(signals);
+        println!("REQUIREMENTS technologies={:?} complete={}", profile.technologies, profile.is_complete());
+        for requirement in &profile.requirements {
+            println!(
+                "REQUIREMENT {} {:?} {:?} {} — {}",
+                requirement.id, requirement.kind, requirement.status, requirement.name, requirement.reason
+            );
+        }
+        if !profile.is_complete() {
+            eprintln!("REQUIREMENTS BLOCK: target software is not complete");
+            std::process::exit(1);
+        }
+    }
 
     let report = match audit_repository(&root) {
         Ok(report) => report,
