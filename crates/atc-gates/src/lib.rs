@@ -11,29 +11,51 @@ pub enum EvidenceStatus { Pass, Fail, Missing, Unknown }
 
 impl EvidenceStatus {
     pub const fn is_blocking(self) -> bool { !matches!(self, Self::Pass) }
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Pass => "PASS",
+            Self::Fail => "FAIL",
+            Self::Missing => "MISSING",
+            Self::Unknown => "UNKNOWN",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GateDecision { Allow, Block }
 
+impl GateDecision {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Allow => "ALLOW",
+            Self::Block => "BLOCK",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvidenceCheck {
-    pub control_id: &'static str,
+    pub control_id: String,
     pub status: EvidenceStatus,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SeparationOfDuties {
-    pub coder: &'static str,
-    pub validator: &'static str,
-    pub auditor: &'static str,
-    pub release_authority: &'static str,
+    pub coder: String,
+    pub validator: String,
+    pub auditor: String,
+    pub release_authority: String,
     pub human_approval: bool,
 }
 
 impl SeparationOfDuties {
     pub fn valid(&self) -> bool {
-        self.coder != self.validator
+        !self.coder.is_empty()
+            && !self.validator.is_empty()
+            && !self.auditor.is_empty()
+            && !self.release_authority.is_empty()
+            && self.coder != self.validator
             && self.coder != self.auditor
             && self.coder != self.release_authority
             && self.validator != self.auditor
@@ -66,34 +88,41 @@ mod tests {
     use super::*;
 
     fn sod(approved: bool) -> SeparationOfDuties {
-        SeparationOfDuties { coder: "agent-a", validator: "agent-b", auditor: "agent-c", release_authority: "human-r", human_approval: approved }
+        SeparationOfDuties { coder: "agent-a".into(), validator: "agent-b".into(), auditor: "agent-c".into(), release_authority: "human-r".into(), human_approval: approved }
     }
 
     #[test]
     fn missing_evidence_blocks() {
-        let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001", status: EvidenceStatus::Missing }], sod: sod(true), requested_state: DerivedState::TestnetReady };
+        let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Missing }], sod: sod(true), requested_state: DerivedState::TestnetReady };
         assert_eq!(evaluate(&input), GateDecision::Block);
     }
 
     #[test]
     fn production_requires_human_approval() {
-        let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001", status: EvidenceStatus::Pass }], sod: sod(false), requested_state: DerivedState::ProductionReady };
+        let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Pass }], sod: sod(false), requested_state: DerivedState::ProductionReady };
         assert_eq!(evaluate(&input), GateDecision::Block);
     }
 
     #[test]
     fn all_controls_pass_allows() {
-        let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001", status: EvidenceStatus::Pass }], sod: sod(true), requested_state: DerivedState::ProductionReady };
+        let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Pass }], sod: sod(true), requested_state: DerivedState::ProductionReady };
         assert_eq!(evaluate(&input), GateDecision::Allow);
     }
 
     #[test]
     fn duplicate_principals_block_production() {
         let input = ReadinessInput {
-            evidence: vec![EvidenceCheck { control_id: "SEC-001", status: EvidenceStatus::Pass }],
-            sod: SeparationOfDuties { coder: "same", validator: "same", auditor: "auditor", release_authority: "release", human_approval: true },
+            evidence: vec![EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Pass }],
+            sod: SeparationOfDuties { coder: "same".into(), validator: "same".into(), auditor: "auditor".into(), release_authority: "release".into(), human_approval: true },
             requested_state: DerivedState::ProductionReady,
         };
         assert_eq!(evaluate(&input), GateDecision::Block);
+    }
+
+    #[test]
+    fn empty_role_blocks_production() {
+        let mut roles = sod(true);
+        roles.coder.clear();
+        assert!(!roles.valid());
     }
 }
