@@ -6,10 +6,12 @@
 
 pub mod audit;
 pub mod classification;
+pub mod engineering;
 pub mod readiness;
 pub mod repair;
 
 pub use audit::{audit_repository, AuditReport, Finding, FindingKind};
 pub use classification::{Gate, MaintenanceClass};
+pub use engineering::{engineer_until_clean, EngineeringPhase, EngineeringPolicy, EngineeringResult, FindingRecord};
 pub use readiness::{evaluate_coverage, evaluate_record, GateOutcome, ReadinessRecord};
 pub use repair::{repair_until_stable, RepairAction, RepairEvent, RepairRun};
