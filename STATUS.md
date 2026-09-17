@@ -2,36 +2,55 @@
 
 | Feld | Wert |
 |---|---|
-| Status | **IMPLEMENTED (Phase 0, partiell)** (Statusleiter: SPECIFIED → IMPLEMENTED → TESTED → VERIFIED → AUDITED → RELEASED) |
-| Version | v1.0.0 (Specification final, Owner-Direktive 14.09.2026) |
-| Letzte Änderung | 2026-09-14 — Voll-Spec v1.0 + initiale Kerndokumente übernommen |
-| Implementation | Phase 0 gestartet: `atc-core` + `atc-config` implementiert (0.1.0), 51/51 Tests, clippy `-D warnings` sauber, Release-Build OK; Phase 1 + MAINT-Code-Welle: `atc-standards` (Registry: 505 Standards, 31 Repos) + `atc-maintenance` (MAINT-001 Klassifizierung, MAINT-000 §7.2 Readiness-Gate — BLOCK gegen echte Records) |
-| Registry | ATC-REPO-ENG-001 (atc-standards/repositories.yaml, C2/S2/L7) |
+| Status | **IMPLEMENTED (Phase 1, partiell)** |
+| Version | v1.0.0 |
+| Engineering Loop | DISCOVER → DOCUMENT → AUDIT → CLASSIFY → REMEDIATE → IMPACT-UPDATE → RE-AUDIT → VERIFY → COMPLETE/BLOCKED |
+| Evidence Plane | `atc-evidence` implementiert — `ATC-EVD-001` v1.0.0 |
+| Readiness | fail-closed; `READY` nur nach sauberem Audit und gültiger Verification |
 
-## Was existiert
+## Aktueller Implementierungsstand
 
-- Rust-Workspace (`Cargo.toml`, resolver 2, edition 2021, zero-dependency):
-  - `crates/atc-core` 0.1.0 — Domain Types: `RepositoryId`/`StandardId`/`EvidenceId` (fail-closed Validierung), `DerivedState` (NOT_READY→…→PRODUCTION_READY, `FromStr` fail-closed, Advance-Regeln), `CoreError`/`Result` (kein unwrap im Bibliothekspfad), `Timestamp` (deterministisch, keine Systemuhr im Kern)
-  - `crates/atc-config` 0.1.0 — Phase-0-Subset von `atc-engineering.toml`: Sektionen `[repository]`/`[standards]`/`[evidence]`, Standards Version Pinning inkl. `minimum<=version`-Prüfung und Wildcard-Ablehnung, Duplikat-/Unbekannt-Fehler mit Zeilenkontext
-  - `crates/atc-standards` 0.1.0 — Phase-1-Registry-Client: Inline-Flow-Map-Parser (fail-closed), `StandardsRegistry` (Lifecycle idea→retired, Duplikat-/Status-Validierung, `require_normative_released`), `RepoRegistry` (Fleet-Metadaten, `governed()`, Duplikat-Prüfung), `examples/load_registry.rs` — lädt die **echte** atc-standards-Registry: 505 Standards (465 approved / 40 draft), 31 Repos (29 governed)
-  - `crates/atc-maintenance` 0.1.0 — MAINT-001 (freigegeben SCR-0124): `MaintenanceClass` M0–M3 fail-closed, Im-Zweifel-höhere-Klasse (REQ-MAINT-017), Gates je Klasse (§3), Separation-of-Duties für M2/M3 (REQ-MAINT-020); MAINT-000 §7.2 Readiness-Gate: Schema-Prüfung (10 Pflichtfelder), Fake-PASS-Erkennung, ehrliches FAIL = legitimer BLOCK, Coverage-Pflicht für Live-Komponenten; `examples/readiness_gate.rs` läuft gegen die ECHTEN Records → beide Komponenten BLOCK (security_process, rollback_strategy u.a.), Coverage 2/2, Exit 1 — deckungsgleich mit SCR-0123 Welle-1-Evidenz
-  - `config/examples/atc-engineering.toml` — kanonisches Beispiel
-  - `atc-core::version` — `semver_key`/`is_semver` public (keine Duplikate); `RepositoryId` akzeptiert Punkt (`.github`-Repo)
-- Evidenz (2026-09-14, lokal, Rust 1.98.1 stable): `cargo fmt --check` OK · `cargo clippy --workspace --all-targets --all-features -- -D warnings` = 0 Fehler · `cargo test --workspace` = 51/51 PASS (atc-core 14, atc-config 7, atc-standards 18, atc-maintenance 12 — frühere Angabe „atc-core 7, atc-config 11" war vertauscht) · `cargo build --release` OK
-- Specification v1.0.0 vollständig: `docs/architecture/ATC-ENGINEERING-SPEC-001.md` (42 Abschnitte: 5-Ebenen-Modell, 16 Crates, CLI-Suite, Governance State Machine, Gates G0–G9, Evidence/Repository-State-Schemas, GitHub-App-Pfad, Version Pinning, Supply-Chain, P0–P3, v1.0-DoD)
-- Initiale Kerndokumente verbindlich: `README.md`, `AGENTS.md`, `ROADMAP.md` (Phase 0–10), `ARCHITECTURE.md`
-- Governance-Dokumentation (`docs/governance/`), Engineering-Docs (`docs/engineering/`), Threat-Model (`docs/security/`)
-- Evidence-Skeleton (`.atc/evidence/evidence.yaml`)
-- Struktur-Validierung in CI (`.github/workflows/ci.yml` — Owner-Push via `ci-fix/apply.sh` offen)
+### Vorhanden
 
-## Was NICHT existiert (ehrlich)
+- `atc-core` — Domain IDs, Derived State, Errors, Timestamp und Versionierung.
+- `atc-config` — fail-closed Konfiguration und Standards-Version-Pinning.
+- `atc-standards` — Registry-/Repository-Adapter.
+- `atc-maintenance` — Audit, MAINT-001-Klassifizierung M0–M3, Readiness, sichere Remediation und iterative Engineering-Schleife.
+- `atc-requirements` — Requirements-Grundlage.
+- `atc-gates` — fail-closed Control-/Release-Gates und SoD-Prüfung.
+- `atc-audit-cli` — Repository-Audit und Engineering-Loop CLI.
+- `atc-evidence` — maschinenlesbare Evidence Records mit Schema/Version, Status, Provenance und Integrity-Feldern.
 
-- 12 der 16 Crates noch nicht implementiert; kein CLI (`atc-engine`). MAINT-002..024-Tooling folgt in Folgewellen; Readiness-Gate bewertet noch nicht die M2/M3-critical_maintenance-Bloecke.
-- Keine Policy-/Audit-/Evidence-Engine — nur deren Spezifikation.
-- Tests bisher nur lokal, nicht in CI (Workflow liegt in `ci-fix/`, Owner-Push offen).
-- Rust 1.98.1 im Sandbox; Formatierung auf 2024er-Edition-Anforderungen geprüft mit fmt.
-- GitHub App existiert nicht (langfristiges Ziel §23; bis dahin PAT mit Least Privilege).
+## Evidence Plane
 
-## Nächster Schritt
+`atc-evidence` implementiert:
 
-MAINT-Folgewellen (MAINT-002..024-Tooling, critical_maintenance-Bloecke im Gate), danach Phase-1-Rest: Requirement-Resolver (§24: REQ-STD-XXX-NNN maschinenlesbar), Version-Pinning gegen Registry-Version, Konformitäts-Reports; parallel CI live schalten (Owner-Push `ci-fix/apply.sh`).
+- `ATC-EVD-001` / `1.0.0`;
+- `EvidenceStatus::{PASS, FAIL, UNKNOWN, MISSING}`;
+- nur `PASS` ist vertrauenswürdig;
+- Pflichtfeldvalidierung;
+- deterministische JSON-Ausgabe;
+- append-only Schreibsemantik auf Record-Ebene;
+- `.atc/evidence/EVD-YYYY-NNNNNN.json` als Persistenzziel.
+
+## Closed-Loop Engineering
+
+Der Orchestrator dokumentiert Findings mit Maintenance-Klasse, führt Impact-Updates durch und re-auditiert nach jeder sicheren Remediation. Wiederholte Finding-Signaturen oder fehlender Fortschritt führen zu `BLOCKED` statt Endlosschleifen.
+
+## Noch nicht vollständig implementiert
+
+- vollständiger maschinenlesbarer Finding Registry Store;
+- echter Repository-/Dependency-/Impact-Graph;
+- generischer `ImplementationExecutor` für autorisierte semantische Codeänderungen;
+- vollständige Verification-Orchestrierung für Build/Test/Security/Conformance;
+- Policy Engine und vollständige Governance Engine;
+- GitHub Provider/PR/Checks/Release Adapter als eigener Crate;
+- Organization-wide Orchestrator;
+- vollständiges `atc-engine` CLI über alle spezifizierten Subsysteme;
+- produktive GitHub-App-Integration.
+
+Diese Komponenten dürfen nicht durch Dokumentation als bereits implementiert ausgegeben werden.
+
+## Verification Hinweis
+
+Die Änderungen dieser Welle wurden über GitHub Source Operations geschrieben und anschließend gegen den Repository-Dateistand geprüft. Ein erfolgreicher Cargo-Build, Testlauf oder CI-Lauf wird daraus nicht abgeleitet.
