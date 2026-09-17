@@ -4,7 +4,7 @@
 
 ## Purpose
 
-`atc-engineering` must be able to inspect the software being built and derive an explicit list of what that target requires. The result is a **requirements profile**, not a declaration that the target is complete.
+`atc-engineering` must inspect the software being built and derive an explicit list of what that target requires. The result is a **requirements profile**, not a declaration that the target is complete.
 
 The engine answers:
 
@@ -15,6 +15,7 @@ The engine answers:
 5. Which documentation and governance artifacts are required?
 6. Which security and release controls are required?
 7. Which requirements are still missing?
+8. If ATCLang is detected, are detection, creation, editing and canonical conversion/compilation workflows required?
 
 ## Evidence rule
 
@@ -49,9 +50,28 @@ This preserves the engineering principle **No Evidence, No Trust**.
 | `REL-*` | Reproducible build and release evidence |
 | `TECH-*` | Technology-specific enforcement |
 
+## ATCLang discovery
+
+ATCLang artifacts are recognized recursively by the extensions:
+
+- `.atc` — ATCLang source artifacts.
+- `.aes` — ATCLang ecosystem artifact class; exact semantics remain governed by the ATCLang specification.
+- `.atvm` — ATC-VM artifact/bytecode class; conversion must use the canonical compiler/VM contract rather than treating a binary as ordinary text.
+
+When an ATCLang artifact is detected, the planner derives explicit requirements for:
+
+- **Detection** — classify ATCLang artifacts and their role.
+- **Creation** — provide a governed mechanism for producing valid artifacts.
+- **Editing** — support structured, validation-aware source/metadata changes.
+- **Conversion/compilation** — route source through the canonical ATCLang compiler toward the supported VM artifact format without inventing semantics.
+- **Testing** — syntax, semantic, bytecode and applicable round-trip tests.
+- **Documentation** — versioned artifact and conversion contracts.
+
+The detector intentionally does not claim that any of these workflows are already implemented merely because an extension exists.
+
 ## Current discovery signals
 
-The initial implementation detects Rust, Python, JavaScript, TypeScript, shell automation, Docker and GitHub Actions from repository structure. More detectors must be added for databases, network protocols, native toolchains, OS/kernel targets, blockchain nodes, smart contracts, AI/ML runtimes, storage, cryptography and hardware dependencies.
+The initial implementation detects Rust, Python, JavaScript, TypeScript, shell automation, Docker and GitHub Actions plus recursive ATCLang `.atc`, `.aes` and `.atvm` artifacts. More detectors must be added for databases, network protocols, native toolchains, OS/kernel targets, blockchain nodes, smart contracts, AI/ML runtimes, storage, cryptography and hardware dependencies.
 
 ## CLI
 
@@ -72,5 +92,6 @@ The discovery engine does not infer correctness from names, README claims, direc
 3. Component/dependency graph extraction.
 4. Requirement-to-evidence traceability.
 5. Repository-specific profiles and target classes.
-6. Automatic implementation task generation.
-7. Re-audit and requirement closure verification.
+6. Actual ATCLang create/edit/compile adapters backed by the canonical `atclang` toolchain.
+7. Automatic implementation task generation.
+8. Re-audit and requirement closure verification.
