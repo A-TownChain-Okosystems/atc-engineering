@@ -8,3 +8,4 @@ authors.workspace = true
 
 [dependencies]
 atc-core = { path = "../atc-core" }
+atc-graph = { path = "../atc-graph" }
