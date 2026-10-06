@@ -2,7 +2,8 @@
 
 Repository: `atc-engineering`
 Status: ACTIVE / FLEET AUDIT CONTROL PLANE
-Last verified: 2026-10-06
+Last verified: 2026-09-16
+Last reconciled: 2026-10-06
 
 This repository is the engineering control plane for the A-TownChain-Okosystems repository fleet. Its own audit implementation is subject to the same evidence rules it enforces: deterministic behavior, explicit findings, fail-closed gates and verified remediation.
 
