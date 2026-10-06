@@ -84,6 +84,7 @@ fn main() {
         }
         if atclang_edit {
             let path = input
+                .as_deref()
                 .map(PathBuf::from)
                 .unwrap_or_else(|| root.join("main.atc"));
             let source = env::var("ATC_SOURCE").unwrap_or_else(|_| "contract Main {}\n".into());

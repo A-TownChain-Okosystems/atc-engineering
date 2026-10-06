@@ -137,10 +137,9 @@ impl CompilerRequest {
             .args(&self.arguments)
             .status()?;
         if !status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("ATCLang compiler exited with {status}"),
-            ));
+            return Err(io::Error::other(format!(
+                "ATCLang compiler exited with {status}"
+            )));
         }
         if !self.output.is_file() {
             return Err(io::Error::new(
