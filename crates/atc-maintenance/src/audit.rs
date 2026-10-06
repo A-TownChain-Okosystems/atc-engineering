@@ -246,10 +246,52 @@ fn audit_cargo_path_dependencies(
 }
 
 fn contains_todo_marker(text: &str) -> bool {
-    text.lines().any(|line| {
-        let upper = line.to_ascii_uppercase();
-        upper.contains("TODO") || upper.contains("FIXME")
-    })
+    let mut in_block_comment = false;
+
+    for line in text.lines() {
+        let mut index = 0;
+        let bytes = line.as_bytes();
+        let mut comment_start = None;
+
+        while index < bytes.len() {
+            if in_block_comment {
+                if index + 1 < bytes.len() && bytes[index] == b'*' && bytes[index + 1] == b'/' {
+                    in_block_comment = false;
+                    index += 2;
+                    continue;
+                }
+                index += 1;
+                continue;
+            }
+
+            if index + 1 < bytes.len() && bytes[index] == b'/' && bytes[index + 1] == b'*' {
+                in_block_comment = true;
+                index += 2;
+                continue;
+            }
+
+            if index + 1 < bytes.len() && bytes[index] == b'/' && bytes[index + 1] == b'/' {
+                comment_start = Some(index + 2);
+                break;
+            }
+
+            if bytes[index] == b'#' {
+                comment_start = Some(index + 1);
+                break;
+            }
+
+            index += 1;
+        }
+
+        if let Some(start) = comment_start {
+            let comment = line[start..].to_ascii_uppercase();
+            if comment.contains("TODO") || comment.contains("FIXME") {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 fn is_duplicate_candidate(path: &Path) -> bool {
