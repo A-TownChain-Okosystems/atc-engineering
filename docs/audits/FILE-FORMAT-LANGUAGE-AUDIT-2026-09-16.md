@@ -23,6 +23,7 @@ The central runner now invokes this check:
 `scripts/run_ci_independent_audit.sh`
 
 Commits:
+
 - `d398b7381365976d55bf216a85bb6270dd6f4709` — initial checker
 - `355548473c053292368473919e5323cdce7e8330` — integrated into central runner
 

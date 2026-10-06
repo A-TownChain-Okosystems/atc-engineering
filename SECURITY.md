@@ -19,7 +19,7 @@ Criticality C2 (Registry: ATC-REPO-ENG-001).
 ## Meldungen
 
 Security-Findings über Issues mit Label `security` oder direkt an
-michael.worob@gmail.com. Severity-Modell und Reaktionszeiten: ATC-AI-GOV-001
+<michael.worob@gmail.com>. Severity-Modell und Reaktionszeiten: ATC-AI-GOV-001
 (P0 BLOCK bis P3 TRACK).
 
 ## Audit

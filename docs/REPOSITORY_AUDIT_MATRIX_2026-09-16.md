@@ -67,6 +67,7 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 
 ### GlobusOS #18 — LKM dependency API stub
 - Class: **P1**
+
 - Category: **correctness / completeness**
 - Family: **kernel / LKM / dependency-resolution**
 - Tags: `P1`, `stub`, `kernel`, `lkm`, `dependency-graph`, `correctness`, `completeness`, `api`
@@ -76,6 +77,7 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 
 ### GlobusOS #19 — export/import semantic contradiction
 - Class: **P1**
+
 - Category: **logic / correctness / API semantics**
 - Family: **kernel / LKM / symbol-resolution / reference-accounting**
 - Tags: `P1`, `kernel`, `lkm`, `symbols`, `imports`, `exports`, `refcount`, `logic`
@@ -85,6 +87,7 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 
 ### F-20260916-005 — topological-sort direction
 - Repository: `globus-os`
+
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
 - Category: **correctness / logic / integration**
@@ -96,6 +99,7 @@ The graph represents `module → dependency`. The current Kahn implementation in
 
 ### F-20260916-006 — required symbol validation is not universally fail-closed
 - Repository: `globus-os`
+
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
 - Category: **correctness / security / logic**

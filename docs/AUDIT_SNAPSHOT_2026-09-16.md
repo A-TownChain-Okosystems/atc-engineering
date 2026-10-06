@@ -7,7 +7,7 @@ audit_date: 2026-09-16
 audit_time: 13:27:01 CEST
 ---
 
-# Organization-wide Engineering Audit — 2026-09-16
+## Organization-wide Engineering Audit — 2026-09-16
 
 ## Scope
 
@@ -30,6 +30,7 @@ Every finding is classified by:
 
 ### F-20260916-001 — GlobusOS ShivaCore LKM dependency API stub
 - Repository: `globus-os`
+
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
 - Category: **correctness / completeness**
@@ -43,6 +44,7 @@ Tracking issue: GlobusOS #18.
 
 ### F-20260916-002 — Historical repository/source-of-truth contradiction
 - Repository: `atc-shivacore`
+
 - Class: **P2**
 - Category: **consistency / architecture / documentation**
 - Family: **repository-boundary / source-of-truth**
@@ -53,6 +55,7 @@ The active kernel implementation was migrated to `globus-os/modules/atc-shivacor
 
 ### F-20260916-003 — Legacy TODO/wiki claims require historical classification
 - Repository: `a-townchain-os-docs`
+
 - Class: **P2**
 - Category: **consistency / documentation**
 - Family: **documentation-lifecycle / historical-archive**
@@ -63,6 +66,7 @@ Legacy TODO and Wiki datasets contain historical completion claims and old archi
 
 ### F-20260916-004 — LKM export/import semantic contradiction
 - Repository: `globus-os`
+
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
 - Category: **logic / correctness / API semantics**
@@ -77,6 +81,7 @@ Legacy TODO and Wiki datasets contain historical completion claims and old archi
 
 ### F-20260916-005 — LKM topological-sort direction contradiction
 - Repository: `globus-os`
+
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
 - Category: **correctness / logic / integration**
@@ -88,6 +93,7 @@ The graph represents `module → dependency`. The current Kahn implementation in
 
 ### F-20260916-006 — Required symbol validation is not universally fail-closed
 - Repository: `globus-os`
+
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
 - Category: **correctness / security / logic**
@@ -99,6 +105,7 @@ The load path computes unresolved imports but only enters the rejection branch w
 
 ### F-20260916-007 — A-TownChain ZKP Python API is an active placeholder
 - Repository: `a-townchain`
+
 - Path: `modules/atc-blockchain/zkp/groth16.py`
 - Class: **P2**
 - Category: **completeness / integration / architecture**
