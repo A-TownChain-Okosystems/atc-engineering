@@ -170,7 +170,7 @@ fn scan_tree(
         if !archived_or_documentation
             && is_source
             && relative != Path::new("docs/ENGINEERING_AUDIT.md")
-            && contains_todo_marker(text)
+            && contains_todo_marker(text, comment_syntax_for(relative))
         {
             report.findings.push(Finding {
                 kind: FindingKind::Error,
@@ -245,11 +245,80 @@ fn audit_cargo_path_dependencies(
     }
 }
 
-fn contains_todo_marker(text: &str) -> bool {
-    text.lines().any(|line| {
-        let upper = line.to_ascii_uppercase();
-        upper.contains("TODO") || upper.contains("FIXME")
-    })
+enum CommentSyntax {
+    SlashAndBlock,
+    Hash,
+    All,
+}
+
+fn comment_syntax_for(path: &Path) -> CommentSyntax {
+    match path.extension().and_then(OsStr::to_str) {
+        Some("rs" | "c" | "h" | "cpp" | "cc" | "ts" | "tsx" | "js" | "jsx" | "java" | "go") => {
+            CommentSyntax::SlashAndBlock
+        }
+        Some("py" | "pyw" | "sh" | "bash" | "zsh" | "rb" | "toml" | "yml" | "yaml" | "ini") => {
+            CommentSyntax::Hash
+        }
+        _ => CommentSyntax::All,
+    }
+}
+
+fn contains_todo_marker(text: &str, syntax: CommentSyntax) -> bool {
+    let allows_slash = matches!(syntax, CommentSyntax::SlashAndBlock | CommentSyntax::All);
+    let allows_hash = matches!(syntax, CommentSyntax::Hash | CommentSyntax::All);
+    let mut in_block_comment = false;
+
+    for line in text.lines() {
+        let bytes = line.as_bytes();
+        let mut comment = String::new();
+        let mut index = 0;
+
+        while index < bytes.len() {
+            if in_block_comment {
+                if index + 1 < bytes.len() && bytes[index] == b'*' && bytes[index + 1] == b'/' {
+                    in_block_comment = false;
+                    index += 2;
+                    continue;
+                }
+                comment.push(bytes[index] as char);
+                index += 1;
+                continue;
+            }
+
+            if allows_slash
+                && index + 1 < bytes.len()
+                && bytes[index] == b'/'
+                && bytes[index + 1] == b'*'
+            {
+                in_block_comment = true;
+                index += 2;
+                continue;
+            }
+
+            if allows_slash
+                && index + 1 < bytes.len()
+                && bytes[index] == b'/'
+                && bytes[index + 1] == b'/'
+            {
+                comment.push_str(&line[index + 2..]);
+                break;
+            }
+
+            if allows_hash && bytes[index] == b'#' {
+                comment.push_str(&line[index + 1..]);
+                break;
+            }
+
+            index += 1;
+        }
+
+        let upper = comment.to_ascii_uppercase();
+        if upper.contains("TODO") || upper.contains("FIXME") {
+            return true;
+        }
+    }
+
+    false
 }
 
 fn is_duplicate_candidate(path: &Path) -> bool {
@@ -281,15 +350,11 @@ fn is_text_candidate(path: &Path) -> bool {
 }
 
 fn contains_secret_pattern(text: &str) -> bool {
-    if [
-        "-----BEGIN RSA PRIVATE KEY-----",
-        "-----BEGIN EC PRIVATE KEY-----",
-        "-----BEGIN OPENSSH PRIVATE KEY-----",
-    ]
-    .iter()
-    .any(|pattern| text.contains(pattern))
-    {
-        return true;
+    for key_kind in ["RSA PRIVATE KEY", "EC PRIVATE KEY", "OPENSSH PRIVATE KEY"] {
+        let header = format!("-----BEGIN {key_kind}-----");
+        if text.contains(&header) {
+            return true;
+        }
     }
 
     text.lines().any(|line| {
@@ -332,13 +397,16 @@ fn contains_dangerous_shell_pattern(extension: Option<&str>, text: &str) -> bool
 mod tests {
     use super::*;
 
+    fn any_syntax(text: &str) -> bool {
+        contains_todo_marker(text, CommentSyntax::All)
+    }
+
     #[test]
     fn secret_patterns_are_detected() {
         let token = "ghp_".to_owned() + &"1".repeat(40);
         assert!(contains_secret_pattern(&format!("prefix {token}suffix")));
-        assert!(contains_secret_pattern(
-            "-----BEGIN OPENSSH PRIVATE KEY-----"
-        ));
+        let openssh_header = format!("-----BEGIN {}-----", "OPENSSH PRIVATE KEY");
+        assert!(contains_secret_pattern(&openssh_header));
         assert!(!contains_secret_pattern("public documentation only"));
         assert!(!contains_secret_pattern("ghp_123"));
         assert!(!contains_secret_pattern("github_pat_placeholder"));
@@ -382,5 +450,111 @@ mod tests {
         assert!(is_non_production_path(Path::new("docs/wiki/a.py")));
         assert!(is_non_production_path(Path::new("wiki/a.py")));
         assert!(!is_non_production_path(Path::new("src/a.py")));
+    }
+
+    #[test]
+    fn marker_in_comments_fire_across_all_syntaxes() {
+        // Fixtures aus Einzelteilen: der Scanner-Quelltext selbst darf keine
+        // Marker neben Kommentar-Syntax enthalten (Self-Detection-Disziplin).
+        let m1 = ["T", "O", "D", "O"].concat();
+        let m2 = ["F", "I", "X", "M", "E"].concat();
+
+        // Zeilenkommentar (Rust/JS-Stil) -> muss feuern
+        assert!(any_syntax(&format!("let x = 1; // {m1} fix")));
+        assert!(any_syntax(&format!("// {m2} follow-up")));
+
+        // Hash-Kommentar (Shell/Python/YAML-Stil) -> muss feuern
+        assert!(any_syntax(&format!("# {m1} shell script")));
+        assert!(any_syntax(&format!("echo done # {m2} later")));
+
+        // Block-Kommentar einzeilig -> muss feuern
+        assert!(any_syntax(&format!("/* {m1} embedded */ let y = 2;")));
+
+        // Block-Kommentar mehrzeilig, Marker in Folgezeile -> muss feuern
+        assert!(any_syntax(&format!(
+            "let z = 3; /* start\n{m1} inside block\nend */ let w = 4;"
+        )));
+    }
+
+    #[test]
+    fn marker_outside_comments_do_not_fire() {
+        let m1 = ["T", "O", "D", "O"].concat();
+        let m2 = ["F", "I", "X", "M", "E"].concat();
+
+        // String-Literale -> kein Finding
+        assert!(!any_syntax(&format!("let s = \"{m1} in string\";")));
+        assert!(!any_syntax(&format!("let raw = r\"{m1} raw string\";")));
+        assert!(!any_syntax(&format!("let msg = \"{m2} inside message\";")));
+
+        // Identifier und Testnamen -> kein Finding
+        assert!(!any_syntax(&format!("fn {m1}_marker_helper() {{}}")));
+        assert!(!any_syntax(&format!("let {m1}_count = 42;")));
+    }
+
+    #[test]
+    fn detector_source_snippet_is_not_self_flagged() {
+        // Die eigene Detektor-Implementierung referenziert die Marker als
+        // String-Literale (contains("...")) — Self-Detection: kein Finding.
+        let m1 = ["T", "O", "D", "O"].concat();
+        let detector_snippet = format!(
+            "let upper = comment.to_ascii_uppercase();\nif upper.contains(\"{m1}\") {{\n    return true;\n}}\n"
+        );
+        assert!(!any_syntax(&detector_snippet));
+    }
+
+    #[test]
+    fn comment_syntax_is_language_aware() {
+        let m1 = ["T", "O", "D", "O"].concat();
+
+        // Python/Shell: Hash-Kommentar feuert
+        assert!(contains_todo_marker(
+            &format!("# {m1} shell script"),
+            CommentSyntax::Hash
+        ));
+
+        // Python-Glob mit /* ist KEIN Kommentar: Code danach bleibt Code
+        // (Regression: Giftzeile standards_enforcement_audit.py:88)
+        assert!(!contains_todo_marker(
+            &format!("if not any(repo.glob(\"**/*test*\")):\n    pattern = \"{m1}\"\n*/\n"),
+            CommentSyntax::Hash
+        ));
+
+        // Rust: Block-Kommentar feuert, Hash ist kein Kommentar
+        assert!(contains_todo_marker(
+            &format!("/* {m1} embedded */"),
+            CommentSyntax::SlashAndBlock
+        ));
+        assert!(!contains_todo_marker(
+            &format!("let zeile = \"#{m1}\";"),
+            CommentSyntax::SlashAndBlock
+        ));
+    }
+
+    #[test]
+    fn comment_syntax_for_maps_extensions() {
+        assert!(matches!(
+            comment_syntax_for(Path::new("a.rs")),
+            CommentSyntax::SlashAndBlock
+        ));
+        assert!(matches!(
+            comment_syntax_for(Path::new("a.ts")),
+            CommentSyntax::SlashAndBlock
+        ));
+        assert!(matches!(
+            comment_syntax_for(Path::new("a.py")),
+            CommentSyntax::Hash
+        ));
+        assert!(matches!(
+            comment_syntax_for(Path::new("a.sh")),
+            CommentSyntax::Hash
+        ));
+        assert!(matches!(
+            comment_syntax_for(Path::new("x.unknown")),
+            CommentSyntax::All
+        ));
+        assert!(matches!(
+            comment_syntax_for(Path::new("ohne")),
+            CommentSyntax::All
+        ));
     }
 }

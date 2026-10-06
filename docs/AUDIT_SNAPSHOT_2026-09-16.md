@@ -7,7 +7,7 @@ audit_date: 2026-09-16
 audit_time: 13:27:01 CEST
 ---
 
-# Organization-wide Engineering Audit — 2026-09-16
+## Organization-wide Engineering Audit — 2026-09-16
 
 ## Scope
 
@@ -29,6 +29,7 @@ Every finding is classified by:
 ## Confirmed findings
 
 ### F-20260916-001 — GlobusOS ShivaCore LKM dependency API stub
+
 - Repository: `globus-os`
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
@@ -42,6 +43,7 @@ Every finding is classified by:
 Tracking issue: GlobusOS #18.
 
 ### F-20260916-002 — Historical repository/source-of-truth contradiction
+
 - Repository: `atc-shivacore`
 - Class: **P2**
 - Category: **consistency / architecture / documentation**
@@ -52,6 +54,7 @@ Tracking issue: GlobusOS #18.
 The active kernel implementation was migrated to `globus-os/modules/atc-shivacore/kernel/`. `atc-shivacore` therefore cannot be described as the active kernel source. Its STATUS documentation identifies GlobusOS as canonical and as the CI owner.
 
 ### F-20260916-003 — Legacy TODO/wiki claims require historical classification
+
 - Repository: `a-townchain-os-docs`
 - Class: **P2**
 - Category: **consistency / documentation**
@@ -62,6 +65,7 @@ The active kernel implementation was migrated to `globus-os/modules/atc-shivacor
 Legacy TODO and Wiki datasets contain historical completion claims and old architecture terminology. The current master TODO page was corrected on 2026-09-16 to remove the stale `100% ABGESCHLOSSEN` claim and reference current audit evidence. Remaining legacy/archive pages require classification and synchronization.
 
 ### F-20260916-004 — LKM export/import semantic contradiction
+
 - Repository: `globus-os`
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
@@ -76,6 +80,7 @@ Legacy TODO and Wiki datasets contain historical completion claims and old archi
 **Chosen remediation:** export builders modify only `exports`; imports remain explicit through an import API. This preserves provider/consumer separation and deterministic dependency/symbol graphs.
 
 ### F-20260916-005 — LKM topological-sort direction contradiction
+
 - Repository: `globus-os`
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
@@ -87,6 +92,7 @@ Legacy TODO and Wiki datasets contain historical completion claims and old archi
 The graph represents `module → dependency`. The current Kahn implementation increments the dependency node's indegree, which produces dependent-before-dependency ordering. The separate `load_order()` implementation uses dependency-first DFS. One canonical dependency-first graph semantic must replace the contradiction, with deterministic ordering and regression tests.
 
 ### F-20260916-006 — Required symbol validation is not universally fail-closed
+
 - Repository: `globus-os`
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
@@ -98,6 +104,7 @@ The graph represents `module → dependency`. The current Kahn implementation in
 The load path computes unresolved imports but only enters the rejection branch when `optional_deps` is non-empty. Required unresolved imports therefore lack a universal fail-closed gate. Required imports must always be rejected; optionality must be represented explicitly.
 
 ### F-20260916-007 — A-TownChain ZKP Python API is an active placeholder
+
 - Repository: `a-townchain`
 - Path: `modules/atc-blockchain/zkp/groth16.py`
 - Class: **P2**

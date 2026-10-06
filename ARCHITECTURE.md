@@ -6,7 +6,7 @@
 
 `atc-engineering` ist die **Engineering- und Governance-Control-Plane** des A-TownChain-Ökosystems.
 
-```
+```text
 AUTHORITY                    EXECUTION
     │                            │
     ▼                            ▼
@@ -17,7 +17,7 @@ atc-standards              atc-engineering
                                     │
                                     ▼
                           A-TownChain Repository Fleet
-```
+```text
 
 - `atc-standards` bleibt SSOT der normativen Regeln.
 - `atc-engineering` setzt diese maschinenlesbar durch.
@@ -26,23 +26,23 @@ atc-standards              atc-engineering
 
 ## Fünf-Ebenen-Modell
 
-```
+```text
 GOVERNANCE PLANE   — Policies / Approvals / Gates / Roles
 KNOWLEDGE PLANE    — Standards / Schemas / Rules / Registry
 ENGINEERING PLANE  — Build / Test / Audit / Security / Release
 EVIDENCE PLANE     — Evidence / Provenance / Attestations
 EXECUTION PLANE    — Git / GitHub / CI / Runners / Repositories
-```
+```text
 
 ## Control Plane ≠ Execution Plane
 
-```
+```text
 Configuration → Standards Registry → Policy Engine
 → Governance Engine → Gate Engine          (entscheidet)
 
 Gate → Repo op / Build / Test / Audit /
 Security / Release / Evidence              (führt aus)
-```
+```text
 
 Eine Policy darf eine Operation erlauben — die Policy Engine führt sie nie selbst aus.
 
@@ -54,7 +54,7 @@ Derived State: `NOT_READY → DEVELOPMENT → VALIDATED → TESTNET_READY → PR
 
 ## Domain Layer — Dependency Direction
 
-```
+```text
             DOMAIN
              /      \
        POLICY       GOVERNANCE
@@ -63,7 +63,7 @@ Derived State: `NOT_READY → DEVELOPMENT → VALIDATED → TESTNET_READY → PR
                  │
         ┌────────┼────────┐
       GitHub    Git       CI
-```
+```text
 
 Die Domain hängt nie direkt von GitHub ab (Adapter-Prinzip, `atc-github`).
 

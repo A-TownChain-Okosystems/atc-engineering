@@ -1,6 +1,7 @@
 # Organization security static audit — 2026-09-16
 
 ## Verification mode
+
 GitHub Actions step-level evidence is currently unavailable/incomplete, so this is a source-level security audit. A static clean result is not equivalent to a runtime security audit.
 
 ## Checks performed

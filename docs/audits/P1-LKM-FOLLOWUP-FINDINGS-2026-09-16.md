@@ -1,6 +1,7 @@
 # P1 LKM follow-up findings — 2026-09-16
 
 ## Scope
+
 Static review of the canonical GlobusOS ShivaCore LKM implementation while GitHub CI step evidence is unavailable/incomplete.
 
 ## F-20260916-005 — Topological sort direction is inconsistent with dependency semantics

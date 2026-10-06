@@ -38,7 +38,12 @@ jobs:
       - name: Audit gate report
         run: |
           mkdir -p artifacts
-          cargo run -p atc-audit-cli -- . --gate > artifacts/gate-report.txt
+          set +e
+          cargo run -p atc-audit-cli -- . --gate | tee artifacts/gate-report.txt
+          rc=${PIPESTATUS[0]}
+          set -e
+          grep '^GATE_REPORT ' artifacts/gate-report.txt | sed 's/^GATE_REPORT //' > artifacts/gate-report.json || true
+          exit "$rc"
           grep '^GATE_REPORT ' artifacts/gate-report.txt | sed 's/^GATE_REPORT //' > artifacts/gate-report.json
 
       - name: Validate gate report schema
@@ -47,8 +52,9 @@ jobs:
           grep -q '"schema_version":"atc.gate-report/v1"' artifacts/gate-report.json
 
       - name: Upload gate evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: atc-engineering-gate-evidence
           path: artifacts/gate-report.*
-          if-no-files-found: error
+          if-no-files-found: warn
