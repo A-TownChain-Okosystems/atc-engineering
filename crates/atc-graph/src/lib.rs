@@ -118,7 +118,7 @@ impl DependencyGraph {
     }
 
     /// Returns all nodes in dependency-first order.
-    pub fn topological_sort(&self) -> Result<Vec<String>, Vec<String>> {
+    pub fn topological_sort(&self) -> std::result::Result<Vec<String>, Vec<String>> {
         let mut remaining: BTreeMap<String, usize> = self
             .nodes
             .keys()
@@ -164,7 +164,7 @@ impl DependencyGraph {
     }
 
     /// Returns the transitive dependency closure, dependency-first.
-    pub fn load_order(&self, target: &str) -> Result<Vec<String>, String> {
+    pub fn load_order(&self, target: &str) -> std::result::Result<Vec<String>, String> {
         if !self.has_node(target) {
             return Err(format!("unknown graph node: {target}"));
         }
@@ -179,7 +179,7 @@ impl DependencyGraph {
         node: &str,
         seen: &mut BTreeSet<String>,
         order: &mut Vec<String>,
-    ) -> Result<(), String> {
+    ) -> std::result::Result<(), String> {
         if !seen.insert(node.to_string()) {
             return Ok(());
         }

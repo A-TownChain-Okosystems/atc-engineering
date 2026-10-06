@@ -101,7 +101,7 @@ pub fn engineer_until_clean(
         if signature == last_signature {
             return blocked_result(iteration, history, all_events, report);
         }
-        last_signature = signature;
+        last_signature = signature.clone();
 
         let run = repair_until_stable(root, 1)?;
         all_events.extend(run.events.clone());
