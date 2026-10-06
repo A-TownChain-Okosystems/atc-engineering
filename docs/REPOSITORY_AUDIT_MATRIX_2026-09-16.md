@@ -66,8 +66,8 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 ## Confirmed findings currently tracked
 
 ### GlobusOS #18 — LKM dependency API stub
-- Class: **P1**
 
+- Class: **P1**
 - Category: **correctness / completeness**
 - Family: **kernel / LKM / dependency-resolution**
 - Tags: `P1`, `stub`, `kernel`, `lkm`, `dependency-graph`, `correctness`, `completeness`, `api`
@@ -76,8 +76,8 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 `DependencyGraph::dependencies()` is an `unimplemented!()` placeholder. The graph stores dependencies in `BTreeSet<String>`, so the declared borrowed-slice API cannot safely expose that storage. The existing owned `get_dependencies()` representation preserves deterministic ordering and is the appropriate canonical API shape.
 
 ### GlobusOS #19 — export/import semantic contradiction
-- Class: **P1**
 
+- Class: **P1**
 - Category: **logic / correctness / API semantics**
 - Family: **kernel / LKM / symbol-resolution / reference-accounting**
 - Tags: `P1`, `kernel`, `lkm`, `symbols`, `imports`, `exports`, `refcount`, `logic`
@@ -86,8 +86,8 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 `ModuleDescriptor::with_export()` currently adds the exported symbol to `imports` as well as `exports`. Export and import are distinct provider/consumer edges and must remain explicit.
 
 ### F-20260916-005 — topological-sort direction
-- Repository: `globus-os`
 
+- Repository: `globus-os`
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
 - Category: **correctness / logic / integration**
@@ -98,8 +98,8 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 The graph represents `module → dependency`. The current Kahn implementation increments the dependency node's indegree and therefore produces the reverse of the required dependency-first ordering. The load path separately implements dependency-first DFS, creating two competing ordering semantics. The graph API must have one canonical dependency-first meaning, with deterministic ordering and regression tests.
 
 ### F-20260916-006 — required symbol validation is not universally fail-closed
-- Repository: `globus-os`
 
+- Repository: `globus-os`
 - Path: `modules/atc-shivacore/kernel/src/lkm.rs`
 - Class: **P1**
 - Category: **correctness / security / logic**
