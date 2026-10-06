@@ -3,6 +3,7 @@
 > Date: 2026-09-16
 > Status: **IN PROGRESS**
 > CI mode: **source/static audit while GitHub Actions evidence is unavailable or incomplete**
+> Fleet inventory: **33 repositories discovered on the live GitHub organization inventory**
 > Purpose: one auditable inventory for the organization-wide engineering audit.
 
 ## Audit contract
@@ -61,7 +62,22 @@ A repository is **COMPLETE** only when all applicable dimensions have current ev
 | `atc-ide` | IN PROGRESS | SDK/compiler/toolchain integration |
 | `genesis-franchise-factory` | IN PROGRESS | game/economy integration |
 | `atc-engineering` | ACTIVE | audit/control plane itself under audit |
+| `a-townchain-ecosystem` | IN PROGRESS | integration / compliance / evidence / architecture control plane |
 | `demo-repository` | IN PROGRESS | private-repository access/evidence path |
+| `atc-toolchain` | IN PROGRESS | orchestration/tooling; must not become an authority layer |
+
+## Fleet inventory reconciliation — 2026-10-06
+
+The previous matrix contained 31 repositories. The live GitHub organization inventory contains 33 repositories.
+
+The two repositories missing from the previous matrix were:
+
+- `a-townchain-ecosystem`
+- `atc-toolchain`
+
+This update adds both repositories without changing historical audit snapshots.
+
+The live inventory is the discovery source for fleet scope. Historical standards/audit snapshots that state 31 repositories remain historical evidence and must not be rewritten to imply that they were produced against the current 33-repository fleet.
 
 ## Confirmed findings currently tracked
 
