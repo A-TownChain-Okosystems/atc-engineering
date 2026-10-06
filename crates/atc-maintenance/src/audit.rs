@@ -249,9 +249,9 @@ fn contains_todo_marker(text: &str) -> bool {
     let mut in_block_comment = false;
 
     for line in text.lines() {
-        let mut index = 0;
         let bytes = line.as_bytes();
-        let mut comment_start = None;
+        let mut comment = String::new();
+        let mut index = 0;
 
         while index < bytes.len() {
             if in_block_comment {
@@ -260,6 +260,7 @@ fn contains_todo_marker(text: &str) -> bool {
                     index += 2;
                     continue;
                 }
+                comment.push(bytes[index] as char);
                 index += 1;
                 continue;
             }
@@ -270,24 +271,22 @@ fn contains_todo_marker(text: &str) -> bool {
                 continue;
             }
 
-            if index + 1 < bytes.len() && bytes[index] == b'/' && bytes[index + 1] == b'/' {
-                comment_start = Some(index + 2);
+            if index + 1 < bytes.len() && bytes[index] == b'/' && bytes[index + 1] == b'//' {
+                comment.push_str(&line[index + 2..]);
                 break;
             }
 
             if bytes[index] == b'#' {
-                comment_start = Some(index + 1);
+                comment.push_str(&line[index + 1..]);
                 break;
             }
 
             index += 1;
         }
 
-        if let Some(start) = comment_start {
-            let comment = line[start..].to_ascii_uppercase();
-            if comment.contains("TODO") || comment.contains("FIXME") {
-                return true;
-            }
+        let upper = comment.to_ascii_uppercase();
+        if upper.contains("TODO") || upper.contains("FIXME") {
+            return true;
         }
     }
 
@@ -424,5 +423,56 @@ mod tests {
         assert!(is_non_production_path(Path::new("docs/wiki/a.py")));
         assert!(is_non_production_path(Path::new("wiki/a.py")));
         assert!(!is_non_production_path(Path::new("src/a.py")));
+    }
+
+
+    #[test]
+    fn marker_in_comments_fire_across_all_syntaxes() {
+        // Fixtures aus Einzelteilen: der Scanner-Quelltext selbst darf keine
+        // Marker neben Kommentar-Syntax enthalten (Self-Detection-Disziplin).
+        let m1 = ["T", "O", "D", "O"].concat();
+        let m2 = ["F", "I", "X", "M", "E"].concat();
+
+        // Zeilenkommentar (Rust/JS-Stil) -> muss feuern
+        assert!(contains_todo_marker(&format!("let x = 1; // {m1} fix")));
+        assert!(contains_todo_marker(&format!("// {m2} follow-up")));
+
+        // Hash-Kommentar (Shell/Python/YAML-Stil) -> muss feuern
+        assert!(contains_todo_marker(&format!("# {m1} shell script")));
+        assert!(contains_todo_marker(&format!("echo done # {m2} later")));
+
+        // Block-Kommentar einzeilig -> muss feuern
+        assert!(contains_todo_marker(&format!("/* {m1} embedded */ let y = 2;")));
+
+        // Block-Kommentar mehrzeilig, Marker in Folgezeile -> muss feuern
+        assert!(contains_todo_marker(&format!(
+            "let z = 3; /* start\n{m1} inside block\nend */ let w = 4;"
+        )));
+    }
+
+    #[test]
+    fn marker_outside_comments_do_not_fire() {
+        let m1 = ["T", "O", "D", "O"].concat();
+        let m2 = ["F", "I", "X", "M", "E"].concat();
+
+        // String-Literale -> kein Finding
+        assert!(!contains_todo_marker(&format!("let s = \"{m1} in string\";")));
+        assert!(!contains_todo_marker(&format!("let raw = r\"{m1} raw string\";")));
+        assert!(!contains_todo_marker(&format!("let msg = \"{m2} inside message\";")));
+
+        // Identifier und Testnamen -> kein Finding
+        assert!(!contains_todo_marker(&format!("fn {m1}_marker_helper() {{}}")));
+        assert!(!contains_todo_marker(&format!("let {m1}_count = 42;")));
+    }
+
+    #[test]
+    fn detector_source_snippet_is_not_self_flagged() {
+        // Die eigene Detektor-Implementierung referenziert die Marker als
+        // String-Literale (contains("...")) — Self-Detection: kein Finding.
+        let m1 = ["T", "O", "D", "O"].concat();
+        let detector_snippet = format!(
+            "let upper = comment.to_ascii_uppercase();\nif upper.contains(\"{m1}\") {{\n    return true;\n}}\n"
+        );
+        assert!(!contains_todo_marker(&detector_snippet));
     }
 }
