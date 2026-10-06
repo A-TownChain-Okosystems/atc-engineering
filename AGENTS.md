@@ -10,7 +10,7 @@ All human and AI contributors MUST follow the repository governance model.
 
 The normative authority chain is:
 
-```
+```text
 ATC Standards
       ↓
 Repository Policy
@@ -26,7 +26,7 @@ Evidence
 Approval
       ↓
 Release
-```
+```text
 
 "atc-standards" is the canonical source for normative standards.
 
@@ -40,7 +40,7 @@ Declared state MUST NOT be treated as authoritative when verifiable evidence is 
 
 Agents MUST follow:
 
-```
+```text
 DISCOVER
 → UNDERSTAND
 → PLAN
@@ -53,7 +53,7 @@ DISCOVER
 → PR
 → HUMAN APPROVAL
 → MERGE
-```
+```text
 
 An agent MUST NOT skip required governance stages.
 
@@ -120,11 +120,11 @@ Relevant tests MUST be executed before completion.
 
 At minimum, Rust changes SHOULD run:
 
-```
+```text
 cargo fmt --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
-```
+```text
 
 Additional conformance, security and integration tests MUST be executed when affected.
 
@@ -165,7 +165,7 @@ Required checks MUST pass before merge.
 
 Production release requires:
 
-```
+```text
 valid implementation
 +
 passing validation
@@ -177,7 +177,7 @@ valid evidence
 required review
 +
 human approval
-```
+```text
 
 Agents MUST NOT treat a local success state as production authorization.
 
@@ -185,13 +185,13 @@ Agents MUST NOT treat a local success state as production authorization.
 
 When a required gate fails:
 
-```
+```text
 STOP
 → RECORD
 → DIAGNOSE
 → FIX
 → REVALIDATE
-```
+```text
 
 Agents MUST NOT conceal failures or replace failed evidence with declarations.
 
