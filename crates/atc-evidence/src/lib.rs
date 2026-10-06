@@ -97,7 +97,9 @@ impl EvidenceRecord {
             return Err(atc_core::CoreError::MissingEvidence("producer".into()));
         }
         if self.integrity_digest.trim().is_empty() {
-            return Err(atc_core::CoreError::MissingEvidence("integrity digest".into()));
+            return Err(atc_core::CoreError::MissingEvidence(
+                "integrity digest".into(),
+            ));
         }
         Ok(())
     }
@@ -174,14 +176,28 @@ mod tests {
     #[test]
     fn validation_is_fail_closed() {
         let id = EvidenceId::new("EVD-2026-000001").unwrap();
-        let record = EvidenceRecord::new(id, "TEST", "atc-node", "abc", "atc-test", EvidenceStatus::Pass);
+        let record = EvidenceRecord::new(
+            id,
+            "TEST",
+            "atc-node",
+            "abc",
+            "atc-test",
+            EvidenceStatus::Pass,
+        );
         assert!(record.validate().is_err());
     }
 
     #[test]
     fn json_contains_schema_and_immutable_marker() {
         let id = EvidenceId::new("EVD-2026-000002").unwrap();
-        let mut record = EvidenceRecord::new(id, "TEST", "atc-node", "abc", "atc-test", EvidenceStatus::Pass);
+        let mut record = EvidenceRecord::new(
+            id,
+            "TEST",
+            "atc-node",
+            "abc",
+            "atc-test",
+            EvidenceStatus::Pass,
+        );
         record.integrity_digest = "deadbeef".into();
         let json = record.to_json();
         assert!(json.contains("ATC-EVD-001"));

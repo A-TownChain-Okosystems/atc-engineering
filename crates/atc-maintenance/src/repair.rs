@@ -41,12 +41,22 @@ pub fn repair_until_stable(root: &Path, max_iterations: usize) -> Result<RepairR
     for iteration in 1..=limit {
         let report = audit_repository(root)?;
         if report.is_clean() {
-            return Ok(RepairRun { iterations: iteration, events, final_report: report, blocked: Vec::new() });
+            return Ok(RepairRun {
+                iterations: iteration,
+                events,
+                final_report: report,
+                blocked: Vec::new(),
+            });
         }
 
         let signature = finding_signature(&report);
         if signature == previous_signature {
-            return Ok(RepairRun { iterations: iteration, events, blocked: report.findings.clone(), final_report: report });
+            return Ok(RepairRun {
+                iterations: iteration,
+                events,
+                blocked: report.findings.clone(),
+                final_report: report,
+            });
         }
         previous_signature = signature;
 
@@ -63,12 +73,22 @@ pub fn repair_until_stable(root: &Path, max_iterations: usize) -> Result<RepairR
         }
 
         if !changed {
-            return Ok(RepairRun { iterations: iteration, events, blocked: report.findings.clone(), final_report: report });
+            return Ok(RepairRun {
+                iterations: iteration,
+                events,
+                blocked: report.findings.clone(),
+                final_report: report,
+            });
         }
     }
 
     let final_report = audit_repository(root)?;
-    Ok(RepairRun { iterations: limit, blocked: final_report.findings.clone(), final_report, events })
+    Ok(RepairRun {
+        iterations: limit,
+        blocked: final_report.findings.clone(),
+        final_report,
+        events,
+    })
 }
 
 fn apply_safe_fix(root: &Path, finding: &Finding) -> Result<Option<RepairAction>, io::Error> {
@@ -83,16 +103,24 @@ fn apply_safe_fix(root: &Path, finding: &Finding) -> Result<Option<RepairAction>
             Ok(Some(RepairAction::CreateEngineeringAudit))
         }
         "CONS-AUDIT-002" if finding.path.as_deref() == Some(Path::new("README.md")) => {
-            let repo_name = root.file_name().and_then(|name| name.to_str()).unwrap_or("repository");
+            let repo_name = root
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("repository");
             let readme_path = root.join("README.md");
             let mut readme = fs::read_to_string(&readme_path)?;
-            if readme.to_ascii_lowercase().contains(&repo_name.to_ascii_lowercase()) {
+            if readme
+                .to_ascii_lowercase()
+                .contains(&repo_name.to_ascii_lowercase())
+            {
                 return Ok(None);
             }
             if !readme.ends_with('\n') {
                 readme.push('\n');
             }
-            readme.push_str(&format!("\n## Repository Identity\n\nCanonical repository: `{repo_name}`.\n"));
+            readme.push_str(&format!(
+                "\n## Repository Identity\n\nCanonical repository: `{repo_name}`.\n"
+            ));
             fs::write(readme_path, readme)?;
             Ok(Some(RepairAction::UpdateReadmeIdentity))
         }
@@ -101,15 +129,19 @@ fn apply_safe_fix(root: &Path, finding: &Finding) -> Result<Option<RepairAction>
 }
 
 fn finding_signature(report: &AuditReport) -> String {
-    let mut items: Vec<String> = report.findings.iter().map(|finding| {
-        format!(
-            "{:?}|{}|{}|{}",
-            finding.kind,
-            finding.code,
-            finding.path.as_deref().unwrap_or(Path::new("")).display(),
-            finding.message
-        )
-    }).collect();
+    let mut items: Vec<String> = report
+        .findings
+        .iter()
+        .map(|finding| {
+            format!(
+                "{:?}|{}|{}|{}",
+                finding.kind,
+                finding.code,
+                finding.path.as_deref().unwrap_or(Path::new("")).display(),
+                finding.message
+            )
+        })
+        .collect();
     items.sort();
     items.join("\n")
 }
@@ -121,7 +153,10 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_root(name: &str) -> PathBuf {
-        let suffix = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         std::env::temp_dir().join(format!("atc-repair-{name}-{suffix}"))
     }
 
@@ -134,7 +169,10 @@ mod tests {
 
         let result = repair_until_stable(&root, 4).unwrap();
         assert!(result.final_report.is_clean());
-        assert!(result.events.iter().any(|event| event.action == RepairAction::UpdateReadmeIdentity));
+        assert!(result
+            .events
+            .iter()
+            .any(|event| event.action == RepairAction::UpdateReadmeIdentity));
         let _ = fs::remove_dir_all(root);
     }
 

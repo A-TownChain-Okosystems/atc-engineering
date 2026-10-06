@@ -77,7 +77,13 @@ pub fn engineer_until_clean(
 
     for iteration in 1..=limit {
         let report = audit_repository(root)?;
-        record_findings(root, iteration, &report, &mut history, policy.write_evidence)?;
+        record_findings(
+            root,
+            iteration,
+            &report,
+            &mut history,
+            policy.write_evidence,
+        )?;
 
         if report.is_clean() {
             verify_evidence(root, iteration, policy.write_evidence)?;
@@ -95,7 +101,7 @@ pub fn engineer_until_clean(
         if signature == last_signature {
             return blocked_result(iteration, history, all_events, report);
         }
-        last_signature = signature;
+        last_signature = signature.clone();
 
         let run = repair_until_stable(root, 1)?;
         all_events.extend(run.events.clone());
@@ -312,11 +318,7 @@ fn finding_signature(report: &AuditReport) -> String {
                 "{:?}|{}|{}|{}",
                 finding.kind,
                 finding.code,
-                finding
-                    .path
-                    .as_deref()
-                    .unwrap_or(Path::new(""))
-                    .display(),
+                finding.path.as_deref().unwrap_or(Path::new("")).display(),
                 finding.message
             )
         })

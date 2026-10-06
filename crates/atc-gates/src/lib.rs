@@ -7,10 +7,17 @@ pub use report::GateReport;
 use atc_core::DerivedState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EvidenceStatus { Pass, Fail, Missing, Unknown }
+pub enum EvidenceStatus {
+    Pass,
+    Fail,
+    Missing,
+    Unknown,
+}
 
 impl EvidenceStatus {
-    pub const fn is_blocking(self) -> bool { !matches!(self, Self::Pass) }
+    pub const fn is_blocking(self) -> bool {
+        !matches!(self, Self::Pass)
+    }
 
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -23,7 +30,10 @@ impl EvidenceStatus {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GateDecision { Allow, Block }
+pub enum GateDecision {
+    Allow,
+    Block,
+}
 
 impl GateDecision {
     pub const fn as_str(self) -> &'static str {
@@ -88,32 +98,68 @@ mod tests {
     use super::*;
 
     fn sod(approved: bool) -> SeparationOfDuties {
-        SeparationOfDuties { coder: "agent-a".into(), validator: "agent-b".into(), auditor: "agent-c".into(), release_authority: "human-r".into(), human_approval: approved }
+        SeparationOfDuties {
+            coder: "agent-a".into(),
+            validator: "agent-b".into(),
+            auditor: "agent-c".into(),
+            release_authority: "human-r".into(),
+            human_approval: approved,
+        }
     }
 
     #[test]
     fn missing_evidence_blocks() {
-        let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Missing }], sod: sod(true), requested_state: DerivedState::TestnetReady };
+        let input = ReadinessInput {
+            evidence: vec![EvidenceCheck {
+                control_id: "SEC-001".into(),
+                status: EvidenceStatus::Missing,
+            }],
+            sod: sod(true),
+            requested_state: DerivedState::TestnetReady,
+        };
         assert_eq!(evaluate(&input), GateDecision::Block);
     }
 
     #[test]
     fn production_requires_human_approval() {
-        let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Pass }], sod: sod(false), requested_state: DerivedState::ProductionReady };
+        let input = ReadinessInput {
+            evidence: vec![EvidenceCheck {
+                control_id: "SEC-001".into(),
+                status: EvidenceStatus::Pass,
+            }],
+            sod: sod(false),
+            requested_state: DerivedState::ProductionReady,
+        };
         assert_eq!(evaluate(&input), GateDecision::Block);
     }
 
     #[test]
     fn all_controls_pass_allows() {
-        let input = ReadinessInput { evidence: vec![EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Pass }], sod: sod(true), requested_state: DerivedState::ProductionReady };
+        let input = ReadinessInput {
+            evidence: vec![EvidenceCheck {
+                control_id: "SEC-001".into(),
+                status: EvidenceStatus::Pass,
+            }],
+            sod: sod(true),
+            requested_state: DerivedState::ProductionReady,
+        };
         assert_eq!(evaluate(&input), GateDecision::Allow);
     }
 
     #[test]
     fn duplicate_principals_block_production() {
         let input = ReadinessInput {
-            evidence: vec![EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Pass }],
-            sod: SeparationOfDuties { coder: "same".into(), validator: "same".into(), auditor: "auditor".into(), release_authority: "release".into(), human_approval: true },
+            evidence: vec![EvidenceCheck {
+                control_id: "SEC-001".into(),
+                status: EvidenceStatus::Pass,
+            }],
+            sod: SeparationOfDuties {
+                coder: "same".into(),
+                validator: "same".into(),
+                auditor: "auditor".into(),
+                release_authority: "release".into(),
+                human_approval: true,
+            },
             requested_state: DerivedState::ProductionReady,
         };
         assert_eq!(evaluate(&input), GateDecision::Block);
