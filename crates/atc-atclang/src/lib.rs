@@ -19,7 +19,11 @@ pub enum ArtifactKind {
 
 impl ArtifactKind {
     pub fn from_path(path: &Path) -> Self {
-        match path.extension().and_then(|x| x.to_str()).unwrap_or_default() {
+        match path
+            .extension()
+            .and_then(|x| x.to_str())
+            .unwrap_or_default()
+        {
             "atc" => Self::Source,
             "aes" => Self::Ecosystem,
             "atvm" => Self::VmBytecode,
@@ -48,10 +52,16 @@ pub fn inspect(path: impl AsRef<Path>) -> io::Result<ArtifactInfo> {
 pub fn create_source(path: impl AsRef<Path>, source: &str) -> io::Result<()> {
     let path = path.as_ref();
     if ArtifactKind::from_path(path) != ArtifactKind::Source {
-        return Err(io::Error::new(io::ErrorKind::InvalidInput, "creation requires a .atc path"));
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "creation requires a .atc path",
+        ));
     }
     if path.exists() {
-        return Err(io::Error::new(io::ErrorKind::AlreadyExists, "ATCLang artifact already exists"));
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "ATCLang artifact already exists",
+        ));
     }
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
@@ -62,10 +72,16 @@ pub fn create_source(path: impl AsRef<Path>, source: &str) -> io::Result<()> {
 pub fn replace_source(path: impl AsRef<Path>, source: &str) -> io::Result<()> {
     let path = path.as_ref();
     if ArtifactKind::from_path(path) != ArtifactKind::Source {
-        return Err(io::Error::new(io::ErrorKind::InvalidInput, "editing requires a .atc path"));
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "editing requires a .atc path",
+        ));
     }
     if !path.is_file() {
-        return Err(io::Error::new(io::ErrorKind::NotFound, "ATCLang source does not exist"));
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "ATCLang source does not exist",
+        ));
     }
     let tmp = path.with_extension("atc.tmp");
     fs::write(&tmp, source)?;
@@ -85,12 +101,20 @@ pub struct CompilerRequest {
 }
 
 impl CompilerRequest {
-    pub fn new(executable: impl Into<String>, input: impl Into<PathBuf>, output: impl Into<PathBuf>) -> Self {
+    pub fn new(
+        executable: impl Into<String>,
+        input: impl Into<PathBuf>,
+        output: impl Into<PathBuf>,
+    ) -> Self {
         let input = input.into();
         let output = output.into();
         Self {
             executable: executable.into(),
-            arguments: vec![input.display().to_string(), "--out".into(), output.display().to_string()],
+            arguments: vec![
+                input.display().to_string(),
+                "--out".into(),
+                output.display().to_string(),
+            ],
             input,
             output,
         }
@@ -98,17 +122,31 @@ impl CompilerRequest {
 
     pub fn run(&self) -> io::Result<()> {
         if ArtifactKind::from_path(&self.input) != ArtifactKind::Source {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "compiler input must be .atc"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "compiler input must be .atc",
+            ));
         }
         if ArtifactKind::from_path(&self.output) != ArtifactKind::VmBytecode {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "compiler output must be .atvm"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "compiler output must be .atvm",
+            ));
         }
-        let status = Command::new(&self.executable).args(&self.arguments).status()?;
+        let status = Command::new(&self.executable)
+            .args(&self.arguments)
+            .status()?;
         if !status.success() {
-            return Err(io::Error::new(io::ErrorKind::Other, format!("ATCLang compiler exited with {status}")));
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("ATCLang compiler exited with {status}"),
+            ));
         }
         if !self.output.is_file() {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "compiler reported success but produced no .atvm artifact"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "compiler reported success but produced no .atvm artifact",
+            ));
         }
         Ok(())
     }
@@ -120,15 +158,27 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_path(name: &str) -> PathBuf {
-        let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         std::env::temp_dir().join(format!("atc-atclang-{nonce}-{name}"))
     }
 
     #[test]
     fn classifies_supported_extensions() {
-        assert_eq!(ArtifactKind::from_path(Path::new("x.atc")), ArtifactKind::Source);
-        assert_eq!(ArtifactKind::from_path(Path::new("x.aes")), ArtifactKind::Ecosystem);
-        assert_eq!(ArtifactKind::from_path(Path::new("x.atvm")), ArtifactKind::VmBytecode);
+        assert_eq!(
+            ArtifactKind::from_path(Path::new("x.atc")),
+            ArtifactKind::Source
+        );
+        assert_eq!(
+            ArtifactKind::from_path(Path::new("x.aes")),
+            ArtifactKind::Ecosystem
+        );
+        assert_eq!(
+            ArtifactKind::from_path(Path::new("x.atvm")),
+            ArtifactKind::VmBytecode
+        );
     }
 
     #[test]

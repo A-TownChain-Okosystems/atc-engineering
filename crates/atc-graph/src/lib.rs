@@ -64,7 +64,10 @@ impl DependencyGraph {
 
     pub fn add_node(&mut self, node: Node) -> Result<()> {
         if self.nodes.contains_key(&node.id) {
-            return Err(CoreError::InvalidState(format!("duplicate graph node: {}", node.id)));
+            return Err(CoreError::InvalidState(format!(
+                "duplicate graph node: {}",
+                node.id
+            )));
         }
         let id = node.id.clone();
         self.nodes.insert(id.clone(), node);
@@ -182,7 +185,9 @@ impl DependencyGraph {
         }
         for dependency in self.dependencies(node) {
             if !self.has_node(&dependency) {
-                return Err(format!("dependency '{dependency}' not found (required by '{node}')"));
+                return Err(format!(
+                    "dependency '{dependency}' not found (required by '{node}')"
+                ));
             }
             self.visit_dependencies(&dependency, seen, order)?;
         }
@@ -210,7 +215,10 @@ pub struct ImpactGraph {
 impl ImpactGraph {
     pub fn add_node(&mut self, node: Node) -> Result<()> {
         if self.nodes.contains_key(&node.id) {
-            return Err(CoreError::InvalidState(format!("duplicate graph node: {}", node.id)));
+            return Err(CoreError::InvalidState(format!(
+                "duplicate graph node: {}",
+                node.id
+            )));
         }
         self.nodes.insert(node.id.clone(), node);
         Ok(())
@@ -218,7 +226,9 @@ impl ImpactGraph {
 
     pub fn add_edge(&mut self, edge: Edge) -> Result<()> {
         if !self.nodes.contains_key(&edge.from) || !self.nodes.contains_key(&edge.to) {
-            return Err(CoreError::InvalidState("graph edge references unknown node".into()));
+            return Err(CoreError::InvalidState(
+                "graph edge references unknown node".into(),
+            ));
         }
         self.edges.insert(edge);
         Ok(())
@@ -240,8 +250,12 @@ impl ImpactGraph {
         Ok(seen.into_iter().collect())
     }
 
-    pub fn node_count(&self) -> usize { self.nodes.len() }
-    pub fn edge_count(&self) -> usize { self.edges.len() }
+    pub fn node_count(&self) -> usize {
+        self.nodes.len()
+    }
+    pub fn edge_count(&self) -> usize {
+        self.edges.len()
+    }
 }
 
 #[cfg(test)]
@@ -251,7 +265,12 @@ mod tests {
     fn graph() -> DependencyGraph {
         let mut graph = DependencyGraph::new();
         for id in ["a", "b", "c", "d"] {
-            graph.add_node(Node { id: id.into(), kind: NodeKind::Module }).unwrap();
+            graph
+                .add_node(Node {
+                    id: id.into(),
+                    kind: NodeKind::Module,
+                })
+                .unwrap();
         }
         graph.add_dependency("a", "b").unwrap();
         graph.add_dependency("a", "c").unwrap();
@@ -289,16 +308,37 @@ mod tests {
     #[test]
     fn rejects_unknown_edges() {
         let mut graph = DependencyGraph::new();
-        graph.add_node(Node { id: "a".into(), kind: NodeKind::Module }).unwrap();
+        graph
+            .add_node(Node {
+                id: "a".into(),
+                kind: NodeKind::Module,
+            })
+            .unwrap();
         assert!(graph.add_dependency("a", "missing").is_err());
     }
 
     #[test]
     fn traverses_impact() {
         let mut graph = ImpactGraph::default();
-        graph.add_node(Node { id: "a".into(), kind: NodeKind::File }).unwrap();
-        graph.add_node(Node { id: "b".into(), kind: NodeKind::Test }).unwrap();
-        graph.add_edge(Edge { from: "a".into(), relation: Relation::Verifies, to: "b".into() }).unwrap();
+        graph
+            .add_node(Node {
+                id: "a".into(),
+                kind: NodeKind::File,
+            })
+            .unwrap();
+        graph
+            .add_node(Node {
+                id: "b".into(),
+                kind: NodeKind::Test,
+            })
+            .unwrap();
+        graph
+            .add_edge(Edge {
+                from: "a".into(),
+                relation: Relation::Verifies,
+                to: "b".into(),
+            })
+            .unwrap();
         assert_eq!(graph.affected_by("a").unwrap(), vec!["b"]);
     }
 }

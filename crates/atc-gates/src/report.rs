@@ -78,12 +78,21 @@ mod tests {
     fn report_preserves_blocking_controls() {
         let input = ReadinessInput {
             evidence: vec![
-                EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Pass },
-                EvidenceCheck { control_id: "GOV-002".into(), status: EvidenceStatus::Unknown },
+                EvidenceCheck {
+                    control_id: "SEC-001".into(),
+                    status: EvidenceStatus::Pass,
+                },
+                EvidenceCheck {
+                    control_id: "GOV-002".into(),
+                    status: EvidenceStatus::Unknown,
+                },
             ],
             sod: SeparationOfDuties {
-                coder: "coder".into(), validator: "validator".into(), auditor: "auditor".into(),
-                release_authority: "release".into(), human_approval: true,
+                coder: "coder".into(),
+                validator: "validator".into(),
+                auditor: "auditor".into(),
+                release_authority: "release".into(),
+                human_approval: true,
             },
             requested_state: DerivedState::TestnetReady,
         };
@@ -96,10 +105,16 @@ mod tests {
     #[test]
     fn json_is_versioned_and_deterministic() {
         let input = ReadinessInput {
-            evidence: vec![EvidenceCheck { control_id: "SEC-001".into(), status: EvidenceStatus::Pass }],
+            evidence: vec![EvidenceCheck {
+                control_id: "SEC-001".into(),
+                status: EvidenceStatus::Pass,
+            }],
             sod: SeparationOfDuties {
-                coder: "coder".into(), validator: "validator".into(), auditor: "auditor".into(),
-                release_authority: "release".into(), human_approval: true,
+                coder: "coder".into(),
+                validator: "validator".into(),
+                auditor: "auditor".into(),
+                release_authority: "release".into(),
+                human_approval: true,
             },
             requested_state: DerivedState::ProductionReady,
         };
