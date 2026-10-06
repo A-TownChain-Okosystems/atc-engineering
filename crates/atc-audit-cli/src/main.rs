@@ -234,7 +234,7 @@ fn main() {
                 .findings
                 .iter()
                 .map(|finding| EvidenceCheck {
-                    control_id: finding.code.clone(),
+                    control_id: finding.code.to_string(),
                     status: match finding.kind {
                         FindingKind::Security | FindingKind::Error => EvidenceStatus::Fail,
                         FindingKind::Consistency | FindingKind::Connectivity => {
