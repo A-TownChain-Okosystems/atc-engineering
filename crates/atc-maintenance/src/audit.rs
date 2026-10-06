@@ -271,7 +271,7 @@ fn contains_todo_marker(text: &str) -> bool {
                 continue;
             }
 
-            if index + 1 < bytes.len() && bytes[index] == b'/' && bytes[index + 1] == b'//' {
+            if index + 1 < bytes.len() && bytes[index] == b'/' && bytes[index + 1] == b'/' {
                 comment.push_str(&line[index + 2..]);
                 break;
             }
@@ -425,7 +425,6 @@ mod tests {
         assert!(!is_non_production_path(Path::new("src/a.py")));
     }
 
-
     #[test]
     fn marker_in_comments_fire_across_all_syntaxes() {
         // Fixtures aus Einzelteilen: der Scanner-Quelltext selbst darf keine
@@ -442,7 +441,9 @@ mod tests {
         assert!(contains_todo_marker(&format!("echo done # {m2} later")));
 
         // Block-Kommentar einzeilig -> muss feuern
-        assert!(contains_todo_marker(&format!("/* {m1} embedded */ let y = 2;")));
+        assert!(contains_todo_marker(&format!(
+            "/* {m1} embedded */ let y = 2;"
+        )));
 
         // Block-Kommentar mehrzeilig, Marker in Folgezeile -> muss feuern
         assert!(contains_todo_marker(&format!(
@@ -456,12 +457,20 @@ mod tests {
         let m2 = ["F", "I", "X", "M", "E"].concat();
 
         // String-Literale -> kein Finding
-        assert!(!contains_todo_marker(&format!("let s = \"{m1} in string\";")));
-        assert!(!contains_todo_marker(&format!("let raw = r\"{m1} raw string\";")));
-        assert!(!contains_todo_marker(&format!("let msg = \"{m2} inside message\";")));
+        assert!(!contains_todo_marker(&format!(
+            "let s = \"{m1} in string\";"
+        )));
+        assert!(!contains_todo_marker(&format!(
+            "let raw = r\"{m1} raw string\";"
+        )));
+        assert!(!contains_todo_marker(&format!(
+            "let msg = \"{m2} inside message\";"
+        )));
 
         // Identifier und Testnamen -> kein Finding
-        assert!(!contains_todo_marker(&format!("fn {m1}_marker_helper() {{}}")));
+        assert!(!contains_todo_marker(&format!(
+            "fn {m1}_marker_helper() {{}}"
+        )));
         assert!(!contains_todo_marker(&format!("let {m1}_count = 42;")));
     }
 
