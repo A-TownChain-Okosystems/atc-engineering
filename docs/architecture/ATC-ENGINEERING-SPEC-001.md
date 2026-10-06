@@ -33,7 +33,7 @@
 
 ### Normative Abgrenzung
 
-```
+```text
 atc-standards
     │
     │ normative rules
@@ -43,7 +43,7 @@ atc-engineering
     │ enforcement / validation / automation
     ▼
 A-TownChain Repository Fleet
-```
+```text
 
 `atc-engineering` darf **keine normative Regel stillschweigend überschreiben**, die in `atc-standards` definiert ist.
 
@@ -53,7 +53,7 @@ A-TownChain Repository Fleet
 
 Die Plattform basiert auf fünf Ebenen:
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │              GOVERNANCE PLANE               │
 │ Policies / Approvals / Gates / Roles        │
@@ -70,7 +70,7 @@ Die Plattform basiert auf fünf Ebenen:
 │              EXECUTION PLANE                │
 │ Git / GitHub / CI / Runners / Repositories  │
 └─────────────────────────────────────────────┘
-```
+```text
 
 ---
 
@@ -80,7 +80,7 @@ Die Plattform basiert auf fünf Ebenen:
 
 Die Control Plane entscheidet, was erlaubt ist und welche Gates erfüllt werden müssen.
 
-```
+```text
 Configuration
      │
      ▼
@@ -94,13 +94,13 @@ Governance Engine
      │
      ▼
 Gate Engine
-```
+```text
 
 ### Execution Plane
 
 Die Execution Plane führt autorisierte Aktionen aus.
 
-```
+```text
 Gate
  │
  ├── Repository operation
@@ -110,13 +110,13 @@ Gate
  ├── Security scan
  ├── Release
  └── Evidence generation
-```
+```text
 
 ### Grundregel
 
-```
+```text
 CONTROL PLANE ≠ EXECUTION PLANE
-```
+```text
 
 Eine Policy darf eine Operation erlauben, aber die Policy Engine führt die Operation nicht selbst aus.
 
@@ -131,14 +131,14 @@ Das zentrale Integritätsprinzip lautet:
 Beispiel: `status: production_ready` ist lediglich eine Behauptung.
 Der tatsächliche Status wird aus Evidence abgeleitet:
 
-```
+```text
 Repository + Commit + Standards + Tests + Security + Audit
 + Approvals + Release evidence = Derived State
-```
+```text
 
 Daraus:
 
-```
+```text
 NOT_READY
     ↓
 DEVELOPMENT
@@ -148,7 +148,7 @@ VALIDATED
 TESTNET_READY
     ↓
 PRODUCTION_READY
-```
+```text
 
 ---
 
@@ -181,7 +181,7 @@ GitHub bleibt eine externe Execution-/Source-Control-Plattform.
 
 ## 6. Verzeichnisstruktur
 
-```
+```text
 atc-engineering/
 │
 ├── .github/
@@ -294,7 +294,7 @@ atc-engineering/
 ├── STATUS.md
 ├── Cargo.toml
 └── Cargo.lock
-```
+```text
 
 ---
 
@@ -304,39 +304,39 @@ Das primäre Interface ist `atc-engine`.
 
 ### Repository Commands
 
-```
+```text
 atc-engine repo init
 atc-engine repo inspect
 atc-engine repo audit
 atc-engine repo validate
 atc-engine repo inventory
 atc-engine repo classify
-```
+```text
 
 Beispiele:
 
-```
+```text
 atc-engine repo audit atc-node
 atc-engine repo inventory atclang
-```
+```text
 
 ---
 
 ## 8. Organization Commands
 
-```
+```text
 atc-engine org discover
 atc-engine org inventory
 atc-engine org audit
 atc-engine org compliance
 atc-engine org report
-```
+```text
 
 Beispiel: `atc-engine org audit A-TownChain-Okosystems`
 
 Output:
 
-```
+```text
 Organization Compliance
 
 Repositories:       26
@@ -350,19 +350,19 @@ P2: 11
 P3: 24
 
 Overall: 91.4%
-```
+```text
 
 ---
 
 ## 9. Standards CLI
 
-```
+```text
 atc-engine standards list
 atc-engine standards show ATC-STD-000
 atc-engine standards validate
 atc-engine standards sync
 atc-engine standards compile
-```
+```text
 
 Beispiel: `atc-engine standards validate atc-node`
 
@@ -370,31 +370,31 @@ Beispiel: `atc-engine standards validate atc-node`
 
 ## 10. Policy CLI
 
-```
+```text
 atc-engine policy list
 atc-engine policy show
 atc-engine policy validate
 atc-engine policy evaluate
-```
+```text
 
 Beispiel:
 
-```
+```text
 atc-engine policy evaluate \
   --repo atc-node \
   --operation release
-```
+```text
 
 ---
 
 ## 11. Audit CLI
 
-```
+```text
 atc-engine audit repository
 atc-engine audit organization
 atc-engine audit standard
 atc-engine audit release
-```
+```text
 
 Mit JSON: `atc-engine audit repository atc-node --format json`
 
@@ -402,44 +402,44 @@ Mit JSON: `atc-engine audit repository atc-node --format json`
 
 ## 12. Evidence CLI
 
-```
+```text
 atc-engine evidence collect
 atc-engine evidence verify
 atc-engine evidence export
 atc-engine evidence inspect
-```
+```text
 
 Beispiel:
 
-```
+```text
 atc-engine evidence collect \
   --repo atc-node \
   --commit abc123
-```
+```text
 
 ---
 
 ## 13. Build/Test
 
-```
+```text
 atc-engine build
 atc-engine test
 atc-engine test compliance
 atc-engine test security
 atc-engine test conformance
-```
+```text
 
 ---
 
 ## 14. Release
 
-```
+```text
 atc-engine release inspect
 atc-engine release prepare
 atc-engine release validate
 atc-engine release approve
 atc-engine release promote
-```
+```text
 
 Wichtig: `release promote` darf **niemals ausschließlich aus einer lokalen Konfiguration heraus funktionieren**. Es benötigt gültige Release Evidence.
 
@@ -447,21 +447,21 @@ Wichtig: `release promote` darf **niemals ausschließlich aus einer lokalen Konf
 
 ## 15. Agent Commands
 
-```
+```text
 atc-engine agent inspect
 atc-engine agent authorize
 atc-engine agent task
 atc-engine agent validate
 atc-engine agent evidence
-```
+```text
 
 Beispiel:
 
-```
+```text
 atc-engine agent task \
   --repository atc-node \
   --scope "network subsystem"
-```
+```text
 
 ---
 
@@ -479,7 +479,7 @@ Eine einzelne Identität darf nicht automatisch alle Rollen besitzen.
 
 ### AI-Agent
 
-```
+```text
 AI Agent
     │
     ├── can inspect
@@ -493,13 +493,13 @@ aber:
 AI Agent
     X
     └── cannot independently authorize production release
-```
+```text
 
 ---
 
 ## 17. Governance State Machine
 
-```
+```text
 IDEA
  │
  ▼
@@ -531,7 +531,7 @@ PRODUCTION_READY
  │
  ▼
 RELEASED
-```
+```text
 
 Bei einem kritischen Fehler: `ANY STATE → BLOCKED`
 
@@ -556,9 +556,9 @@ Jede kritische Aktion besitzt Gates:
 
 Eine Release-Aktion:
 
-```
+```text
 G0 ✓  G1 ✓  G2 ✓  G3 ✓  G4 ✓  G5 ✓  G6 ✓  G7 ✓  G8 ✓  G9 → EXECUTE
-```
+```text
 
 Fehlt ein Gate: `RELEASE = BLOCKED`
 
@@ -601,7 +601,7 @@ evidence:
     digest: "..."
 
   immutable: true
-```
+```text
 
 ---
 
@@ -639,7 +639,7 @@ repository:
   evidence:
     required: true
     valid: true
-```
+```text
 
 ---
 
@@ -649,7 +649,7 @@ GitHub ist ein **Provider, nicht die normative Quelle**.
 
 Integration über `atc-github`:
 
-```
+```text
 atc-github
       │
       ├── Repository API
@@ -659,14 +659,14 @@ atc-github
       ├── Checks API
       ├── Release API
       └── Issue API
-```
+```text
 
 ### Pull Request Lifecycle
 
-```
+```text
 PR → Discover → Policy Evaluation → Standards Validation → CI
    → Security → Audit → Review → Approval → Merge
-```
+```text
 
 ---
 
@@ -674,9 +674,9 @@ PR → Discover → Policy Evaluation → Standards Validation → CI
 
 Für produktiven Betrieb sollte `atc-engineering` langfristig über eine **GitHub App** arbeiten — statt eines permanenten persönlichen Tokens.
 
-```
+```text
 GitHub App → atc-engineering
-```
+```text
 
 Minimalprinzip:
 
@@ -690,7 +690,7 @@ Die App erhält nur die Berechtigungen, die für den jeweiligen Workflow notwend
 
 `atc-standards` bleibt SSOT.
 
-```
+```text
 atc-standards
        │
        ▼
@@ -707,11 +707,11 @@ Policy Compiler
        │
        ▼
 Validators
-```
+```text
 
 Beispiel:
 
-```
+```text
 ATC-STD-016
      │
      ├── REQ-STD-016-001
@@ -720,7 +720,7 @@ ATC-STD-016
              │
              ▼
         Validator
-```
+```text
 
 Damit können einzelne Requirements maschinenlesbar geprüft werden.
 
@@ -740,7 +740,7 @@ standards:
     compatibility:
       minimum: 1.3.0
       maximum: 1.x
-```
+```text
 
 Für Major-Versionen ist ein expliziter Migration Path erforderlich.
 
@@ -750,11 +750,11 @@ Für Major-Versionen ist ein expliziter Migration Path erforderlich.
 
 ### Pull Request
 
-```
+```text
 checkout ↓ format ↓ clippy ↓ unit tests ↓ integration tests
 ↓ conformance ↓ security ↓ dependency audit ↓ license
 ↓ standards validation ↓ policy validation ↓ evidence generation
-```
+```text
 
 ---
 
@@ -764,18 +764,18 @@ checkout ↓ format ↓ clippy ↓ unit tests ↓ integration tests
 
 Required:
 
-```
+```text
 PR + required checks + CODEOWNERS review + governance gate
-```
+```text
 
 ---
 
 ## 28. Release Pipeline
 
-```
+```text
 Commit → CI → Audit → Security → Evidence → Release Candidate
        → Human Approval → Artifact Signing → Release → Provenance
-```
+```text
 
 ---
 
@@ -805,7 +805,7 @@ Optional später:
 
 `atc-engine repo init my-new-repo` führt zu:
 
-```
+```text
 Repository
  │
  ├── detect domain
@@ -815,7 +815,7 @@ Repository
  ├── generate CI
  ├── generate documentation
  └── validate
-```
+```text
 
 Templates: blockchain · os · kernel · language · vm · ai · sdk · service · game · documentation
 
@@ -841,9 +841,9 @@ Eine Datenbank wird erst eingeführt, wenn der tatsächliche Persistenzbedarf na
 
 Die Architektur ist von Anfang an API-fähig:
 
-```
+```text
 CLI → Application Layer → Domain Layer → Adapters
-```
+```text
 
 Später: REST API · gRPC · Web UI · Aurora integration — ohne die Domain Engine neu zu schreiben.
 
@@ -853,7 +853,7 @@ Später: REST API · gRPC · Web UI · Aurora integration — ohne die Domain En
 
 Dependency Direction:
 
-```
+```text
             DOMAIN
              /      \
             /        \
@@ -865,7 +865,7 @@ Dependency Direction:
         ┌────────┼────────┐
         ▼        ▼        ▼
       GitHub    Git       CI
-```
+```text
 
 Die Domain darf nicht direkt von GitHub abhängig sein.
 
@@ -879,9 +879,9 @@ Unknown · Missing Evidence · Invalid Policy · Invalid Signature · Missing Ap
 
 führt zu:
 
-```
+```text
 BLOCK  (nicht ALLOW)
-```
+```text
 
 ---
 
@@ -903,7 +903,7 @@ exception:
 
   controls:
     compensating: true
-```
+```text
 
 Keine unbefristeten Governance Exceptions.
 
@@ -917,7 +917,7 @@ WHO · WHAT · WHEN · WHY · SCOPE · INPUT · RESULT · EVIDENCE · APPROVAL
 
 Beispiel:
 
-```
+```text
 Actor: agent-001
 Action: modify
 Repository: atc-node
@@ -926,7 +926,7 @@ Commit: abc123
 Policy: ATC-POLICY-001
 Result: PASS
 Evidence: EVD-001
-```
+```text
 
 ---
 
@@ -954,7 +954,7 @@ Distributed workers · Enterprise federation · Advanced analytics · Multi-orga
 
 v1.0.0 wird nicht nur daran gemessen, ob der Rust-Code kompiliert. Die Plattform ist erst **PRODUCTION_READY**, wenn:
 
-```
+```text
 ATC ENGINEERING v1.0
                                   │
           ┌───────────────────────┼───────────────────────┐
@@ -972,7 +972,7 @@ ATC ENGINEERING v1.0
                                   │
                                   ▼
                        Derived System State
-```
+```text
 
 ### P0
 
@@ -998,7 +998,7 @@ ATC ENGINEERING v1.0
 
 ## 42. Strategische Einordnung
 
-```
+```text
 A-TOWNCHAIN
                          │
           ┌──────────────┴──────────────┐
@@ -1025,7 +1025,7 @@ A-TOWNCHAIN
                               ┌────────────────────┐
                               │ Product Repositories│
                               └────────────────────┘
-```
+```text
 
 **Wichtigste Leitplanke:** `atc-engineering` darf nicht zum „Mega-Repository" werden, das den eigentlichen Code von `atc-node`, `atclang`, ShivaCore, GlobusOS, Aurora usw. übernimmt. Es bleibt die **Engineering Control Plane**. Die eigentlichen Produkte bleiben in ihren spezialisierten Repositories.
 
