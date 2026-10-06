@@ -6,7 +6,7 @@ set -u
 # The script intentionally performs no network access.
 #
 # Exit code is non-zero when a repository has a blocking finding or a
-# validation command fails. Informational findings (TODOs/duplicates) are
+# validation command fails. Informational findings (offene Marker/Duplikate) are
 # recorded without failing the repository by themselves.
 
 ROOT=${1:-.}
