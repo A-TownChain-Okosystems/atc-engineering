@@ -1034,3 +1034,50 @@ Damit wird `atc-engineering` das System, mit dem die gesamte A-TownChain-Organis
 ---
 
 *Die initialen Kerndokumente `README.md`, `AGENTS.md` und `ROADMAP.md` sind normative Ableitungen dieser Spezifikation. Phase-Detailplanung in [ROADMAP.md](../../ROADMAP.md).*
+
+---
+
+## 43. Architektur-Stand (Ist) und Crate-Evolution — Nachzug SCR-0130-Verbund (07.10.2026)
+
+**Zweck:** Soll-Ist-Abgleich (Owner-Direktive 07.10. "Fix"): Diese Spezifikation
+beschreibt das ZIEL; dieser Abschnitt dokumentiert verbindlich den erreichten
+IST-Zustand, damit die Spec nicht driftet. Widersprüche zwischen §2-Struktur
+und diesem Abschnitt sindnormativ durch diesen Abschnitt aufgelöst
+(Aktualisierungen nur via Engineering-Change + SCR).
+
+### Ist-Crates (13, Foundation Wave 2) und ihre Rolle
+
+| Ist-Crate | Rolle | deckt Soll-Verantwortung |
+|---|---|---|
+| atc-core | IDs, DerivedState, Errors, SemVer | Basistypen |
+| atc-config | atc-engineering.toml, Version-Pinning | Basistypen |
+| atc-standards | Registry-Client (505 Standards, 31+ Repos) | Standards-Integration |
+| atc-maintenance | MAINT-001-Klassifizierung, MAINT-000 §7.2 Readiness-Gate | Maintenance/Patch-Plane |
+| atc-evidence | Evidence-Records (ATC-EVD-001) | Audit/Evidence |
+| atc-findings | Finding-Registry, Lifecycle, append-only | Audit |
+| atc-graph | Typisierter Impact-Graph, deterministische Traversierung | Repository-Intelligence |
+| atc-verification | Fail-closed Resultate, Readiness-Auswertung | Verification Engine |
+| atc-gates | Gate-Entscheidungen, Evidence-Checks, SoD | Policy-/Governance-Engine |
+| atc-requirements | Requirement-Erschließung | Requirements-Discovery |
+| atc-integration | Integrationsverdrahtung | Plattform-Integration |
+| atc-atclang | ATCLang-Anbindung | ATCLang-Engineering |
+| atc-audit-cli | Audit + Engineering-Loop (CLI-Stufe 1) | CLI (atc-engine bleibt Ziel) |
+
+### Evolution-Entscheidungen (verbindlich)
+
+1. **Evidence-Plane zuerst:** Statt der Ursprungs-Reihenfolge wurden
+   `atc-evidence`/`atc-findings`/`atc-graph`/`atc-verification` vorgezogen —
+   Grund: No-Evidence-No-Trust ist Vorbedingung für alle späteren Phasen.
+2. **Soll-Crates ersetzt/vereint:** `atc-audit` → atc-evidence + atc-findings +
+   atc-audit-cli; `atc-policy` + `atc-governance` → atc-gates (+ künftige
+   Orchestrierung); `atc-repository` → atc-graph + atc-integration.
+3. **Noch offen (Soll bleibt):** atc-build, atc-test, atc-security,
+   atc-release, atc-agent, atc-github (Provider/Adapter), atc-schema,
+   atc-template, CLI `atc-engine` (atc-audit-cli ist Stufe 1), Phasen 5–10.
+4. **95/95 Unit-Tests, CI live** (engineering-ci, fleet-audit, markdownlint);
+   Orchestrator/Runner/Evidence-Automatisierung: offen (STATUS.md).
+
+### Beaufsichtigung
+
+Dieser Abschnitt wird bei jeder abgeschlossenen Welle aktualisiert
+(Engineering-Loop-Schritt IMPACT-UPDATE). Stand: 07.10.2026.
