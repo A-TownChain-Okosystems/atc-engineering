@@ -1,5 +1,8 @@
 # STATUS
 
+> **Current CI snapshot (2026-10-09):** main SHA `470e6a9f500fdade0ea33065d30dd76b58d6492b`. The fleet audit failed in [run 37479559720, job 112323983273](https://github.com/A-TownChain-Okosystems/atc-engineering/actions/runs/37479559720/job/112323983273). Markdown lint, repository verification and Engineering self-test passed in that observed snapshot. The fleet failure remains open; passing local/engineering checks does not imply organization-wide readiness. This is not a full production verification of the Engineering platform.
+
+
 | Feld | Wert |
 |---|---|
 | Status | **IMPLEMENTED (Phase 1, Foundation Wave 2)** |
