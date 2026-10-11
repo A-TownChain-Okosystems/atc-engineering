@@ -7,6 +7,12 @@ on:
     - cron: "17 12 * * *"
     - cron: "17 18 * * *"
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/ai_agent_ci_triage.py"
+      - "tests/test_ai_agent_ci_triage.py"
+      - ".github/workflows/ai-code-agent-remediation-intake.yml"
 
 permissions:
   actions: read
@@ -17,8 +23,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  test-triage:
+    name: Test triage logic
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@v4
+      - name: Run deterministic unit tests
+        run: python3 -m unittest discover -s tests -p 'test_ai_agent_ci_triage.py' -v
+      - name: Compile triage code
+        run: python3 -m py_compile scripts/ai_agent_ci_triage.py tests/test_ai_agent_ci_triage.py
+
   triage:
     name: Collect non-passing CI evidence
+    if: github.event_name != 'pull_request'
+    needs: test-triage
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
