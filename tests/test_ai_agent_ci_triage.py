@@ -1,4 +1,7 @@
+import hashlib
 import importlib.util
+import json
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -38,6 +41,22 @@ class TriagePolicyTests(unittest.TestCase):
         with patch.object(triage, "TOKEN", ""), patch.object(triage, "REPOSITORY", "org/repo"):
             with self.assertRaises(triage.ApiError):
                 triage.api_get("/repos/org/repo/actions/runs")
+
+    def test_evidence_adapter_matches_existing_schema_and_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            triage.OUT = Path(temp_dir)
+            triage.REPOSITORY = "org/repo"
+            triage.CURRENT_SHA = "a" * 40
+            triage.CURRENT_RUN_ID = "123456789"
+            source = Path(temp_dir) / "triage.json"
+            source.write_text('{"status":"FINDINGS","finding_count":1}', encoding="utf-8")
+            triage.write_evidence_record(source, {"status": "FINDINGS", "finding_count": 1}, "now")
+            record = json.loads((Path(temp_dir) / "evidence-record.json").read_text(encoding="utf-8"))
+            self.assertEqual(record["schema"], "ATC-EVD-001")
+            self.assertEqual(record["status"], "UNKNOWN")
+            self.assertEqual(record["commit"], "a" * 40)
+            self.assertEqual(record["integrity"]["digest"], hashlib.sha256(source.read_bytes()).hexdigest())
+            self.assertTrue(record["immutable"])
 
     def test_blocked_report_never_claims_zero_attempts(self):
         report = triage.make_blocked_report("now", "API unavailable")
