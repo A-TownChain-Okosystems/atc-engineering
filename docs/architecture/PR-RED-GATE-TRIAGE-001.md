@@ -1,33 +1,32 @@
-# PR Red-Gate and Merge-Conflict Triage
+# PR Red-Gate Remediation Loop
 
-**Status:** IMPLEMENTED — read-only detection; remediation execution remains a follow-up.
+**Status:** PARTIALLY IMPLEMENTED — discovery plus idempotent issue queue; source mutation and conflict repair remain deliberately disabled.
 
-## Purpose
+## Automated stages
 
-The scheduled/manual workflow inventories open pull requests across the organization, detects failing check states and GitHub's `CONFLICTING` merge state, and publishes both JSON and Markdown evidence as a workflow artifact.
+1. Inventory open PRs, red check states, merge conflicts, and discovery blockers.
+2. Bind every finding to the observed PR head SHA.
+3. Create one central tracking issue per repository/PR/head SHA, with deduplication.
+4. Record a bounded remediation procedure and safety invariants in each issue.
+5. Re-run the census on the next scheduled run. A changed head SHA produces a new evidence record rather than reusing stale verification.
+6. Close a finding only after an authorized reviewer/worker confirms exact-SHA Run → Job → Step → log evidence and fresh required checks.
 
-## Execution
+## Required configuration
 
-- Workflow: `.github/workflows/pr-red-gate-triage.yml`
-- Scanner: `.github/scripts/triage-pr-gates.py`
-- Schedule: every four hours; also manually dispatchable.
-- Output: `triage-results/findings.json` and `triage-results/SUMMARY.md`.
-- Organization-wide access: configure `ATC_FLEET_READ_TOKEN` as a repository Actions secret with read access to the intended repository fleet. The default token may not see other repositories; access failures are explicitly BLOCKED.
+- `ATC_FLEET_READ_TOKEN`: read access to organization repositories for the scanner.
+- `ATC_REMEDIATION_TOKEN`: write access to Issues in **atc-engineering only**. Do not grant organization-wide source write access to this token.
+- The workflow's built-in token also needs `issues: write` to create central issues when the optional token is absent.
+- The queue does not apply labels, so it does not depend on an optional label being present.
 
-## Detection and evidence
+## Deliberate boundary
 
-Each finding records repository, PR number and URL, head SHA, merge state, classification, and red check names/metadata. A check-discovery error is recorded as BLOCKED, not treated as green. The report is a point-in-time census; after a head SHA changes, checks must be re-collected.
+This is not a generic source-code repair bot. It does not infer or execute arbitrary patches from CI logs, push to PR branches, resolve semantic merge conflicts, change permissions, or merge. Those operations require repository-specific tests, least-privilege credentials, idempotency and rollback guarantees. A later executor must use an explicit allowlist of deterministic fix classes and open a separate draft PR; never commit directly to a contributor branch.
 
-## Remediation contract
+## Acceptance evidence
 
-Detection is not remediation. For each red gate, the next worker must fetch the exact head's workflow run, job, step, exit code and relevant logs; classify the root cause; document the finding; apply a scoped fix; update affected documentation; and rerun required checks against the exact new head SHA. Merge conflicts must be resolved additively, preserving both sides and documenting any semantic choice.
-
-Only deterministic, low-risk transformations may be automated without review. Compiler/test failures, dependency/security changes, cryptography, consensus, protocol, standards, kernel/TCB, permissions, and ambiguous conflicts require an explicit engineering review. Never delete tests, weaken gates, broaden allowlists to conceal defects, force-push, or auto-merge.
-
-## Verification criteria for closure
-
-A finding becomes VERIFIED only when all required checks pass for the exact updated PR head SHA, evidence is attributable to the real workflow run/job/step, and no unresolved residual remains. Stale checks, synthetic merge refs, missing jobs/logs, inaccessible repositories, and unknown states remain BLOCKED/RESIDUAL.
-
-## Current limitation
-
-This first increment is read-only: it detects and records failures/conflicts but does not yet push patches, create issue records for each finding, or resolve conflicts automatically. Those write-capable actions need a separately scoped remediation executor, idempotency controls, branch ownership checks, and exact-SHA verification gates. This limitation is intentional; the scanner must not imply that an error was fixed merely because it was found.
+- Python syntax and unit tests pass.
+- Manual workflow run emits triage artifacts and attempts issue queueing.
+- Known red gate/conflict appears with exact head SHA.
+- Repeated run does not duplicate the issue for the same repository/PR/SHA.
+- Missing report, invalid SHA, failed lookup, and missing write permission fail closed.
+- No source mutation or merge is performed.
