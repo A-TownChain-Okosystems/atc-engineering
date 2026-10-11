@@ -39,6 +39,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 1. ShivaCore Kernel — capability microkernel / TCB
 
 **Required components/functions**
+
 - Boot and initialization state machine; architecture/HAL boundary; CPU feature discovery.
 - Memory management: physical frame allocation, virtual address spaces/page tables, mapping/unmapping, permissions, isolation, rollback on failed mutation, object/mapping lifetime and reclamation.
 - Capability system: capability/object identity, rights, derivation/restriction, transfer, revocation or documented non-revocation model, validation at every privileged operation.
@@ -56,6 +57,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 2. A-TownChain Blockchain — ledger and protocol
 
 **Required components/functions**
+
 - Canonical chain configuration: chain ID, supply/economic parameters, decimals, integer widths and byte order; versioned and sourced from normative standards.
 - Transaction model: canonical serialization, domain separation, signature verification, nonce/replay protection, fee/weight limits and rejection reasons.
 - Cryptography: approved key/signature algorithms, canonical encoding, low-S or other malleability policy, hash identifiers, key/address derivation and test vectors.
@@ -74,6 +76,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 3. ATC-VM — deterministic execution
 
 **Required components/functions**
+
 - Bytecode format and version negotiation; magic/version/instruction-count encoding defined by the normative spec.
 - Decoder/verifier: bounds checks, malformed/truncated input rejection, opcode validity, operand validation and control-flow checks as applicable.
 - Execution engine: deterministic opcode semantics, defined integer/byte semantics, stable trap/error behavior and no host-dependent nondeterminism.
@@ -90,6 +93,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 4. ATC-Toolchain — build and verification pipeline
 
 **Required components/functions**
+
 - Versioned toolchain manifest and pinned compiler/linker/formatter/linter/test tools.
 - Build graph/dependency resolution with lockfiles, provenance and controlled network access.
 - ATCLang frontend invocation, diagnostics, code/bytecode generation and ATC-VM target/version compatibility checks.
@@ -106,6 +110,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 5. ATC-Standards — normative specifications and governance
 
 **Required components/functions**
+
 - Standards registry with stable IDs, title, version, status, owner, scope, dependencies and supersession links.
 - Normative versus informative text distinction; MUST/SHOULD/MAY terms and unambiguous wire/ABI definitions.
 - Canonical encoding, serialization, integer widths/endianness, cryptographic suites and domain-separation registry.
@@ -121,6 +126,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 6. ATC-Algorithm — consensus and protocol algorithms
 
 **Required components/functions**
+
 - Explicit algorithm inventory and decision status for PoH/PoW/PoS/PoI or other candidates; do not describe proposals as finalized.
 - Deterministic input/output contracts, canonical hash domains, seed/randomness source and anti-manipulation assumptions.
 - Validator/miner eligibility, weight/stake/identity rules, leader selection, rewards/penalties and slashing only if normative.
@@ -136,6 +142,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 7. ATC-Lang / ATCLang — language and frontend
 
 **Required components/functions**
+
 - Grammar, lexer/parser, AST, source spans and stable syntax-version policy.
 - Name resolution, modules/imports, type checking, semantic analysis and diagnostic codes.
 - Literals, numeric widths/overflow rules, functions, control flow, data structures and error handling as specified.
@@ -151,6 +158,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 8. GlobusOS — operating system integration
 
 **Required components/functions**
+
 - Boot chain, loader, kernel handoff, configuration and recoverable boot failure reporting.
 - Canonical ShivaCore kernel integration and stable userspace/kernel ABI.
 - CPU/platform HAL, interrupt/timer, memory and device-driver interfaces.
@@ -169,6 +177,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 9. Aurora-AI — AI and agent runtime
 
 **Required components/functions**
+
 - Model registry, model/version provenance, tokenizer/processor compatibility and model artifact integrity.
 - Data ingestion, cleaning, deduplication, labeling, privacy/licensing checks and dataset versioning.
 - Training/fine-tuning pipelines, evaluation harnesses, checkpointing, reproducibility metadata and rollback.
@@ -187,6 +196,7 @@ The lists below are architecture requirements to audit against source. They are 
 ### 10. Genesis Engine — game-building software
 
 **Required components/functions**
+
 - Project/template lifecycle, project settings, versioning and migration.
 - Editor shell, scene/world hierarchy, entities/components, transforms, prefab/instancing and undo/redo.
 - Asset import pipeline, metadata, dependency graph, content-addressed cache and reimport/error reporting.
@@ -219,6 +229,7 @@ The lists below are architecture requirements to audit against source. They are 
 ## Machine-readable inventory minimum schema
 
 Each component/function record must include:
+
 - `requirement_id` (stable identifier), `system`, `component`, `function` or `interface`
 - `canonical_repository`, `path`, `symbol` / API / ABI / protocol identifier
 - `purpose`, `inputs`, `outputs`, `errors`, `authority`, `dependencies`
