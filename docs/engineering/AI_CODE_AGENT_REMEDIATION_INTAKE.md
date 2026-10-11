@@ -11,6 +11,7 @@ GitHub Actions runs at 00:17, 06:17, 12:17, and 18:17 UTC. These are four schedu
 ## Outputs
 
 Each run publishes:
+
 - `triage.json`: machine-readable findings, exact head SHA per workflow run, job IDs, step names/statuses, and source URLs.
 - `summary.md`: human-readable triage report attached to the workflow run summary and retained as a 90-day artifact.
 
