@@ -51,7 +51,7 @@ def git_sha(root: Path) -> str:
     return "0" * 40
 
 def blob_sha(data: bytes) -> str:
-    return hashlib.sha1(b"blob " + str(len(data)).encode() + b"\\0" + data).hexdigest()
+    return hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
 
 def classify(path: Path) -> str:
     parts = {part.lower() for part in path.parts}
@@ -119,7 +119,7 @@ def extract_heuristic(repo: str, rel: str, language: str, text: str, sha: str, c
         name = next((g for g in match.groups() if g), None)
         if not name:
             continue
-        start = text.count("\\n", 0, match.start()) + 1
+        start = text.count("\n", 0, match.start()) + 1
         signature = lines[start - 1].strip() if start <= len(lines) else name
         vis = "public" if re.search(r"^\\s*pub\\b|^\\s*export\\b|^\\s*public\\b", signature) else "unknown"
         out.append(symbol_record(repo, rel, language, "function", name, start, start, signature, vis, sha, commit,
@@ -190,7 +190,7 @@ def main() -> int:
         parser.error(f"not a directory: {root}")
     repo = args.repository or root.name
     catalog = scan(root, repo)
-    rendered = json.dumps(catalog, ensure_ascii=False, sort_keys=True, indent=2) + "\\n"
+    rendered = json.dumps(catalog, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
     if args.output == "-":
         print(rendered, end="")
     else:
