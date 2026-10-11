@@ -215,7 +215,7 @@ def write_evidence_record(triage_path: Path, report: dict, generated: str) -> No
         "immutable": True,
     }
     (OUT / "evidence-record.json").write_text(
-        json.dumps(evidence, indent=2) + "\\n", encoding="utf-8"
+        json.dumps(evidence, indent=2) + "\n", encoding="utf-8"
     )
 
 
