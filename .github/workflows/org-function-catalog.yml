@@ -1,0 +1,38 @@
+name: Organization Function Catalog
+
+on:
+  pull_request:
+    paths:
+      - "scripts/org_function_catalog.py"
+      - "schemas/org-function-catalog.schema.json"
+      - "tests/test_org_function_catalog.py"
+      - ".github/workflows/org-function-catalog.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/org_function_catalog.py"
+      - "schemas/org-function-catalog.schema.json"
+      - "tests/test_org_function_catalog.py"
+      - ".github/workflows/org-function-catalog.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  catalog-tool:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python syntax validation
+        run: python -m py_compile scripts/org_function_catalog.py tests/test_org_function_catalog.py
+      - name: Catalog unit tests
+        run: python -m unittest discover -s tests -p 'test_org_function_catalog.py' -v
+      - name: JSON schema syntax validation
+        run: python -m json.tool schemas/org-function-catalog.schema.json > /dev/null
+      - name: Generate a self-catalog smoke artifact
+        run: |
+          python scripts/org_function_catalog.py . --repository A-TownChain-Okosystems/atc-engineering --output /tmp/org-function-catalog.json
+          python -m json.tool /tmp/org-function-catalog.json > /dev/null
