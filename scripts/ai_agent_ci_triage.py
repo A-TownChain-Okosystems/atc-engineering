@@ -186,6 +186,39 @@ def collect_findings(runs: list[dict]) -> list[dict]:
     return findings
 
 
+def write_evidence_record(triage_path: Path, report: dict, generated: str) -> None:
+    """Adapt triage output to the repository's existing ATC-EVD-001 evidence schema.
+
+    The adapter deliberately emits UNKNOWN, never PASS: run inventory alone cannot
+    prove exit codes, complete pagination, or successful verification of every finding.
+    """
+    raw = triage_path.read_bytes()
+    run_id = CURRENT_RUN_ID if CURRENT_RUN_ID.isdigit() else "0"
+    sequence = str(int(run_id[-6:]) if run_id else 1)
+    evidence = {
+        "schema": "ATC-EVD-001",
+        "schema_version": "1.0.0",
+        "id": f"EVD-{datetime.now(timezone.utc).year}-{sequence}",
+        "type": "AI_AGENT_CI_TRIAGE",
+        "repository": REPOSITORY or "unknown",
+        "commit": CURRENT_SHA if len(CURRENT_SHA) == 40 else "unknown",
+        "producer": "scripts/ai_agent_ci_triage.py",
+        "status": "UNKNOWN",
+        "standards": ["ATC-AI-GOV-001", "ATC-STD-ENG-001"],
+        "artifacts": ["triage.json", "summary.md"],
+        "provenance": (
+            f"generated_at={generated}; current_run_id={CURRENT_RUN_ID or 'unknown'}; "
+            f"triage_status={report.get('status')}; finding_count={report.get('finding_count', 0)}; "
+            "UNKNOWN is intentional: inventory is not complete runtime verification."
+        ),
+        "integrity": {"algorithm": "SHA-256", "digest": hashlib.sha256(raw).hexdigest()},
+        "immutable": True,
+    }
+    (OUT / "evidence-record.json").write_text(
+        json.dumps(evidence, indent=2) + "\\n", encoding="utf-8"
+    )
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     generated = datetime.now(timezone.utc).isoformat()
@@ -197,7 +230,9 @@ def main() -> int:
         findings = collect_findings(runs)
     except (ApiError, AttributeError, TypeError, ValueError, KeyError) as exc:
         report = make_blocked_report(generated, str(exc))
-        (OUT / "triage.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        triage_path = OUT / "triage.json"
+        triage_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        write_evidence_record(triage_path, report, generated)
         (OUT / "summary.md").write_text(
             "# AI agent CI triage\n\n**Status: BLOCKED**\n\n"
             f"- Repository: {REPOSITORY or 'unknown'}\n"
@@ -234,7 +269,9 @@ def main() -> int:
         },
         "findings": findings,
     }
-    (OUT / "triage.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    triage_path = OUT / "triage.json"
+    triage_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    write_evidence_record(triage_path, report, generated)
     lines = [
         "# AI agent CI triage", "",
         f"- Status: **{status}**",
