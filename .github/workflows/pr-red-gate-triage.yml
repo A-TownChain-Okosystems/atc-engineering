@@ -3,22 +3,24 @@ name: PR Red-Gate and Conflict Triage
 on:
   workflow_dispatch:
   schedule:
-    # Four daily UTC runs aligned approximately with morning, noon, evening and night in Germany.
-    # UTC keeps the schedule stable; local wall-clock time shifts with daylight saving time.
+    # Four daily UTC runs; local German wall-clock time shifts with DST.
     - cron: "0 5,11,17,23 * * *"
 
 permissions:
   contents: read
   pull-requests: read
+  issues: write
 
 jobs:
   triage:
-    name: Inventory red gates and merge conflicts
+    name: Inventory and queue PR remediation findings
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       GH_TOKEN: ${{ secrets.ATC_FLEET_READ_TOKEN || github.token }}
+      ATC_REMEDIATION_TOKEN: ${{ secrets.ATC_REMEDIATION_TOKEN || github.token }}
       ATC_ORG: A-TownChain-Okosystems
+      ATC_CONTROL_REPO: A-TownChain-Okosystems/atc-engineering
       ATC_TRIAGE_DIR: triage-results
     steps:
       - name: Checkout engineering control plane
@@ -27,6 +29,9 @@ jobs:
           persist-credentials: false
       - name: Run read-only triage
         run: python3 .github/scripts/triage-pr-gates.py
+      - name: Queue SHA-bound remediation issues
+        if: always() && hashFiles('triage-results/findings.json') != ''
+        run: python3 .github/scripts/remediation-issue-queue.py
       - name: Publish machine-readable findings
         if: always()
         uses: actions/upload-artifact@v4
