@@ -16,6 +16,9 @@ on:
       - "scripts/org_function_catalog.py"
       - "schemas/org-function-catalog.schema.json"
       - "tests/test_org_function_catalog.py"
+      - "schemas/system-requirements.schema.json"
+      - "docs/architecture/system-requirements.v1.json"
+      - "docs/architecture/SYSTEM_FUNCTION_COMPONENT_REQUIREMENTS.md"
       - ".github/workflows/org-function-catalog.yml"
   workflow_dispatch:
 
