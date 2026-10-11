@@ -3,7 +3,9 @@ name: PR Red-Gate and Conflict Triage
 on:
   workflow_dispatch:
   schedule:
-    - cron: "37 */4 * * *"
+    # Four daily UTC runs aligned approximately with morning, noon, evening and night in Germany.
+    # UTC keeps the schedule stable; local wall-clock time shifts with daylight saving time.
+    - cron: "0 5,11,17,23 * * *"
 
 permissions:
   contents: read
@@ -15,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      GH_TOKEN: \${{ secrets.ATC_FLEET_READ_TOKEN || github.token }}
+      GH_TOKEN: ${{ secrets.ATC_FLEET_READ_TOKEN || github.token }}
       ATC_ORG: A-TownChain-Okosystems
       ATC_TRIAGE_DIR: triage-results
     steps:
