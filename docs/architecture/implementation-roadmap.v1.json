@@ -8,7 +8,7 @@
     "P1": "Canonical kernel, VM, blockchain and reproducible toolchain.",
     "P2": "Language, OS, node and end-to-end integration.",
     "P3": "Aurora AI and Genesis Engine behind approved boundaries.",
-    "P4": "Hardening, audit closure and release readiness."
+    "P4": "Hardening, audit closure, release readiness and rollback."
   },
   "global_gates": [
     "Resolve SSOT conflicts or track them as blocking RESIDUALs.",
