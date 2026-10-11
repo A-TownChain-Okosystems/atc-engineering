@@ -1,0 +1,35 @@
+name: PR Red-Gate and Conflict Triage
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "37 */4 * * *"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  triage:
+    name: Inventory red gates and merge conflicts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: \${{ secrets.ATC_FLEET_READ_TOKEN || github.token }}
+      ATC_ORG: A-TownChain-Okosystems
+      ATC_TRIAGE_DIR: triage-results
+    steps:
+      - name: Checkout engineering control plane
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run read-only triage
+        run: python3 .github/scripts/triage-pr-gates.py
+      - name: Publish machine-readable findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-red-gate-triage
+          path: triage-results/
+          if-no-files-found: warn
+          retention-days: 30
