@@ -1,0 +1,50 @@
+name: ai-code-agent-remediation-intake
+
+on:
+  schedule:
+    - cron: "17 0 * * *"
+    - cron: "17 6 * * *"
+    - cron: "17 12 * * *"
+    - cron: "17 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: ai-code-agent-remediation-intake-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    name: Collect non-passing CI evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@v4
+      - name: Collect workflow, job, and step evidence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: python3 scripts/ai_agent_ci_triage.py
+      - name: Publish triage summary
+        if: always()
+        run: |
+          if test -f artifacts/ai-agent-triage/summary.md; then
+            cat artifacts/ai-agent-triage/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "BLOCKED: triage report missing; no PASS inferred." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+      - name: Upload machine-readable triage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-agent-ci-triage-${{ github.run_id }}
+          path: artifacts/ai-agent-triage/
+          if-no-files-found: error
+          retention-days: 90
