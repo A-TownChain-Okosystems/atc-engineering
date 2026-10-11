@@ -9,6 +9,9 @@ on:
       - "schemas/system-requirements.schema.json"
       - "docs/architecture/system-requirements.v1.json"
       - "docs/architecture/SYSTEM_FUNCTION_COMPONENT_REQUIREMENTS.md"
+      - "docs/architecture/implementation-roadmap.v1.json"
+      - "docs/architecture/IMPLEMENTATION_ROADMAP.md"
+      - "schemas/implementation-roadmap.schema.json"
       - ".github/workflows/org-function-catalog.yml"
   push:
     branches: [main]
@@ -62,6 +65,23 @@ jobs:
               assert expected == actual, f"requirement linkage mismatch for {system['system_id']}"
           assert "requirements" in schema["properties"]
           print(f"Validated {len(data['systems'])} systems and {len(ids)} unique requirements")
+          PY
+      - name: Validate implementation roadmap
+        run: |
+          python -m json.tool schemas/implementation-roadmap.schema.json > /dev/null
+          python -m json.tool docs/architecture/implementation-roadmap.v1.json > /dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d = json.loads(Path('docs/architecture/implementation-roadmap.v1.json').read_text())
+          assert d['roadmap_id'] == 'ATC-IMPLEMENTATION-ROADMAP'
+          assert d['status'] == 'PLANNED_NOT_EXECUTED'
+          assert [p['priority'] for p in d['phases']] == ['P0', 'P1', 'P2', 'P3', 'P4']
+          ids = [w['work_id'] for p in d['phases'] for w in p['work_items']]
+          assert len(ids) == len(set(ids)), 'duplicate work_id'
+          assert all(w['status'] == 'PLANNED' for p in d['phases'] for w in p['work_items'])
+          assert all(w.get('completion_evidence') for p in d['phases'] for w in p['work_items'])
+          print(f"Validated {len(d['phases'])} phases and {len(ids)} work items")
           PY
       - name: Generate a self-catalog smoke artifact
         run: |
