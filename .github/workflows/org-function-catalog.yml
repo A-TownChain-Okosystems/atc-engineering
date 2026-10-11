@@ -6,6 +6,9 @@ on:
       - "scripts/org_function_catalog.py"
       - "schemas/org-function-catalog.schema.json"
       - "tests/test_org_function_catalog.py"
+      - "schemas/system-requirements.schema.json"
+      - "docs/architecture/system-requirements.v1.json"
+      - "docs/architecture/SYSTEM_FUNCTION_COMPONENT_REQUIREMENTS.md"
       - ".github/workflows/org-function-catalog.yml"
   push:
     branches: [main]
@@ -32,6 +35,31 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_org_function_catalog.py' -v
       - name: JSON schema syntax validation
         run: python -m json.tool schemas/org-function-catalog.schema.json > /dev/null
+      - name: Validate system requirements register
+        run: |
+          python -m json.tool schemas/system-requirements.schema.json > /dev/null
+          python -m json.tool docs/architecture/system-requirements.v1.json > /dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          schema = json.loads(Path("schemas/system-requirements.schema.json").read_text())
+          data = json.loads(Path("docs/architecture/system-requirements.v1.json").read_text())
+          assert data["catalog_id"] == "ATC-SYSTEM-REQUIREMENTS"
+          assert data["schema_version"] == "1.0.0"
+          assert len(data["systems"]) == 10, f"expected 10 systems, got {len(data['systems'])}"
+          ids = [item["requirement_id"] for item in data["requirements"]]
+          assert len(ids) == len(set(ids)), "duplicate requirement_id"
+          assert len(data["requirements"]) >= 70, f"unexpectedly low requirement count: {len(ids)}"
+          known_systems = {item["system_id"] for item in data["systems"]}
+          assert all(item["system_id"] in known_systems for item in data["requirements"])
+          assert all(item["status"] == "REQUIRED" for item in data["requirements"]), "requirements must not claim implementation"
+          for system in data["systems"]:
+              expected = set(system["requirement_ids"])
+              actual = {item["requirement_id"] for item in data["requirements"] if item["system_id"] == system["system_id"]}
+              assert expected == actual, f"requirement linkage mismatch for {system['system_id']}"
+          assert "requirements" in schema["properties"]
+          print(f"Validated {len(data['systems'])} systems and {len(ids)} unique requirements")
+          PY
       - name: Generate a self-catalog smoke artifact
         run: |
           python scripts/org_function_catalog.py . --repository A-TownChain-Okosystems/atc-engineering --output /tmp/org-function-catalog.json
