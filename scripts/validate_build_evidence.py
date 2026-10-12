@@ -31,6 +31,17 @@ def validate_report(report_path: Path, expected_sha: str, checked_out_sha: str,
         raise ValueError("gate report must be a JSON object")
     if report.get("schema_version") != REPORT_SCHEMA:
         raise ValueError("unsupported or missing gate-report schema_version")
+    if report.get("decision") != "ALLOW":
+        raise ValueError("gate report decision is not ALLOW")
+    blocking_controls = report.get("blocking_controls")
+    if not isinstance(blocking_controls, list) or blocking_controls:
+        raise ValueError("gate report has missing, malformed, or non-empty blocking_controls")
+    if report.get("sod_valid") is not True:
+        raise ValueError("gate report separation-of-duties validation is not true")
+    if report.get("human_approval") is not True:
+        raise ValueError("gate report human approval is not true")
+    if not isinstance(report.get("requested_state"), str) or not report["requested_state"]:
+        raise ValueError("gate report requested_state is missing or malformed")
     return report
 
 
