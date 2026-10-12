@@ -26,6 +26,8 @@ jobs:
           components: rustfmt, clippy
       - name: Format check
         run: cargo fmt --all -- --check
+      - name: Build evidence negative regression tests
+        run: python3 tests/test_validate_build_evidence.py
       - name: Test workspace
         run: cargo test --locked --workspace --all-features
       - name: Clippy
@@ -87,65 +89,17 @@ jobs:
           set -euo pipefail
           test -s artifacts/gate-report.txt
           test -s artifacts/gate-report.json
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          import re
-          import subprocess
-          from pathlib import Path
-
-          root = Path("artifacts")
-          report_path = root / "gate-report.json"
-          expected_sha = os.environ["EXPECTED_SHA"]
-          checked_out_sha = subprocess.run(
-              ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
-          ).stdout.strip()
-          run_id = os.environ["RUN_ID"]
-          run_attempt = os.environ["RUN_ATTEMPT"]
-
-          if not re.fullmatch(r"[0-9a-f]{40}", expected_sha):
-              raise SystemExit("BLOCKED: expected source SHA is not a full 40-character SHA")
-          if not re.fullmatch(r"[0-9a-f]{40}", checked_out_sha) or checked_out_sha != expected_sha:
-              raise SystemExit("BLOCKED: checked-out HEAD does not match the workflow event SHA")
-          if not run_id.isdigit() or not run_attempt.isdigit():
-              raise SystemExit("BLOCKED: workflow run identity is missing or malformed")
-
-          try:
-              report = json.loads(report_path.read_text(encoding="utf-8"))
-          except (OSError, json.JSONDecodeError) as exc:
-              raise SystemExit(f"BLOCKED: gate report is missing or invalid JSON: {exc}")
-
-          if not isinstance(report, dict):
-              raise SystemExit("BLOCKED: gate report must be a JSON object")
-          if report.get("schema_version") != "atc.gate-report/v1":
-              raise SystemExit("BLOCKED: unsupported or missing gate-report schema_version")
-
-          report_sha256 = hashlib.sha256(report_path.read_bytes()).hexdigest()
-          binary_path = Path("target/release/atc-audit-cli")
-          if not binary_path.is_file():
-              raise SystemExit("BLOCKED: expected release binary is missing")
-          binary_sha256 = hashlib.sha256(binary_path.read_bytes()).hexdigest()
-          manifest = {
-              "schema_version": "atc.build-evidence/v1",
-              "repository": os.environ["REPOSITORY"],
-              "source_sha": expected_sha,
-              "checked_out_sha": checked_out_sha,
-              "release_binary_path": str(binary_path),
-              "release_binary_sha256": binary_sha256,
-              "workflow_ref": os.environ["WORKFLOW_REF"],
-              "run_id": int(run_id),
-              "run_attempt": int(run_attempt),
-              "gate_report_path": str(report_path),
-              "gate_report_sha256": report_sha256,
-              "gate_report_schema": report["schema_version"],
-          }
-          (root / "evidence-manifest.json").write_text(
-              json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n",
-              encoding="utf-8",
-          )
-          print(json.dumps(manifest, sort_keys=True))
-          PY
+          checked_out_sha="$(git rev-parse HEAD)"
+          python3 scripts/validate_build_evidence.py \
+            --report artifacts/gate-report.json \
+            --binary target/release/atc-audit-cli \
+            --expected-sha "$EXPECTED_SHA" \
+            --checked-out-sha "$checked_out_sha" \
+            --run-id "$RUN_ID" \
+            --run-attempt "$RUN_ATTEMPT" \
+            --repository "$REPOSITORY" \
+            --workflow-ref "$WORKFLOW_REF" \
+            --output artifacts/evidence-manifest.json
 
           test -s artifacts/evidence-manifest.json
           sha256sum target/release/atc-audit-cli artifacts/gate-report.json artifacts/evidence-manifest.json > artifacts/SHA256SUMS
