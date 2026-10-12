@@ -1,3 +1,4 @@
+import hashlib
 import importlib.util
 import json
 import tempfile
@@ -16,7 +17,7 @@ class BuildEvidenceValidationTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.report = self.root / "gate-report.json"
-        self.report.write_text(json.dumps({"schema_version": "atc.gate-report/v1", "status": "PASS"}), encoding="utf-8")
+        self.report.write_text(json.dumps({"schema_version": "atc.gate-report/v1", "decision": "ALLOW", "requested_state": "TESTNET_READY", "blocking_controls": [], "sod_valid": True, "human_approval": True}), encoding="utf-8")
         self.sha = "a" * 40
 
     def tearDown(self):
@@ -34,6 +35,45 @@ class BuildEvidenceValidationTests(unittest.TestCase):
     def test_accepts_valid_report_and_exact_sha(self):
         report = self.validate()
         self.assertEqual(report["schema_version"], "atc.gate-report/v1")
+
+    def test_block_decision_fails_closed(self):
+        report = json.loads(self.report.read_text(encoding="utf-8"))
+        report["decision"] = "BLOCK"
+        self.report.write_text(json.dumps(report), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "decision is not ALLOW"):
+            self.validate()
+
+    def test_missing_or_nonempty_blocking_controls_fail_closed(self):
+        report = json.loads(self.report.read_text(encoding="utf-8"))
+        del report["blocking_controls"]
+        self.report.write_text(json.dumps(report), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "blocking_controls"):
+            self.validate()
+        report["blocking_controls"] = ["SEC-001"]
+        self.report.write_text(json.dumps(report), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "blocking_controls"):
+            self.validate()
+
+    def test_invalid_separation_of_duties_fails_closed(self):
+        report = json.loads(self.report.read_text(encoding="utf-8"))
+        report["sod_valid"] = False
+        self.report.write_text(json.dumps(report), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "separation-of-duties"):
+            self.validate()
+
+    def test_missing_human_approval_fails_closed(self):
+        report = json.loads(self.report.read_text(encoding="utf-8"))
+        report["human_approval"] = False
+        self.report.write_text(json.dumps(report), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "human approval"):
+            self.validate()
+
+    def test_missing_requested_state_fails_closed(self):
+        report = json.loads(self.report.read_text(encoding="utf-8"))
+        report["requested_state"] = ""
+        self.report.write_text(json.dumps(report), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "requested_state"):
+            self.validate()
 
     def test_missing_report_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "missing or invalid JSON"):
@@ -81,8 +121,8 @@ class BuildEvidenceValidationTests(unittest.TestCase):
             json.loads(self.report.read_text(encoding="utf-8")),
         )
         self.assertEqual(manifest["source_sha"], self.sha)
-        self.assertEqual(len(manifest["gate_report_sha256"]), 64)
-        self.assertEqual(len(manifest["release_binary_sha256"]), 64)
+        self.assertEqual(manifest["gate_report_sha256"], hashlib.sha256(self.report.read_bytes()).hexdigest())
+        self.assertEqual(manifest["release_binary_sha256"], hashlib.sha256(binary.read_bytes()).hexdigest())
 
     def test_missing_binary_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "release binary is missing"):
