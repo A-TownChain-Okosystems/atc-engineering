@@ -18,7 +18,7 @@
     "artifact_url": "https://github.com/A-TownChain-Okosystems/atc-engineering/actions/runs/38228214277/artifacts/11738510943",
     "artifact_zip_sha256": "2c32f65478f1a15446e2a3d4cea4cd9f2c064155f48c347674cf738f1ddb1c39"
   },
-  "interpretation": "Repository-level observations below are extracted from the available job log and summary. They are not proof that every repository has a confirmed code defect. Exact audited commit SHA per repository was not established from the inspected log excerpt and is therefore null; do not substitute the engineering repository's source_main_sha.",
+  "interpretation": "Per-repository observations are taken from the downloaded fleet-audit artifact and job log. The artifact does not record the exact commit SHA checked out for each repository. Do not infer historical source SHAs from today's default branch. Findings are not all confirmed code defects. In particular, the artifact does NOT substantiate a Rust compiler failure for atc-wallet; its cargo test command succeeded but ran zero tests.",
   "entries": [
     {
       "repository": "a-townchain-ecosystem",
@@ -420,21 +420,23 @@
         "CONS-AUDIT-003",
         "DEPENDENCY-RESOLUTION"
       ],
-      "observed": "Seven root/module duplicate source/config files. npm resolution conflict: TypeScript 7.0.2 conflicts with ts-jest 29.4.14 peer range <7; subsequent jest command reports jest not found.",
+      "observed": "The artifact reports seven duplicate root/module files. Native package validation reports root npm ERESOLVE because TypeScript 7.0.2 conflicts with ts-jest 29.4.14 peer range <7; module package test invocation then reports jest not found.",
       "classification": "possible-ssot-drift; dependency-toolchain",
-      "next_action": "Choose compatible TypeScript/Jest/ts-jest versions, update lockfile, clean install/test; no --force or --legacy-peer-deps. Verify canonical source paths before consolidation.",
+      "next_action": "Resolve the TypeScript/Jest/ts-jest version conflict in the canonical package manifest and lockfile, perform a clean install and run tests; inspect duplicate paths against SSOT and callers before consolidating. Do not use --force or --legacy-peer-deps.",
       "status": "RESIDUAL",
       "observed_commit_sha": null,
       "owner": "TBD in owning repository",
       "severity": "UNASSESSED",
       "verification": {
         "status": "NOT_VERIFIED",
+        "native_command": "npm package validation",
+        "native_result": "failed: ERESOLVE peer dependency conflict; module test invocation: jest not found",
         "fix_commit_sha": null,
-        "verification_run_id": null,
-        "job_id": null,
-        "step": null,
-        "exit_code": null,
-        "log_url": null
+        "verification_run_id": 38228214277,
+        "job_id": 114740951240,
+        "step": "5 — Audit, syntax-check and test repositories",
+        "exit_code": 1,
+        "log_url": "https://github.com/A-TownChain-Okosystems/atc-engineering/actions/runs/38228214277/job/114740951240"
       },
       "limitations": [
         "Per-repository observed commit SHA not established from inspected log excerpt.",
@@ -448,25 +450,28 @@
         "CONS-AUDIT-003",
         "RUST-COMPILE"
       ],
-      "observed": "Literal \\\\n text in src/lib.rs causes Rust parse/compile failure; TODO/FIXME markers; duplicated root/module Python/Rust files.",
-      "classification": "confirmed-compile-failure-in-audited-checkout; code-completeness-triage; possible-ssot-drift",
-      "next_action": "Fix canonical source line breaks; run fmt, cargo check, cargo test; triage TODOs and establish canonical paths; verify on resulting exact SHA.",
+      "observed": "The artifact reports TODO/FIXME markers in modules/atc-wallet/src/main.rs and src/main.rs plus duplicate root/module files. The native Rust cargo test command completed successfully in the audited checkout with 0 tests; the artifact does not show the previously claimed literal \\\\n parse/compile failure.",
+      "classification": "code-completeness-triage; possible-ssot-drift",
+      "next_action": "Triage the two TODO/FIXME markers and confirm canonical root-versus-module ownership for duplicate files; add meaningful regression tests. Do not treat this artifact as evidence of a Rust compiler failure.",
       "status": "RESIDUAL",
       "observed_commit_sha": null,
       "owner": "TBD in owning repository",
       "severity": "UNASSESSED",
       "verification": {
         "status": "NOT_VERIFIED",
+        "native_command": "cargo test",
+        "native_result": "success; 0 tests",
         "fix_commit_sha": null,
-        "verification_run_id": null,
-        "job_id": null,
-        "step": null,
-        "exit_code": null,
-        "log_url": null
+        "verification_run_id": 38228214277,
+        "job_id": 114740951240,
+        "step": "5 — Audit, syntax-check and test repositories",
+        "exit_code": 1,
+        "log_url": "https://github.com/A-TownChain-Okosystems/atc-engineering/actions/runs/38228214277/job/114740951240"
       },
       "limitations": [
-        "Per-repository observed commit SHA not established from inspected log excerpt.",
-        "Finding detail may be partial; inspect complete run artifact before closure."
+        "Per-repository observed commit SHA not established from the inspected log/artifact.",
+        "The native Rust test command completed successfully but ran zero tests; this is not functional test coverage.",
+        "Full artifact review is still required before closing any repository finding."
       ]
     }
   ],
@@ -476,5 +481,12 @@
     "Duplicate detection requires SSOT/caller/build review before deletion or relocation.",
     "TODO/FIXME markers require individual triage, not automatic deletion."
   ],
-  "closure_rule": "Close only with exact repository commit SHA plus Run -> Job -> Step -> exit code -> log/artifact evidence. Unresolved items remain RESIDUAL or BLOCKED. Do not weaken required checks."
+  "closure_rule": "Close only with exact repository commit SHA plus Run -> Job -> Step -> exit code -> log/artifact evidence. Unresolved items remain RESIDUAL or BLOCKED. Do not weaken required checks.",
+  "evidence_review": {
+    "artifact_reviewed": true,
+    "artifact_id": 11738510943,
+    "artifact_zip_sha256": "2c32f65478f1a15446e2a3d4cea4cd9f2c064155f48c347674cf738f1ddb1c39",
+    "artifact_files": 32,
+    "review_note": "Per-repository files contain finding lines and native verification output but do not record each cloned repository's HEAD SHA. Historical source revisions remain unresolved."
+  }
 }
