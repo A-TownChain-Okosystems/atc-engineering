@@ -69,14 +69,30 @@ jobs:
             echo "=== $repo (private=$private) ==="
             rm -rf "/tmp/$repo"
             if ! gh repo clone "A-TownChain-Okosystems/$repo" "/tmp/$repo" -- --depth 1; then
-              echo "CLONE ERROR: $repo" | tee "audit-results/$repo.txt"
-              printf -- '- **BLOCKED:** `%s` — clone failed; private repositories require `ATC_FLEET_READ_TOKEN`.\n' "$repo" >> audit-results/SUMMARY.md
+              {
+                printf 'Repository: %s\n' "$repo"
+                printf 'Audited commit SHA: null\n'
+                printf 'Clone status: FAILED\n'
+                printf 'Fleet audit run ID: %s\n' "$GITHUB_RUN_ID"
+                printf 'Fleet audit workflow SHA: %s\n\n' "$GITHUB_SHA"
+                printf 'CLONE ERROR: %s\n' "$repo"
+              } | tee "audit-results/$repo.txt"
+              printf -- '- **BLOCKED:** `%s` — clone failed; no audited commit SHA available; private repositories require `ATC_FLEET_READ_TOKEN`.\n' "$repo" >> audit-results/SUMMARY.md
               failed=1
               continue
             fi
 
+            audited_sha="$(git -C "/tmp/$repo" rev-parse --verify HEAD)"
+            audited_subject="$(git -C "/tmp/$repo" log -1 --format=%s)"
             result="audit-results/$repo.txt"
             : > "$result"
+            {
+              printf 'Repository: %s\n' "$repo"
+              printf 'Audited commit SHA: %s\n' "$audited_sha"
+              printf 'Audited commit subject: %s\n' "$audited_subject"
+              printf 'Fleet audit run ID: %s\n' "$GITHUB_RUN_ID"
+              printf 'Fleet audit workflow SHA: %s\n\n' "$GITHUB_SHA"
+            } >> "$result"
             repo_failed=0
 
             if ! ./target/release/atc-audit-cli "/tmp/$repo" >> "$result" 2>&1; then
@@ -126,9 +142,9 @@ jobs:
             cat "$result"
 
             if [ "$repo_failed" -eq 0 ] && grep -q '^AUDIT PASS:' "$result"; then
-              printf -- '- **PASS:** `%s` — audit + native verification passed.\n' "$repo" >> audit-results/SUMMARY.md
+              printf -- '- **PASS:** `%s` — audit + native verification passed; audited SHA: `%s`.\n' "$repo" "$audited_sha" >> audit-results/SUMMARY.md
             else
-              printf -- '- **FINDINGS:** `%s` — audit and/or native verification requires remediation/evidence.\n' "$repo" >> audit-results/SUMMARY.md
+              printf -- '- **FINDINGS:** `%s` — audit and/or native verification requires remediation/evidence; audited SHA: `%s`.\n' "$repo" "$audited_sha" >> audit-results/SUMMARY.md
               failed=1
             fi
           done < /tmp/repos.tsv
