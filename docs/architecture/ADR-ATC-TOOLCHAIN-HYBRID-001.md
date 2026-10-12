@@ -1,6 +1,5 @@
 # ADR-ATC-TOOLCHAIN-HYBRID-001: Hybrid Toolchain Architecture
 
-
 - **Status:** Accepted as the selected architecture direction; repository ratification and implementation remain pending review and evidence.
 - **Decision date:** 2026-10-12
 - **Decision owner:** A-TownChain architecture/governance
@@ -9,13 +8,11 @@
 
 ## 1. Context
 
-
 The current `atc-toolchain/main` describes a Python stdlib-first R1 skeleton for governance and build orchestration. The `anchor/compiler-baseline` branch describes a Rust-first deterministic toolchain baseline, including bytecode verification and artifact tooling. These are different implementation directions and must not silently become competing sources of truth.
 
 The selected architecture is **Option C — Hybrid with explicit boundaries**. This ADR records the target architecture. It does not claim that the components described here are already implemented, tested, verified, production-ready, or released.
 
 ## 2. Decision
-
 
 1. Python is responsible for governance and build orchestration.
 2. Rust is used for security-sensitive binary and artifact operations where its typed, memory-safe implementation provides a clear benefit.
@@ -24,7 +21,6 @@ The selected architecture is **Option C — Hybrid with explicit boundaries**. T
 5. The architecture decision does not authorize a merge, release, production claim, or a migration that has not passed its required gates.
 
 ## 3. Single Sources of Truth and ownership
-
 
 | Concern | Canonical owner | Toolchain responsibility |
 |---|---|---|
@@ -38,7 +34,6 @@ The selected architecture is **Option C — Hybrid with explicit boundaries**. T
 A local cache, adapter, test fixture, or validator is not a new canonical authority. If sources conflict, fail closed and raise an explicit conflict for the canonical owner; do not silently choose one definition.
 
 ## 4. Runtime and language boundaries
-
 
 The intended flow is:
 
@@ -59,7 +54,6 @@ Python governance/orchestration coordinates stages and records their inputs, out
 
 ### 5.1 Compiler interface
 
-
 The compiler boundary must be versioned and machine-checkable. Its contract must define:
 
 - compiler identity and exact source/build revision;
@@ -72,7 +66,6 @@ The compiler boundary must be versioned and machine-checkable. Its contract must
 The toolchain must call the canonical ATCLang compiler interface. Until its actual interface and implementation are inspected and pinned by exact SHA, this ADR does not prescribe an unverified CLI or ABI.
 
 ### 5.2 ATCB format
-
 
 The proposed structural header contract is:
 
@@ -88,7 +81,6 @@ The 10-byte header is a target contract, not independent proof that every reposi
 `ATCB` is the selected magic in this target contract. An alternative such as `ATC1` must not be accepted or emitted as a silent fallback. Any existing conflicting definition is a release blocker until resolved by the canonical owners and documented with exact source SHAs.
 
 ### 5.3 Validator and artifact contracts
-
 
 The Rust validator must:
 
@@ -123,7 +115,6 @@ The language choice is a responsibility boundary, not permission to duplicate ca
 
 ## 7. Determinism and provenance
 
-
 A reproducible build must bind at least:
 
 - source repository and exact commit SHA;
@@ -139,7 +130,6 @@ For equivalent declared inputs and pinned tool versions/configuration, repeated 
 
 ## 8. Migration rules
 
-
 1. Inspect `atc-toolchain/main` and `anchor/compiler-baseline` at exact commit SHAs before selecting files or behavior for migration.
 2. Produce a file-level diff and classify each item as governance/orchestration, security-sensitive tooling, canonical implementation, duplicate, obsolete, or unresolved.
 3. Preserve the R1 governance baseline and required CI gates. Do not replace Python orchestration wholesale merely because Rust components exist.
@@ -149,7 +139,6 @@ For equivalent declared inputs and pinned tool versions/configuration, repeated 
 7. Every migration change must be submitted through a reviewable branch and pull request. No direct-to-main mutation, merge, auto-merge or release is authorized by this ADR.
 
 ## 9. Phased implementation and acceptance criteria
-
 
 | Phase | Deliverable | Acceptance criteria |
 |---|---|---|
@@ -164,7 +153,6 @@ A phase is not accepted because a document or file exists. Acceptance requires t
 
 ## 10. Evidence and status vocabulary
 
-
 The project must distinguish at least:
 
 - **SPECIFIED** — a normative contract has been reviewed and recorded;
@@ -178,7 +166,6 @@ A green CI job is evidence for the checks it actually ran, not a blanket product
 
 ## 11. Security and governance invariants
 
-
 - Fail closed on malformed bytecode, unsupported versions, missing provenance, failed integrity checks and unknown mandatory evidence.
 - Do not weaken or remove formatting, test, static-analysis, security, dependency or evidence gates to obtain a green result.
 - Keep architecture approval, code review, merge approval and release authorization separate.
@@ -188,13 +175,11 @@ A green CI job is evidence for the checks it actually ran, not a blanket product
 
 ## 12. Consequences
 
-
 **Positive:** Python's current R1 governance base can be retained; Rust can be introduced where binary safety benefits; canonical ownership remains explicit; migration and verification become evidence-driven.
 
 **Costs and constraints:** Two language ecosystems must be tested and versioned; interfaces and error semantics need maintenance; source-SHA reconciliation and conflict resolution are required before implementation claims can be upgraded.
 
 ## 13. Open items / residuals
-
 
 - [ ] Record exact commit SHAs for `atc-toolchain/main`, `anchor/compiler-baseline`, `atclang` and canonical ATC-VM source.
 - [ ] Reconcile the ATCB header, instruction framing, limits and rejection behavior against canonical specifications and source.
@@ -207,11 +192,9 @@ Until these items have evidence, the architecture direction is selected, while i
 
 ## 14. P1 SHA-pinned baseline audit — 2026-10-12
 
-
 This section records the initial live source comparison. It is an inspection report, not a claim that the Rust baseline passes all required gates.
 
 ### 14.1 Exact source anchors
-
 
 | Repository / ref | Commit SHA | Inspected file and blob SHA |
 |---|---|---|
@@ -225,7 +208,6 @@ The branch comparison reports `main` and `anchor/compiler-baseline` as **diverge
 
 ### 14.2 Observed implementation boundaries
 
-
 - **Python R1 on main:** README describes a stdlib-first governance/build-orchestration skeleton; CLI and several features are explicitly planned, and the CLI is not yet present as an implemented command surface.
 - **Rust baseline:** workspace members are `atc-cli`, `atc-core`, `atc-ir`, `atc-gas`, `atc-capability`, `atc-verifier`, `atc-artifact`, and `atc-evidence`. The CLI source currently exposes only `version`, `toolchain info`, and `doctor`; README marks the complete compiler integration and several other features as roadmap work.
 - **Normative ATCB authority:** `atclang/specs/bytecode/SPEC.md` identifies ATC-BC-001 v1.0.0-FROZEN as normative. It defines the 10-byte `ATCB` header, BE version/count, BE operands, and the 19-opcode catalog. This specification, not a toolchain README or a local duplicate, controls.
@@ -235,7 +217,6 @@ The branch comparison reports `main` and `anchor/compiler-baseline` as **diverge
 - **ATC-IR status:** the canonical ATCLang spec labels `specs/ir/SPEC.md` as DRAFT. The toolchain's local IR model must remain an integration proposal until a versioned canonical contract is approved.
 
 ### 14.3 CI and governance evidence
-
 
 | Ref / commit | Check | Observed result |
 |---|---|---|
@@ -247,7 +228,6 @@ The branch comparison reports `main` and `anchor/compiler-baseline` as **diverge
 The branch metadata reports `protected: false` for `atc-toolchain/main` and `anchor/compiler-baseline`; the main branch protection response also reports enforcement off and no required status-check contexts. This is a governance risk to address through a separate approved repository-settings change. This ADR does not change repository settings.
 
 ### 14.4 P1 disposition
-
 
 **P1 outcome: PARTIAL / RESIDUAL — NOT VERIFIED.**
 
