@@ -97,11 +97,14 @@ jobs:
           root = Path("artifacts")
           report_path = root / "gate-report.json"
           expected_sha = os.environ["EXPECTED_SHA"]
+          checked_out_sha = os.popen("git rev-parse HEAD").read().strip()
           run_id = os.environ["RUN_ID"]
           run_attempt = os.environ["RUN_ATTEMPT"]
 
           if not re.fullmatch(r"[0-9a-f]{40}", expected_sha):
               raise SystemExit("BLOCKED: expected source SHA is not a full 40-character SHA")
+          if not re.fullmatch(r"[0-9a-f]{40}", checked_out_sha) or checked_out_sha != expected_sha:
+              raise SystemExit("BLOCKED: checked-out HEAD does not match the workflow event SHA")
           if not run_id.isdigit() or not run_attempt.isdigit():
               raise SystemExit("BLOCKED: workflow run identity is missing or malformed")
 
@@ -116,10 +119,17 @@ jobs:
               raise SystemExit("BLOCKED: unsupported or missing gate-report schema_version")
 
           report_sha256 = hashlib.sha256(report_path.read_bytes()).hexdigest()
+          binary_path = Path("target/release/atc-audit-cli")
+          if not binary_path.is_file():
+              raise SystemExit("BLOCKED: expected release binary is missing")
+          binary_sha256 = hashlib.sha256(binary_path.read_bytes()).hexdigest()
           manifest = {
               "schema_version": "atc.build-evidence/v1",
               "repository": os.environ["REPOSITORY"],
               "source_sha": expected_sha,
+              "checked_out_sha": checked_out_sha,
+              "release_binary_path": str(binary_path),
+              "release_binary_sha256": binary_sha256,
               "workflow_ref": os.environ["WORKFLOW_REF"],
               "run_id": int(run_id),
               "run_attempt": int(run_attempt),
@@ -135,7 +145,7 @@ jobs:
           PY
 
           test -s artifacts/evidence-manifest.json
-          sha256sum artifacts/gate-report.json artifacts/evidence-manifest.json > artifacts/SHA256SUMS
+          sha256sum target/release/atc-audit-cli artifacts/gate-report.json artifacts/evidence-manifest.json > artifacts/SHA256SUMS
           test -s artifacts/SHA256SUMS
 
       - name: Upload gate evidence
