@@ -16,7 +16,7 @@ FULL_SHA = re.compile(r"[0-9a-f]{40}")
 
 def validate_report(report_path: Path, expected_sha: str, checked_out_sha: str,
                     run_id: str, run_attempt: str) -> dict:
-    """Validate all inputs before any evidence manifest is emitted."""
+    """Validate build provenance and preserve, but never override, the gate result."""
     if not FULL_SHA.fullmatch(expected_sha):
         raise ValueError("expected source SHA is not a full 40-character SHA")
     if not FULL_SHA.fullmatch(checked_out_sha) or checked_out_sha != expected_sha:
@@ -31,17 +31,29 @@ def validate_report(report_path: Path, expected_sha: str, checked_out_sha: str,
         raise ValueError("gate report must be a JSON object")
     if report.get("schema_version") != REPORT_SCHEMA:
         raise ValueError("unsupported or missing gate-report schema_version")
-    if report.get("decision") != "ALLOW":
-        raise ValueError("gate report decision is not ALLOW")
+    decision = report.get("decision")
+    if decision not in ("ALLOW", "BLOCK"):
+        raise ValueError("gate report decision must be ALLOW or BLOCK")
     blocking_controls = report.get("blocking_controls")
-    if not isinstance(blocking_controls, list) or blocking_controls:
-        raise ValueError("gate report has missing, malformed, or non-empty blocking_controls")
-    if report.get("sod_valid") is not True:
-        raise ValueError("gate report separation-of-duties validation is not true")
-    if report.get("human_approval") is not True:
-        raise ValueError("gate report human approval is not true")
-    if not isinstance(report.get("requested_state"), str) or not report["requested_state"]:
+    if not isinstance(blocking_controls, list) or any(
+        not isinstance(control, str) or not control for control in blocking_controls
+    ):
+        raise ValueError("gate report has missing or malformed blocking_controls")
+    if type(report.get("sod_valid")) is not bool:
+        raise ValueError("gate report sod_valid must be a boolean")
+    if type(report.get("human_approval")) is not bool:
+        raise ValueError("gate report human_approval must be a boolean")
+    if not isinstance(report.get("requested_state"), str) or not report["requested_state"].strip():
         raise ValueError("gate report requested_state is missing or malformed")
+    # ALLOW is a governance claim and is accepted only with all required controls.
+    # BLOCK is valid evidence of a blocked decision and must remain blocked downstream.
+    if decision == "ALLOW":
+        if blocking_controls:
+            raise ValueError("ALLOW report has non-empty blocking_controls")
+        if report["sod_valid"] is not True:
+            raise ValueError("ALLOW report separation-of-duties validation is not true")
+        if report["human_approval"] is not True:
+            raise ValueError("ALLOW report human approval is not true")
     return report
 
 
@@ -63,6 +75,17 @@ def build_manifest(report_path: Path, binary_path: Path, expected_sha: str,
         "gate_report_path": str(report_path),
         "gate_report_sha256": hashlib.sha256(report_path.read_bytes()).hexdigest(),
         "gate_report_schema": report["schema_version"],
+        "gate_decision": report["decision"],
+        "requested_state": report["requested_state"],
+        "blocking_controls": report["blocking_controls"],
+        "sod_valid": report["sod_valid"],
+        "human_approval": report["human_approval"],
+        "readiness_authorized": (
+            report["decision"] == "ALLOW"
+            and not report["blocking_controls"]
+            and report["sod_valid"] is True
+            and report["human_approval"] is True
+        ),
     }
 
 
