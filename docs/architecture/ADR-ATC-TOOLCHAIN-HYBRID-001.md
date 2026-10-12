@@ -183,3 +183,56 @@ A green CI job is evidence for the checks it actually ran, not a blanket product
 - [ ] Obtain repository review and merge approval for this ADR.
 
 Until these items have evidence, the architecture direction is selected, while implementation conformance remains **RESIDUAL / NOT VERIFIED**.
+
+
+## 14. P1 SHA-pinned baseline audit — 2026-10-12
+
+This section records the initial live source comparison. It is an inspection report, not a claim that the Rust baseline passes all required gates.
+
+### 14.1 Exact source anchors
+
+| Repository / ref | Commit SHA | Inspected file and blob SHA |
+|---|---|---|
+| `atc-toolchain/main` | `82fe4a238603476d7c6c19d5c3044c88b71c5f2d` | `README.md`: `5f7ca25c9c38f88016c57de005066ba70a5507e8` |
+| `atc-toolchain/anchor/compiler-baseline` | `75c7c5652979b0f92b35a62e3c557b19eb81813a` | `README.md`: `178be726a88d9f09586cbf349436f66f3399f86d` |
+| `atclang/main` | `21c595dc389b0c62e1531a8c5fbbcd2c68794efb` | `specs/bytecode/SPEC.md`: `0848bbf3c48237a61e0fc09d2e26877bccd1b40c`; `crates/atc-core/src/bytecode.rs`: `d63ba13087a71d6f06ec44c0dc2496644906eeea` |
+| `a-townchain/main` | `c631249ed6ff450bf45338e78cb14e2bf5c65c74` | `components/vm/src/vm.rs`: `57a919d911ae7900f740bab739bb20fabf0d4313`; `components/vm/src/ops.rs`: `2b5efdff367b72e0025a6bfe7c05e89d23cf0a43` |
+| Rust baseline workspace | same as `anchor/compiler-baseline` above | `Cargo.toml`: `86de03bdbbd52403834ee436a84bb23ec53a8940`; `crates/atc-verifier/src/lib.rs`: `9806ade8b2a4fa3eefda639daf1eadf4a1362afb`; `crates/atc-gas/src/lib.rs`: `63648535ef2744c96f2ed55cc82080e428d0fc8e`; `.github/workflows/rust-ci.yml`: `eb65a4e2ab0b7e21d53f71a5980ae4f6b5d8b366` |
+
+The branch comparison reports `main` and `anchor/compiler-baseline` as **diverged**, with the Rust branch 4 commits ahead and 7 behind the main ref at comparison time. The comparison lists 22 changed files, including a new Cargo workspace, Rust CI, eight crate manifests/source trees, and architecture/roadmap documentation. Do not merge the branch wholesale.
+
+### 14.2 Observed implementation boundaries
+
+- **Python R1 on main:** README describes a stdlib-first governance/build-orchestration skeleton; CLI and several features are explicitly planned, and the CLI is not yet present as an implemented command surface.
+- **Rust baseline:** workspace members are `atc-cli`, `atc-core`, `atc-ir`, `atc-gas`, `atc-capability`, `atc-verifier`, `atc-artifact`, and `atc-evidence`. The CLI source currently exposes only `version`, `toolchain info`, and `doctor`; README marks the complete compiler integration and several other features as roadmap work.
+- **Normative ATCB authority:** `atclang/specs/bytecode/SPEC.md` identifies ATC-BC-001 v1.0.0-FROZEN as normative. It defines the 10-byte `ATCB` header, BE version/count, BE operands, and the 19-opcode catalog. This specification, not a toolchain README or a local duplicate, controls.
+- **Canonical VM integration remains unproven:** inspected `a-townchain/components/vm/src/vm.rs` executes an internal `Vec<Op>` instruction model (for example `Push`, `Add`, `Load`, `Store`, `Halt`); `ops.rs` parses a textual `.ops` format. The inspected source paths do not demonstrate an ATCB-v1 byte-stream decoder or a conformance adapter from the normative ATCB opcode set into that VM. This is an integration-contract residual, not authorization to add a second VM to `atc-toolchain`.
+- **Rust verifier scope:** `crates/atc-verifier/src/lib.rs` checks the header, version, opcode framing, truncation, instruction count/trailing bytes, and operation limit. The inspected implementation does not yet evidence the full ATCLang SPEC §5 checks such as stack-flow consistency, local/function references, jump-target validity, and return-path validation. Do not describe it as the complete canonical verifier.
+- **Gas analyzer input contract:** `crates/atc-gas/src/lib.rs` starts decoding at byte offset zero as an opcode stream, while the verifier accepts a complete 10-byte-header ATCB container. The inspected code/tests do not establish a shared input contract or header-stripping adapter. Passing a complete ATCB container directly to this analyzer would interpret the first header byte as an opcode and fail. Define and test the interface before integration.
+- **ATC-IR status:** the canonical ATCLang spec labels `specs/ir/SPEC.md` as DRAFT. The toolchain's local IR model must remain an integration proposal until a versioned canonical contract is approved.
+
+### 14.3 CI and governance evidence
+
+| Ref / commit | Check | Observed result |
+|---|---|---|
+| Rust baseline `75c7c5652979b0f92b35a62e3c557b19eb81813a` | Rust | **FAILURE** — [job 113297458914](https://github.com/A-TownChain-Okosystems/atc-toolchain/actions/runs/37773163974/job/113297458914) |
+| Same Rust baseline SHA | audit | SUCCESS — [job 113297458372](https://github.com/A-TownChain-Okosystems/atc-toolchain/actions/runs/37773163883/job/113297458372) |
+| Same Rust baseline SHA | smoke | SUCCESS — [job 113297458219](https://github.com/A-TownChain-Okosystems/atc-toolchain/actions/runs/37773163886/job/113297458219) |
+| `main` `82fe4a238603476d7c6c19d5c3044c88b71c5f2d` | Python, smoke, audit, analysis checks returned by GitHub | SUCCESS for the listed checks on that SHA |
+
+The branch metadata reports `protected: false` for `atc-toolchain/main` and `anchor/compiler-baseline`; the main branch protection response also reports enforcement off and no required status-check contexts. This is a governance risk to address through a separate approved repository-settings change. This ADR does not change repository settings.
+
+### 14.4 P1 disposition
+
+**P1 outcome: PARTIAL / RESIDUAL — NOT VERIFIED.**
+
+The source comparison is SHA-pinned and confirms the intended hybrid split is feasible in principle, but the Rust branch is not eligible for wholesale adoption. Required follow-up:
+
+1. Obtain the Rust failure's exact step/log and fix the cause on a review branch; rerun the full Rust gate against the resulting exact SHA.
+2. Design and test an explicit adapter contract between ATCB v1 and the canonical VM's actual execution representation, or document the canonical VM's planned ATCB ingestion path with owner approval.
+3. Bring the Rust verifier's claimed scope into line with ATC-BC-001 §5, or narrow its name/documentation to container framing only and make the full verification stage explicit.
+4. Define whether gas analysis accepts a complete ATCB container or an instruction-only slice; enforce that choice in types, interface docs and tests.
+5. Reconcile the local ATC-IR schema with the canonical DRAFT before treating it as a stable interface.
+6. Address the unprotected branch / missing required-check enforcement via a separately reviewed governance action.
+
+No implementation migration, merge, auto-merge, repository-setting change, or release is authorized by this audit.
