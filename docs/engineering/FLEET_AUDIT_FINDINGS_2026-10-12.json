@@ -1,0 +1,480 @@
+{
+  "schema_version": "1.0.0",
+  "title": "Fleet Audit Finding Ledger",
+  "evidence_status": "FAILED / RESIDUAL",
+  "audit_source": {
+    "repository": "A-TownChain-Okosystems/atc-engineering",
+    "source_main_sha": "2e91ec61ac6680566cbe9b525406a9752c31e539",
+    "run_id": 38228214277,
+    "run_url": "https://github.com/A-TownChain-Okosystems/atc-engineering/actions/runs/38228214277",
+    "job_id": 114740951240,
+    "job_name": "Audit complete repository fleet",
+    "failing_step": {
+      "number": 5,
+      "name": "Audit, syntax-check and test repositories",
+      "exit_code": 1
+    },
+    "artifact_id": 11738510943,
+    "artifact_url": "https://github.com/A-TownChain-Okosystems/atc-engineering/actions/runs/38228214277/artifacts/11738510943",
+    "artifact_zip_sha256": "2c32f65478f1a15446e2a3d4cea4cd9f2c064155f48c347674cf738f1ddb1c39"
+  },
+  "interpretation": "Repository-level observations below are extracted from the available job log and summary. They are not proof that every repository has a confirmed code defect. Exact audited commit SHA per repository was not established from the inspected log excerpt and is therefore null; do not substitute the engineering repository's source_main_sha.",
+  "entries": [
+    {
+      "repository": "a-townchain-ecosystem",
+      "finding_ids": [
+        "AUDIT-002",
+        "AUDIT-003",
+        "CONS-AUDIT-003"
+      ],
+      "observed": "Missing docs/ENGINEERING_AUDIT.md; TODO/FIXME markers; duplicate workflow/config/source files in nested snapshots.",
+      "classification": "governance-documentation; code-completeness-triage; possible-ssot-drift",
+      "next_action": "Confirm canonical ownership and whether duplicates are snapshots/generated mirrors/active code; add required audit document or correct policy contract; triage each marker.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "globus-os",
+      "finding_ids": [
+        "AUDIT-003",
+        "CONS-AUDIT-003"
+      ],
+      "observed": "TODO/FIXME markers in Windows/Linux edition source; duplicate edition and CI files; aggregate includes error/security/consistency categories.",
+      "classification": "code-completeness-triage; possible-ssot-drift; additional-security-evidence-required",
+      "next_action": "Triage each marker; determine whether edition duplication is intentional; inspect full artifact for exact security finding.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "aurora-ai",
+      "finding_ids": [
+        "AUDIT-003"
+      ],
+      "observed": "TODO/FIXME markers in SessionExportView.tsx, ProjectHubView.tsx, SoftwareKnowledgeDbView.tsx; aggregate has four findings.",
+      "classification": "code-completeness-triage; additional-finding-unresolved",
+      "next_action": "Disposition each marker and identify the fourth finding from artifact.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "atc-standards",
+      "finding_ids": [
+        "SEC-AUDIT-003"
+      ],
+      "observed": "sdk.yml lacks explicit GitHub Actions permissions policy.",
+      "classification": "workflow-least-privilege",
+      "next_action": "Review every job/action requirement; add least-privilege explicit permissions in owning repository and rerun security checks.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "genesis-engine",
+      "finding_ids": [
+        "SEC-AUDIT-003"
+      ],
+      "observed": "sdk.yml lacks explicit GitHub Actions permissions policy.",
+      "classification": "workflow-least-privilege",
+      "next_action": "Review every job/action requirement; add least-privilege explicit permissions in owning repository and rerun security checks.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "a-townchain",
+      "finding_ids": [
+        "CONS-AUDIT-003"
+      ],
+      "observed": "Duplicate workflow, compliance/lifecycle, determinism-tool and explorer files across component directories.",
+      "classification": "possible-ssot-drift",
+      "next_action": "Compare flagged paths with canonical SSOT ownership and build/test references; no blind deletion.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "a-townchain-os-docs",
+      "finding_ids": [
+        "CONS-AUDIT-002",
+        "AUDIT-003"
+      ],
+      "observed": "README repository identity mismatch; TODO/FIXME markers in three aistudio component views.",
+      "classification": "repository-identity; code-completeness-triage",
+      "next_action": "Correct README identity and triage each marker with source-linked disposition.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "genesis-chronicles",
+      "finding_ids": [
+        "CONS-AUDIT-003"
+      ],
+      "observed": "api/marketplace_routes.py duplicates modules/genesis-chronicles/api/marketplace_routes.py.",
+      "classification": "possible-ssot-drift",
+      "next_action": "Confirm canonical route and compatibility-shim intent; inspect callers/tests before consolidation.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "atc-shivacore",
+      "finding_ids": [
+        "SEC-AUDIT-003"
+      ],
+      "observed": "sdk.yml lacks explicit GitHub Actions permissions policy.",
+      "classification": "workflow-least-privilege",
+      "next_action": "Add and verify least-privilege permissions; separately retain kernel/TCB verification status.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "a-townchain-os",
+      "finding_ids": [
+        "CONS-AUDIT-001"
+      ],
+      "observed": "kai-os/Cargo.toml workspace has no committed Cargo.lock evidence.",
+      "classification": "reproducible-dependency-resolution",
+      "next_action": "Confirm workspace type; if application/binary, commit lockfile and verify resolution.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "atc-contracts",
+      "finding_ids": [
+        "CONS-AUDIT-003"
+      ],
+      "observed": "ATCBridge.test.js duplicated between contracts/solidity/test and modules/atc-contracts/contracts/solidity/test.",
+      "classification": "possible-ssot-drift-test-coverage",
+      "next_action": "Determine canonical test path and confirm CI runs it before any deletion.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "atc-toolchain",
+      "finding_ids": [
+        "AUDIT-002"
+      ],
+      "observed": "Required docs/ENGINEERING_AUDIT.md missing.",
+      "classification": "governance-documentation",
+      "next_action": "Add governance record or revise the audited requirement through reviewed policy change; do not bypass audit.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "atc-sdk",
+      "finding_ids": [
+        "SEC-AUDIT-003"
+      ],
+      "observed": "sdk.yml lacks explicit GitHub Actions permissions policy.",
+      "classification": "workflow-least-privilege",
+      "next_action": "Add least-privilege explicit permissions and verify workflow behavior.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "atc-ide",
+      "finding_ids": [
+        "AUDIT-003"
+      ],
+      "observed": "TODO/FIXME markers in CustomLinterPanel.tsx, AutoSyncHubModal.tsx, AuditPanel.tsx, App.tsx, projectSyncEngine.ts, auditEngine.ts and TodoApp.tsx.",
+      "classification": "code-completeness-triage",
+      "next_action": "Triage each marker, assign owner/severity/disposition, add regression tests when behavior is implemented.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "atc-zkp",
+      "finding_ids": [
+        "CONS-AUDIT-001"
+      ],
+      "observed": "Cargo.toml workspace has no committed Cargo.lock evidence.",
+      "classification": "reproducible-dependency-resolution",
+      "next_action": "Confirm workspace type; if application/binary, commit lockfile and verify dependency resolution.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "atc-explorer",
+      "finding_ids": [
+        "CONS-AUDIT-003",
+        "DEPENDENCY-RESOLUTION"
+      ],
+      "observed": "Seven root/module duplicate source/config files. npm resolution conflict: TypeScript 7.0.2 conflicts with ts-jest 29.4.14 peer range <7; subsequent jest command reports jest not found.",
+      "classification": "possible-ssot-drift; dependency-toolchain",
+      "next_action": "Choose compatible TypeScript/Jest/ts-jest versions, update lockfile, clean install/test; no --force or --legacy-peer-deps. Verify canonical source paths before consolidation.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    },
+    {
+      "repository": "atc-wallet",
+      "finding_ids": [
+        "AUDIT-003",
+        "CONS-AUDIT-003",
+        "RUST-COMPILE"
+      ],
+      "observed": "Literal \\\\n text in src/lib.rs causes Rust parse/compile failure; TODO/FIXME markers; duplicated root/module Python/Rust files.",
+      "classification": "confirmed-compile-failure-in-audited-checkout; code-completeness-triage; possible-ssot-drift",
+      "next_action": "Fix canonical source line breaks; run fmt, cargo check, cargo test; triage TODOs and establish canonical paths; verify on resulting exact SHA.",
+      "status": "RESIDUAL",
+      "observed_commit_sha": null,
+      "owner": "TBD in owning repository",
+      "severity": "UNASSESSED",
+      "verification": {
+        "status": "NOT_VERIFIED",
+        "fix_commit_sha": null,
+        "verification_run_id": null,
+        "job_id": null,
+        "step": null,
+        "exit_code": null,
+        "log_url": null
+      },
+      "limitations": [
+        "Per-repository observed commit SHA not established from inspected log excerpt.",
+        "Finding detail may be partial; inspect complete run artifact before closure."
+      ]
+    }
+  ],
+  "residuals": [
+    "Full per-repository exact-SHA mapping from artifact is incomplete.",
+    "The full 16-priority vulnerability register is a separate evidence track and is not closed by this fleet ledger.",
+    "Duplicate detection requires SSOT/caller/build review before deletion or relocation.",
+    "TODO/FIXME markers require individual triage, not automatic deletion."
+  ],
+  "closure_rule": "Close only with exact repository commit SHA plus Run -> Job -> Step -> exit code -> log/artifact evidence. Unresolved items remain RESIDUAL or BLOCKED. Do not weaken required checks."
+}
