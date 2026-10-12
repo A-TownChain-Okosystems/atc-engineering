@@ -33,8 +33,6 @@ The run summary flagged these repositories as requiring remediation and/or addit
 
 These are **FINDINGS**, not a claim that each repository has a confirmed code defect. The audit summary groups audit and/or native-verification requirements; each repository needs its own exact finding, log, exit result, and remediation/evidence disposition. Do not mark these repositories VERIFIED from this summary alone.
 
-
-
 ### Concrete findings extracted from the failed fleet-audit log
 
 The run log contains more specific evidence than the aggregate repository summary. The following findings are directly visible in job `114740951240` and should be handled in the owning repositories, not patched in this governance repository.
