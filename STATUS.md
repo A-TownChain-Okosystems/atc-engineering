@@ -33,6 +33,23 @@ The run summary flagged these repositories as requiring remediation and/or addit
 
 These are **FINDINGS**, not a claim that each repository has a confirmed code defect. The audit summary groups audit and/or native-verification requirements; each repository needs its own exact finding, log, exit result, and remediation/evidence disposition. Do not mark these repositories VERIFIED from this summary alone.
 
+
+
+### Concrete findings extracted from the failed fleet-audit log
+
+The run log contains more specific evidence than the aggregate repository summary. The following findings are directly visible in job `114740951240` and should be handled in the owning repositories, not patched in this governance repository.
+
+| Repository | Exact log evidence | Classification | Required next action |
+|---|---|---|---|
+| `atc-explorer` | npm dependency resolution failed: root selects `typescript@7.0.2`, while `ts-jest@29.4.14` declares peer range `typescript >=4.3 <7`. The subsequent test command reports `jest: not found`. | Dependency/toolchain failure; the missing Jest executable may be a consequence of the failed install, not a separate root cause. | Choose a mutually compatible TypeScript / Jest / ts-jest set; update and lock the dependency graph; rerun clean install and tests on the resulting exact SHA. Do not use `--force` or `--legacy-peer-deps` to mask the conflict. |
+| `atc-wallet` | Rust compiler reports literal `\\n` text in `src/lib.rs` at lines 8 and 11 (for example `pub mod tx;\\npub mod wallet;`), followed by parser errors and failed compilation. | Confirmed source-format/compile failure in the audited checkout. | Replace literal escape text with actual line breaks; run formatter, `cargo check`, and `cargo test` on the fixed SHA. |
+| `atc-wallet` | Audit reports `AUDIT-003` unresolved TODO/FIXME markers in both `modules/atc-wallet/src/main.rs` and `src/main.rs`. | Open code-completeness finding; duplicated paths also appear in consistency findings. | Triage each marker against intended behaviour, implement or explicitly track the residual, and add regression tests where behaviour is completed. Do not remove markers solely to satisfy the scanner. |
+| `atc-wallet` | Consistency findings report identical/duplicate content across root and `modules/atc-wallet` paths, including `wallet/ecdsa.py`, `setup.py`, `src/main.rs`, `src/crypto.py`, `src/wallet.py`, and `src/__init__.py`. | Possible duplicate implementation / SSOT drift; duplicate detection alone does not prove the copies are erroneous. | Compare the copies, identify the canonical path and runtime/build references, then consolidate or document an intentional mirror with an automated drift check. Do not delete a copy before proving ownership and callers. |
+
+**Scope limitation:** these are actionable examples extracted from the available failed job log, not a complete finding-by-finding export for all 17 flagged repositories. The current log summary does not establish the exact root cause for every flagged repository. Each remaining repository must be re-audited and have its own finding IDs, file/line references, source SHA, job/step evidence, owner, and remediation disposition before it can be closed.
+
+**Security priority:** these general fleet findings do not replace or close the separately tracked 16 prioritized vulnerabilities. Those require their own advisory/CVE or internal finding identifier, affected component and version range, canonical owner, fix commit, regression test, and exact-SHA verification evidence.
+
 ### Mainline implementation gaps still open
 
 - The organization-wide function/component catalog is specified, but the catalog specification explicitly says the inventory has not yet been extracted and implementation is pending.
