@@ -11,69 +11,138 @@ permissions:
   contents: read
 
 jobs:
-
   engineering-self-test:
     name: Engineering self-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          toolchain: 1.90.0
           components: rustfmt, clippy
       - name: Format check
         run: cargo fmt --all -- --check
       - name: Test workspace
-        run: cargo test --workspace --all-features
+        run: cargo test --locked --workspace --all-features
       - name: Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 
   verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          toolchain: 1.90.0
           components: rustfmt, clippy
+
+      - name: Record build identity
+        id: build_identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          mkdir -p artifacts
+          printf '%s\n' "${GITHUB_SHA}" > artifacts/source-sha.txt
 
       - name: Format check
         run: cargo fmt --all -- --check
 
       - name: Test workspace
-        run: cargo test --workspace --all-features
+        run: cargo test --locked --workspace --all-features
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 
       - name: Release build
-        run: cargo build --release
+        run: cargo build --locked --release
 
       - name: Audit gate report
+        shell: bash
         run: |
-          mkdir -p artifacts
-          set +e
-          cargo run -p atc-audit-cli -- . --gate | tee artifacts/gate-report.txt
-          rc=${PIPESTATUS[0]}
-          set -e
-          grep '^GATE_REPORT ' artifacts/gate-report.txt | sed 's/^GATE_REPORT //' > artifacts/gate-report.json || true
-          exit "$rc"
-          grep '^GATE_REPORT ' artifacts/gate-report.txt | sed 's/^GATE_REPORT //' > artifacts/gate-report.json
+          set -euo pipefail
+          cargo run --locked -p atc-audit-cli -- . --gate | tee artifacts/gate-report.txt
+          mapfile -t reports < <(grep '^GATE_REPORT ' artifacts/gate-report.txt | sed 's/^GATE_REPORT //')
+          test "${#reports[@]}" -eq 1
+          printf '%s\n' "${reports[0]}" > artifacts/gate-report.json
 
-      - name: Validate gate report schema
+      - name: Validate gate evidence and bind it to this run
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          REPOSITORY: ${{ github.repository }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
         run: |
+          set -euo pipefail
+          test -s artifacts/gate-report.txt
           test -s artifacts/gate-report.json
-          grep -q '"schema_version":"atc.gate-report/v1"' artifacts/gate-report.json
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          root = Path("artifacts")
+          report_path = root / "gate-report.json"
+          expected_sha = os.environ["EXPECTED_SHA"]
+          run_id = os.environ["RUN_ID"]
+          run_attempt = os.environ["RUN_ATTEMPT"]
+
+          if not re.fullmatch(r"[0-9a-f]{40}", expected_sha):
+              raise SystemExit("BLOCKED: expected source SHA is not a full 40-character SHA")
+          if not run_id.isdigit() or not run_attempt.isdigit():
+              raise SystemExit("BLOCKED: workflow run identity is missing or malformed")
+
+          try:
+              report = json.loads(report_path.read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError) as exc:
+              raise SystemExit(f"BLOCKED: gate report is missing or invalid JSON: {exc}")
+
+          if not isinstance(report, dict):
+              raise SystemExit("BLOCKED: gate report must be a JSON object")
+          if report.get("schema_version") != "atc.gate-report/v1":
+              raise SystemExit("BLOCKED: unsupported or missing gate-report schema_version")
+
+          report_sha256 = hashlib.sha256(report_path.read_bytes()).hexdigest()
+          manifest = {
+              "schema_version": "atc.build-evidence/v1",
+              "repository": os.environ["REPOSITORY"],
+              "source_sha": expected_sha,
+              "workflow_ref": os.environ["WORKFLOW_REF"],
+              "run_id": int(run_id),
+              "run_attempt": int(run_attempt),
+              "gate_report_path": str(report_path),
+              "gate_report_sha256": report_sha256,
+              "gate_report_schema": report["schema_version"],
+          }
+          (root / "evidence-manifest.json").write_text(
+              json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(manifest, sort_keys=True))
+          PY
+
+          test -s artifacts/evidence-manifest.json
+          sha256sum artifacts/gate-report.json artifacts/evidence-manifest.json > artifacts/SHA256SUMS
+          test -s artifacts/SHA256SUMS
 
       - name: Upload gate evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: atc-engineering-gate-evidence
-          path: artifacts/gate-report.*
-          if-no-files-found: warn
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
