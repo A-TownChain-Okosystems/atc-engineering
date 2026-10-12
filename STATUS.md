@@ -48,6 +48,9 @@ The run log contains more specific evidence than the aggregate repository summar
 
 **Security priority:** these general fleet findings do not replace or close the separately tracked 16 prioritized vulnerabilities. Those require their own advisory/CVE or internal finding identifier, affected component and version range, canonical owner, fix commit, regression test, and exact-SHA verification evidence.
 
+
+- Machine-readable 17-entry ledger: [`docs/engineering/FLEET_AUDIT_FINDINGS_2026-10-12.json`](docs/engineering/FLEET_AUDIT_FINDINGS_2026-10-12.json). Each repository entry preserves `observed_commit_sha: null` where the audited checkout SHA could not be established; the engineering repo's main SHA is not substituted for repository source SHAs.
+
 ### Mainline implementation gaps still open
 
 - The organization-wide function/component catalog is specified, but the catalog specification explicitly says the inventory has not yet been extracted and implementation is pending.
