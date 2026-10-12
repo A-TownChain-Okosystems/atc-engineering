@@ -47,7 +47,8 @@ def git_sha(root: Path) -> str:
         if re.fullmatch(r"[0-9a-f]{40,64}", value):
             return value
     except (OSError, subprocess.CalledProcessError):
-        pass
+        # A repository without a readable Git checkout has no trustworthy SHA.
+        return "0" * 40
     return "0" * 40
 
 def blob_sha(data: bytes) -> str:
