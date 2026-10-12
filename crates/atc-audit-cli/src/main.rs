@@ -261,7 +261,11 @@ fn main() {
             requested_state: state,
         });
         println!("GATE_REPORT {}", gate.to_json());
-        if !gate.is_allowed() && !gate_evidence_requested {
+        // Evidence mode records the decision; the separate readiness job enforces authorization.
+        if gate_evidence_requested {
+            return;
+        }
+        if !gate.is_allowed() {
             std::process::exit(1);
         }
     }
