@@ -92,12 +92,15 @@ jobs:
           import json
           import os
           import re
+          import subprocess
           from pathlib import Path
 
           root = Path("artifacts")
           report_path = root / "gate-report.json"
           expected_sha = os.environ["EXPECTED_SHA"]
-          checked_out_sha = os.popen("git rev-parse HEAD").read().strip()
+          checked_out_sha = subprocess.run(
+              ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+          ).stdout.strip()
           run_id = os.environ["RUN_ID"]
           run_attempt = os.environ["RUN_ATTEMPT"]
 
