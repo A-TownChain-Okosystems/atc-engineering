@@ -35,6 +35,8 @@ fn main() {
         .unwrap_or_else(|| PathBuf::from("."));
     let options: Vec<String> = args.map(|arg| arg.to_string_lossy().into_owned()).collect();
     let gate_requested = options.iter().any(|arg| arg == "--gate");
+    // Evidence mode emits the exact gate decision for provenance without treating BLOCK as readiness.
+    let gate_evidence_requested = options.iter().any(|arg| arg == "--gate-evidence");
     let requirements_requested = options.iter().any(|arg| arg == "--requirements");
     let repair_requested = options.iter().any(|arg| arg == "--repair");
     let engineer_requested = options.iter().any(|arg| arg == "--engineer");
@@ -218,7 +220,7 @@ fn main() {
         );
     }
 
-    if gate_requested {
+    if gate_requested || gate_evidence_requested {
         let state = match DerivedState::from_str(&requested_state) {
             Ok(state) => state,
             Err(error) => {
@@ -259,7 +261,7 @@ fn main() {
             requested_state: state,
         });
         println!("GATE_REPORT {}", gate.to_json());
-        if !gate.is_allowed() {
+        if !gate.is_allowed() && !gate_evidence_requested {
             std::process::exit(1);
         }
     }
