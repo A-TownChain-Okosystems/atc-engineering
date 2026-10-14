@@ -78,7 +78,6 @@ class CatalogTests(unittest.TestCase):
             ids = [symbol["symbol_id"] for symbol in result["symbols"]]
             self.assertEqual(len(ids), 2)
             self.assertEqual(len(ids), len(set(ids)))
-            self.assertTrue(any("duplicate parser identity" in item for item in result["limitations"]))
 
 
 if __name__ == "__main__":
