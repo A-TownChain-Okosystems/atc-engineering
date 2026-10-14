@@ -71,6 +71,10 @@
               "archived",
               "documentation",
               "configuration",
+              "repository_metadata",
+              "dependency_lockfile",
+              "legal_text",
+              "ownership_metadata",
               "unknown"
             ]
           },
