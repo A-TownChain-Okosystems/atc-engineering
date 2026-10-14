@@ -59,7 +59,15 @@ class CatalogTests(unittest.TestCase):
             result = catalog.scan(root, "owner/sample")
             self.assertEqual(len(result["files"]), 1)
             self.assertEqual(result["files"][0]["status"], "UNSUPPORTED")
-            self.assertEqual(result["exclusions"][0]["reason_code"], "UNSUPPORTED_FORMAT")
+            exclusion = result["exclusions"][0]
+            self.assertEqual(exclusion["reason_code"], "UNSUPPORTED_FORMAT")
+            self.assertEqual(exclusion["category"], "unsupported_format")
+            self.assertEqual(exclusion["repository"], "owner/sample")
+            self.assertEqual(exclusion["source_blob_sha"], catalog.blob_sha(b"binary"))
+            self.assertRegex(exclusion["exclusion_id"], r"^[0-9a-f]{64}$")
+            self.assertEqual(exclusion["rationale"], exclusion["reason"])
+            self.assertTrue(exclusion["evidence"])
+            self.assertIn(exclusion["source_blob_sha"], exclusion["evidence"][0]["reference"])
             self.assertTrue(result["limitations"])
 
     def test_excluded_directories_are_recorded_without_scanning_contents(self):
@@ -76,6 +84,10 @@ class CatalogTests(unittest.TestCase):
             records = [item for item in result["exclusions"] if item["path"] == "target"]
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0]["reason_code"], "EXCLUDED_DIRECTORY")
+            self.assertRegex(records[0]["exclusion_id"], r"^[0-9a-f]{64}$")
+            self.assertEqual(records[0]["category"], "scanner_policy")
+            self.assertIsNone(records[0]["source_blob_sha"])
+            self.assertEqual(records[0]["evidence"][0]["reference"], "SKIP_DIRS:target")
 
     def test_reconciliation_reports_added_removed_and_changed_symbols(self):
         old = {"repository": "owner/repo", "observed_commit_sha": "a" * 40, "symbols": [
