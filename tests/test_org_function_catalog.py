@@ -51,6 +51,21 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(result["exclusions"][0]["reason_code"], "UNSUPPORTED_FORMAT")
             self.assertTrue(result["limitations"])
 
+    def test_excluded_directories_are_recorded_without_scanning_contents(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            excluded = root / "target"
+            excluded.mkdir()
+            (excluded / "generated.py").write_text("def hidden(): pass\\n", encoding="utf-8")
+            (root / "src.py").write_text("def visible(): pass\\n", encoding="utf-8")
+            result = catalog.scan(root, "owner/sample")
+            paths = {entry["path"] for entry in result["files"]}
+            self.assertIn("src.py", paths)
+            self.assertNotIn("target/generated.py", paths)
+            records = [item for item in result["exclusions"] if item["path"] == "target"]
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0]["reason_code"], "EXCLUDED_DIRECTORY")
+
     def test_reconciliation_reports_added_removed_and_changed_symbols(self):
         old = {"repository": "owner/repo", "observed_commit_sha": "a" * 40, "symbols": [
             {"symbol_id": "one", "source_blob_sha": "x", "signature": "fn old()"},
