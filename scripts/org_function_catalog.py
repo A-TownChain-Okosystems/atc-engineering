@@ -279,17 +279,35 @@ def scan(root: Path, repo: str) -> dict:
                     category=classification, source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
                 ))
                 continue
-            if language not in {"python", *PATTERNS.keys()}:
-                entry.update(status="UNSUPPORTED", reason="file inventoried; symbol extraction parser not implemented for this format")
-                exclusions.append(exclusion_record(
-                    repo, rel, "UNSUPPORTED_FORMAT", entry["reason"],
-                    category="unsupported_format", source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
-                ))
-                continue
             try:
                 content = data.decode("utf-8")
-                symbols.extend(extract_python(repo, rel, content, sha, commit) if language == "python"
-                               else extract_heuristic(repo, rel, language, content, sha, commit))
+                if language == "python":
+                    symbols.extend(extract_python(repo, rel, content, sha, commit))
+                elif language in {"rust", "shell"}:
+                    symbols.extend(extract_tree_sitter(repo, rel, language, content, sha, commit))
+                elif language in {"json", "markdown", "toml", "yaml"}:
+                    validate_document_format(language, content)
+                elif language == "unknown":
+                    explicit = explicit_unknown_classification(rel)
+                    if explicit is None:
+                        entry.update(status="UNSUPPORTED", reason="unknown file type has no authoritative parser or path-specific exclusion policy")
+                        exclusions.append(exclusion_record(
+                            repo, rel, "UNCLASSIFIED_UNKNOWN_FORMAT", entry["reason"],
+                            category="unsupported_format", source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
+                        ))
+                    else:
+                        category, reason = explicit
+                        entry.update(status="SKIPPED", classification=category, reason=reason)
+                        exclusions.append(exclusion_record(
+                            repo, rel, category.upper(), reason, category=category,
+                            source_blob_sha=sha, evidence_ref=f"explicit-unknown-classifier:{category};{rel}#{sha}",
+                        ))
+                else:
+                    entry.update(status="UNSUPPORTED", reason=f"no authoritative parser configured for language={language}")
+                    exclusions.append(exclusion_record(
+                        repo, rel, "UNSUPPORTED_FORMAT", entry["reason"],
+                        category="unsupported_format", source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
+                    ))
             except UnicodeDecodeError:
                 entry.update(status="UNSUPPORTED", reason="not UTF-8 text; file indexed only")
                 exclusions.append(exclusion_record(
