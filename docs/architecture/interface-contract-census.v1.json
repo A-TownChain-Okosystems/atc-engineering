@@ -6,10 +6,10 @@
   "scope": "Initial evidence-backed census of contract-like interfaces and JSON schemas declared inside the pinned atc-engineering source tree. This is not an exhaustive interface inventory and does not establish organization-wide producer/consumer coverage.",
   "counts": {
     "declared_contract_records": 4,
-    "source_bound_implementations": 2,
-    "schema_only_records": 2,
+    "source_bound_implementations": 3,
+    "schema_only_records": 1,
     "versioned_json_schemas": 3,
-    "unmapped_producer_bindings": 2,
+    "unmapped_producer_bindings": 1,
     "unmapped_consumer_bindings": 4,
     "contracts_without_versioned_schema": 1,
     "fully_reconciled_contracts": 0
@@ -50,19 +50,35 @@
       "contract_id": "ATCE-IFACE-002",
       "name": "Finding registry",
       "kind": "json_schema_contract",
-      "status": "BLOCKED",
-      "implementation_binding": "UNMAPPED",
-      "producer_binding": "UNMAPPED",
+      "status": "PARTIAL",
+      "implementation_binding": "BOUND",
+      "producer_binding": "BOUND",
       "consumer_binding": "UNMAPPED",
-      "schema_conformance": "NOT_APPLICABLE",
-      "sources": [],
+      "schema_conformance": "NOT_VERIFIED",
+      "sources": [
+        {
+          "repository": "A-TownChain-Okosystems/atc-engineering",
+          "commit_sha": "b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4",
+          "path": "crates/atc-findings/src/lib.rs",
+          "blob_sha": "c8f76f969be1ff16cecae99272fa87ea7caf3183",
+          "symbols": [
+            "Finding::new",
+            "Finding::transition",
+            "FindingState::as_str",
+            "FindingRegistry::register",
+            "FindingRegistry::get_mut",
+            "FindingRegistry::open_findings",
+            "FindingRegistry::write_json"
+          ]
+        }
+      ],
       "schema": {
         "path": "schemas/findings/ATC-FND-001.json",
         "blob_sha": "552caf0bb74861d1cee7f14775eafdec4679bbaa",
         "schema_id": "ATC-FND-001",
         "version": "1.0.0"
       },
-      "rationale": "A versioned schema is present, but this source-bound census has not established a producer implementation, consumer set, or end-to-end validation path. Schema existence is not implementation evidence."
+      "rationale": "The pinned implementation defines the finding lifecycle, rejects duplicate IDs, and emits a registry document with schema ATC-FND-001/version 1.0.0 through FindingRegistry::write_json. The emitted top-level field set is compatible by inspection with the versioned schema, but no executable instance-to-schema conformance test has been established. No concrete consumer of the persisted registry file is bound in this census."
     },
     {
       "contract_id": "ATCE-IFACE-003",
