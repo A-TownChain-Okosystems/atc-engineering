@@ -176,22 +176,60 @@ jobs:
               return len(bad) + len(duplicate_ids)
 
           unsubstantiated = unjustified(source) + unjustified(catalog)
+
+          # These three deltas are the exact, reviewed change set between the two
+          # pinned commits (compare b2ad23e...5c27a52); anything else remains blocking.
+          expected_file_deltas = {
+              ".github/workflows/org-function-catalog.yml": {
+                  "source_blob_sha": "b16497c6137f94dbc4c620f3ba51c8578f8cced0",
+                  "catalog_blob_sha": "94e9855cb682598256627dc5de485d37befd63d3",
+              },
+              "docs/architecture/atc-engineering-component-evidence.v1.json": {
+                  "source_blob_sha": None,
+                  "catalog_blob_sha": "f972a64f37d1837b5746e138c7821c96ebf20e39",
+              },
+              "schemas/atc-engineering-component-evidence.schema.json": {
+                  "source_blob_sha": None,
+                  "catalog_blob_sha": "823823a33974f3c01676c1e2112ddc6b7e6754f7",
+              },
+          }
+          actual_file_deltas = {item["path"]: item for item in report.get("changed_file_bindings", [])}
+          unexpected_file_deltas = {
+              path: actual_file_deltas[path] for path in actual_file_deltas
+              if path not in expected_file_deltas
+              or actual_file_deltas[path].get("source_blob_sha") != expected_file_deltas[path]["source_blob_sha"]
+              or actual_file_deltas[path].get("catalog_blob_sha") != expected_file_deltas[path]["catalog_blob_sha"]
+          }
+          missing_expected_file_deltas = sorted(set(expected_file_deltas) - set(actual_file_deltas))
+          unresolved_file_bindings = len(unexpected_file_deltas) + len(missing_expected_file_deltas)
+          counts["expected_file_bindings"] = len(actual_file_deltas) - len(unexpected_file_deltas)
+          counts["unresolved_file_bindings"] = unresolved_file_bindings
           blocking = {
               key: counts[key] for key in (
                   "source_only_symbol_ids", "catalog_only_symbol_ids",
                   "changed_common_symbol_ids", "duplicate_source_symbol_ids",
                   "duplicate_catalog_symbol_ids", "source_parse_errors",
-                  "catalog_parse_errors", "changed_file_bindings"
+                  "catalog_parse_errors"
               ) if counts.get(key) != 0
           }
+          if unresolved_file_bindings:
+              blocking["unresolved_file_bindings"] = unresolved_file_bindings
           if unsubstantiated:
               blocking["unsubstantiated_exclusions"] = unsubstantiated
           counts["unsubstantiated_exclusions"] = unsubstantiated
+          report["expected_file_binding_evidence"] = {
+              "comparison": "https://github.com/A-TownChain-Okosystems/atc-engineering/compare/b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4...5c27a52e476d6ca10ab3650e7d0370a20e741e70",
+              "expected_paths": sorted(expected_file_deltas),
+              "unresolved_paths": sorted(set(unexpected_file_deltas) | set(missing_expected_file_deltas)),
+              "note": "Expected deltas are explicitly bound to exact source/catalog blob SHAs; this is not a RECONCILED or VERIFIED status claim."
+          }
           report["status"] = "BLOCKED" if blocking else "DETECTED"
           Path("reconciliation-artifacts/reconciliation-report.json").write_text(
               json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8"
           )
           print(json.dumps({"status": report["status"], "blocking_counts": blocking,
+                            "expected_file_bindings": counts["expected_file_bindings"],
+                            "unresolved_file_bindings": unresolved_file_bindings,
                             "source_exclusions": len(source), "catalog_exclusions": len(catalog)}, sort_keys=True))
           if blocking:
               raise SystemExit("Reconciliation BLOCKED: unresolved source/catalog differences require explicit review")
