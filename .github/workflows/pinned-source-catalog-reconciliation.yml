@@ -68,10 +68,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p reconciliation-artifacts/baseline-361
-          curl --fail --location --silent --show-error \\
-            -H "Authorization: Bearer ${GH_TOKEN}" \\
-            -H "Accept: application/vnd.github+json" \\
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/11896618352/zip" \\
+          curl --fail --location --silent --show-error \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/11896618352/zip" \
             -o /tmp/pr29-baseline-361.zip
           echo "21cfc22c127113b9b928b773e2322ee90a421bef152244687cb536e937d2b7bf  /tmp/pr29-baseline-361.zip" | sha256sum --check
           unzip -q /tmp/pr29-baseline-361.zip -d reconciliation-artifacts/baseline-361
@@ -463,15 +463,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python scripts/build_pr29_finding_remediation_ledger.py \\
-            --ledger-contract docs/architecture/pr29-finding-remediation-ledger-contract.v1.json \\
-            --baseline-dir reconciliation-artifacts/baseline-361 \\
-            --source-inventory reconciliation-artifacts/source-inventory.json \\
-            --catalog-inventory reconciliation-artifacts/catalog-inventory.json \\
-            --current-reconciliation reconciliation-artifacts/independent-bidirectional-reconciliation.json \\
-            --tree-reconciliation reconciliation-artifacts/git-tree-reconciliation.json \\
-            --expected-deltas docs/architecture/source-catalog-expected-tree-delta.v1.json \\
-            --current-head-sha "$GENERATOR_COMMIT" \\
+          python scripts/build_pr29_finding_remediation_ledger.py \
+            --ledger-contract docs/architecture/pr29-finding-remediation-ledger-contract.v1.json \
+            --baseline-dir reconciliation-artifacts/baseline-361 \
+            --source-inventory reconciliation-artifacts/source-inventory.json \
+            --catalog-inventory reconciliation-artifacts/catalog-inventory.json \
+            --current-reconciliation reconciliation-artifacts/independent-bidirectional-reconciliation.json \
+            --tree-reconciliation reconciliation-artifacts/git-tree-reconciliation.json \
+            --expected-deltas docs/architecture/source-catalog-expected-tree-delta.v1.json \
+            --current-head-sha "$GENERATOR_COMMIT" \
             --output reconciliation-artifacts/pr29-finding-remediation-ledger.json
 
       - name: Validate artifact JSON and print provenance
