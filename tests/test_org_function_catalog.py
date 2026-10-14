@@ -73,7 +73,7 @@ class CatalogTests(unittest.TestCase):
     def test_scan_disambiguates_duplicate_heuristic_identities(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "lib.rs").write_text("pub fn duplicate() {}\\npub fn duplicate() {}\\n", encoding="utf-8")
+            (root / "lib.rs").write_text("pub fn duplicate() {}\npub fn duplicate() {}\\n", encoding="utf-8")
             result = catalog.scan(root, "owner/sample")
             ids = [symbol["symbol_id"] for symbol in result["symbols"]]
             self.assertEqual(len(ids), 2)
