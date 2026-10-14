@@ -42,7 +42,7 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(records[0]["limitations"])
 
     def test_heuristic_signature_uses_declaration_line_after_blank_lines(self):
-        source = "\\n\\npub fn first(value: u32) -> u32 { value }\\n\\n\\npub fn second() {}\\n"
+        source = "\n\npub fn first(value: u32) -> u32 { value }\n\n\npub fn second() {}\n"
         records = catalog.extract_heuristic(
             "owner/repo", "src/lib.rs", "rust", source, "a" * 40, "b" * 40
         )
