@@ -56,14 +56,14 @@ class CatalogTests(unittest.TestCase):
     def test_document_parsers_accept_valid_and_reject_malformed_inputs(self):
         valid = {
             "json": '{"key": 1}',
-            "markdown": "# Heading\\n\\nA paragraph.",
-            "toml": '[package]\\nname = "demo"\\n',
-            "yaml": "key: value\\nitems:\\n  - one\\n",
+            "markdown": "# Heading\n\nA paragraph.",
+            "toml": '[package]\nname = "demo"\n',
+            "yaml": "key: value\nitems:\n  - one\n",
         }
         invalid = {
             "json": '{"key": ',
-            "markdown": "# Heading\\n\\nA paragraph.",  # CommonMark accepts ordinary text syntax.
-            "toml": '[package\\nname = "demo"',
+            "markdown": "# Heading\n\nA paragraph.",  # CommonMark accepts ordinary text syntax.
+            "toml": '[package\nname = "demo"',
             "yaml": "key: [unterminated",
         }
         for language, text in valid.items():
@@ -75,7 +75,7 @@ class CatalogTests(unittest.TestCase):
                     catalog.validate_document_format(language, invalid[language])
 
     def test_rust_tree_sitter_extraction_uses_ast_ranges_and_nonempty_signatures(self):
-        source = "\\n\\npub fn first(value: u32) -> u32 { value }\\n\\n\\npub fn second() {}\\n"
+        source = "\n\npub fn first(value: u32) -> u32 { value }\n\n\npub fn second() {}\n"
         records = catalog.extract_tree_sitter(
             "owner/repo", "src/lib.rs", "rust", source, "a" * 40, "b" * 40
         )
