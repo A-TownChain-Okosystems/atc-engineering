@@ -34,7 +34,7 @@ PATTERNS = {
 }
 
 def git_sha(root: Path) -> str:
-    env_sha = os.environ.get("GITHUB_SHA", "")
+    env_sha = os.environ.get("ATC_CATALOG_SOURCE_SHA", "") or os.environ.get("GITHUB_SHA", "")
     if re.fullmatch(r"[0-9a-f]{40,64}", env_sha):
         return env_sha
     try:
