@@ -275,11 +275,25 @@
       "items": {
         "type": "object",
         "required": [
+          "exclusion_id",
+          "repository",
           "path",
           "reason_code",
-          "reason"
+          "category",
+          "reason",
+          "rationale",
+          "source_blob_sha",
+          "evidence"
         ],
         "properties": {
+          "exclusion_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "repository": {
+            "type": "string",
+            "minLength": 1
+          },
           "path": {
             "type": "string",
             "minLength": 1
@@ -297,9 +311,55 @@
               "SYMLINK_NOT_FOLLOWED"
             ]
           },
+          "category": {
+            "enum": [
+              "read_failure",
+              "archived",
+              "vendored",
+              "generated",
+              "unsupported_format",
+              "encoding_failure",
+              "parse_failure",
+              "scanner_policy",
+              "safety_boundary"
+            ]
+          },
           "reason": {
             "type": "string",
             "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_blob_sha": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "reference"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reference": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            }
           }
         },
         "additionalProperties": false
