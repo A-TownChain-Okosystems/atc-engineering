@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "scripts/org_function_catalog.py"
+      - "scripts/validate_bidirectional_reconciliation.py"
       - ".github/workflows/pinned-source-catalog-reconciliation.yml"
       - "docs/architecture/source-catalog-reconciliation.v1.json"
       - "schemas/source-catalog-reconciliation.schema.json"
@@ -376,6 +377,29 @@ jobs:
                             "source_exclusions": len(source), "catalog_exclusions": len(catalog)}, sort_keys=True))
           if blocking:
               raise SystemExit("Reconciliation BLOCKED: unresolved source/catalog differences require explicit review")
+          PY
+
+      - name: Independently compare source and catalog inventories in both directions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/validate_bidirectional_reconciliation.py \
+            reconciliation-artifacts/source-inventory.json \
+            reconciliation-artifacts/catalog-inventory.json \
+            --output reconciliation-artifacts/independent-bidirectional-reconciliation.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("reconciliation-artifacts/independent-bidirectional-reconciliation.json").read_text())
+          print(json.dumps({
+              "status": report["status"],
+              "source_commit_sha": report["source_commit_sha"],
+              "catalog_commit_sha": report["catalog_commit_sha"],
+              "blocking_findings": report["counts"]["blocking_findings"],
+              "finding_codes": sorted({item["code"] for item in report["findings"]}),
+          }, sort_keys=True))
+          # BLOCKED is a valid evidence result, not a CI crash. The artifact must
+          # preserve blockers rather than masking them or claiming reconciliation.
           PY
 
       - name: Validate artifact JSON and print provenance
