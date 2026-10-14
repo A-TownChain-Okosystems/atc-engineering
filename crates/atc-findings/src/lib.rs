@@ -212,8 +212,8 @@ fn esc(s: &str) -> String {
     let mut escaped = String::with_capacity(s.len());
     for ch in s.chars() {
         match ch {
-            '"' => escaped.push_str("\""),
-            '\\' => escaped.push_str("\\"),
+            '"' => escaped.push_str("\\\""),
+            '\\' => escaped.push_str("\\\\"),
             '\u{08}' => escaped.push_str("\\b"),
             '\u{0C}' => escaped.push_str("\\f"),
             '\n' => escaped.push_str("\\n"),
@@ -231,6 +231,12 @@ fn esc(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn json_escaping_covers_quotes_and_backslashes() {
+        let input: String = ['"', '\\'].into_iter().collect();
+        assert_eq!(esc(&input), "\\\"\\\\");
+    }
+
     #[test]
     fn json_escaping_covers_every_json_control_character() {
         let input: String = (0u8..=0x1f).map(char::from).collect();
