@@ -49,7 +49,8 @@
         "unmapped_producer_bindings",
         "unmapped_consumer_bindings",
         "contracts_without_versioned_schema",
-        "fully_reconciled_contracts"
+        "reconciled_contracts",
+        "verified_contracts"
       ],
       "properties": {
         "declared_contract_records": {
@@ -80,7 +81,11 @@
           "type": "integer",
           "minimum": 0
         },
-        "fully_reconciled_contracts": {
+        "reconciled_contracts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verified_contracts": {
           "type": "integer",
           "minimum": 0
         }

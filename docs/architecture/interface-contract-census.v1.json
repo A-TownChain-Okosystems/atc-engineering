@@ -12,7 +12,8 @@
     "unmapped_producer_bindings": 1,
     "unmapped_consumer_bindings": 4,
     "contracts_without_versioned_schema": 1,
-    "fully_reconciled_contracts": 0
+    "reconciled_contracts": 0,
+    "verified_contracts": 0
   },
   "contracts": [
     {
