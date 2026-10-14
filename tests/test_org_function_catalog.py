@@ -70,6 +70,16 @@ class CatalogTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             catalog.reconcile({"repository": "owner/a", "symbols": []}, {"repository": "owner/b", "symbols": []})
 
+    def test_scan_disambiguates_duplicate_heuristic_identities(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "lib.rs").write_text("pub fn duplicate() {}\\npub fn duplicate() {}\\n", encoding="utf-8")
+            result = catalog.scan(root, "owner/sample")
+            ids = [symbol["symbol_id"] for symbol in result["symbols"]]
+            self.assertEqual(len(ids), 2)
+            self.assertEqual(len(ids), len(set(ids)))
+            self.assertTrue(any("duplicate parser identity" in item for item in result["limitations"]))
+
 
 if __name__ == "__main__":
     unittest.main()
