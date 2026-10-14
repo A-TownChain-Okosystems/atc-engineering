@@ -111,7 +111,7 @@ jobs:
               "source_commit_sha": source.get("observed_commit_sha"),
               "catalog_commit_sha": catalog.get("observed_commit_sha"),
               "generator_blob_sha": hashlib.sha1(
-                  b"blob " + str(len(Path("/tmp/atce-source/scripts/org_function_catalog.py").read_bytes())).encode() + b"\0"
+                  b"blob " + str(len(Path("scripts/org_function_catalog.py").read_bytes())).encode() + b"\0"
                   + Path("/tmp/atce-source/scripts/org_function_catalog.py").read_bytes()
               ).hexdigest(),
               "counts": {
