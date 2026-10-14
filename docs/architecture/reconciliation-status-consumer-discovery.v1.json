@@ -188,7 +188,7 @@
   ],
   "required_follow_up": [
     "Repository listing and default-branch SHA pinning completed for the 26 non-archived repositories visible to the authenticated account; seven archived repositories were excluded from the active scan but must be considered if in scope.",
-    "Directly enumerate repository trees at pinned SHAs for the 12 active repositories not indexed for code search and scan them locally or via Git tree APIs.",
+    "Directly enumerate repository trees at pinned SHAs for the 13 active repositories not indexed for code search and scan them locally or via Git tree APIs.",
     "For all 26 repositories, inspect workflow files, scripts, schemas, report producers, status readers/writers, and generated consumers at pinned SHAs; code search is only supplemental discovery.",
     "Classify every candidate as normative specification, producer, consumer, schema, test, documentation, unrelated homonym, or unknown; unknown classifications remain blockers.",
     "Fetch referenced workflow runs, jobs, steps, exit codes, logs, and artifacts and bind each evidence record to the exact source SHA.",
@@ -211,7 +211,7 @@
     "archived_repository_count": 7,
     "private_repositories_visible": 1,
     "default_branch": "main",
-    "coverage_note": "The listing is complete for the repositories visible to this authenticated account at the time of retrieval (33 total; 26 non-archived, 7 archived). It does not prove visibility into repositories inaccessible to the account, nor does listing alone classify status consumers.",
+    "coverage_note": "The listing is complete for the repositories visible to this authenticated account at the time of retrieval (33 total; 26 non-archived, 7 archived). It does not prove visibility into repositories inaccessible to the account, nor does listing alone classify status consumers. Correction: 13 active repositories (not 12) are not indexed for code search, based on the 26 pinned inventory entries.",
     "active_repositories": [
       {
         "repository": "a-townchain-os",
@@ -369,7 +369,8 @@
         "default_branch_sha": "aaed3daad2f6823349bb8c89bbeb996a7911317e",
         "code_search_indexed": false
       }
-    ]
+    ],
+    "code_search_not_indexed_count": 13
   },
   "search_round_2": {
     "queries": [
@@ -443,6 +444,13 @@
         "ref": "c91c8c6fc60b1c28403c3125f728495e2efa124b",
         "classification": "normative policy",
         "finding": "Has its own PR registry status vocabulary and completeness limitations; separate from reconciliation status contract."
+      },
+      {
+        "repository": "A-TownChain-Okosystems/atc-engineering",
+        "path": "docs/architecture/reconciliation-status-consumer-discovery.v1.json",
+        "ref": "65456d2a7f87b442928f2ad15f0fe4bf440db594",
+        "classification": "inventory consistency check",
+        "finding": "Cross-checking the 26 pinned entries reveals 13 repositories without code-search indexing, not 12; count corrected in this register."
       }
     ],
     "limitations": "This search round returns additional candidates but does not inspect every path or establish exhaustive producer/consumer classification. Queries for the two report filenames returned no results; absence in code search is not evidence that no such files or consumers exist."
