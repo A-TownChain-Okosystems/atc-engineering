@@ -23,6 +23,7 @@ def valid_claim():
             "workflow_run_id": 12345,
             "job": "contract-tests",
             "step": "verify-status-contract",
+            "artifact_id": "artifact-77",
             "artifact_sha256": "b" * 64,
         }],
     }
@@ -50,6 +51,27 @@ class ReconciliationStatusContractTests(unittest.TestCase):
     def test_malformed_artifact_hash_blocks(self):
         claim = valid_claim()
         claim["evidence"][0]["artifact_sha256"] = "not-a-hash"
+        with self.assertRaises(StatusContractError):
+            validate_verification_claim(claim)
+
+    def test_artifact_hash_without_artifact_identity_blocks(self):
+        claim = valid_claim()
+        claim["evidence"][0].pop("artifact_id")
+        with self.assertRaises(StatusContractError):
+            validate_verification_claim(claim)
+
+    def test_reproducible_https_log_reference_is_accepted(self):
+        claim = valid_claim()
+        claim["evidence"][0].pop("artifact_id")
+        claim["evidence"][0].pop("artifact_sha256")
+        claim["evidence"][0]["log_reference"] = "https://github.com/owner/repo/actions/runs/12345"
+        validate_verification_claim(claim)
+
+    def test_non_https_log_reference_blocks(self):
+        claim = valid_claim()
+        claim["evidence"][0].pop("artifact_id")
+        claim["evidence"][0].pop("artifact_sha256")
+        claim["evidence"][0]["log_reference"] = "run-12345"
         with self.assertRaises(StatusContractError):
             validate_verification_claim(claim)
 
