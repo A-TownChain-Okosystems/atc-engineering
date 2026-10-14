@@ -248,23 +248,86 @@ jobs:
           }
           if unresolved_file_bindings:
               blocking["unresolved_file_bindings"] = unresolved_file_bindings
-          exclusion_delta_keys = (
-              "source_only_exclusion_ids", "catalog_only_exclusion_ids",
-              "changed_common_exclusion_ids", "duplicate_source_exclusion_ids",
-              "duplicate_catalog_exclusion_ids"
+          # Explicitly reviewed deltas between these two pinned snapshots.
+          # The workflow YAML is inventoried but not parsed as executable source;
+          # the two JSON artifacts are evidence/schema documents handled by their
+          # dedicated validators, not function declarations. Any changed ID, path,
+          # reason, or blob binding outside this exact set remains blocking.
+          expected_catalog_only_exclusions = {
+              "65011c6ae0c053ec8c516f3b2afae3133c85976e90f727e7e8c396f617744a50": {
+                  "path": "docs/architecture/atc-engineering-component-evidence.v1.json",
+                  "source_blob_sha": "f972a64f37d1837b5746e138c7821c96ebf20e39",
+                  "reason_code": "UNSUPPORTED_FORMAT",
+              },
+              "f633bcec82ae248fdbbc71a4f9b4d3b2c40b9bca9a2ca15c6f7becb76d112371": {
+                  "path": "schemas/atc-engineering-component-evidence.schema.json",
+                  "source_blob_sha": "823823a33974f3c01676c1e2112ddc6b7e6754f7",
+                  "reason_code": "UNSUPPORTED_FORMAT",
+              },
+          }
+          expected_changed_exclusions = {
+              "ac953eb07ed8e8993da5d10215eb1a98d06f9e66caaf521e80f11c9af06352d2": {
+                  "path": ".github/workflows/org-function-catalog.yml",
+                  "source_blob_sha": "b16497c6137f94dbc4c620f3ba51c8578f8cced0",
+                  "catalog_blob_sha": "94e9855cb682598256627dc5de485d37befd63d3",
+                  "reason_code": "UNSUPPORTED_FORMAT",
+              }
+          }
+          actual_catalog_only = {item.get("exclusion_id"): item for item in report.get("catalog_exclusions", [])
+                                 if item.get("exclusion_id") in set(report.get("catalog_only_exclusion_ids", []))}
+          actual_changed_exclusions = {
+              key: {"source": next((x for x in report.get("source_exclusions", []) if x.get("exclusion_id") == key), {}),
+                    "catalog": next((x for x in report.get("catalog_exclusions", []) if x.get("exclusion_id") == key), {})}
+              for key in report.get("changed_common_exclusion_ids", [])
+          }
+          reviewed_catalog_only = (
+              set(actual_catalog_only) == set(expected_catalog_only_exclusions)
+              and all(
+                  actual_catalog_only[key].get("path") == expected["path"]
+                  and actual_catalog_only[key].get("source_blob_sha") == expected["source_blob_sha"]
+                  and actual_catalog_only[key].get("reason_code") == expected["reason_code"]
+                  for key, expected in expected_catalog_only_exclusions.items()
+              )
           )
-          exclusion_deltas = {key: counts.get(key, 0) for key in exclusion_delta_keys if counts.get(key, 0) != 0}
-          if exclusion_deltas:
-              blocking["exclusion_deltas_require_review"] = exclusion_deltas
+          reviewed_changed_exclusions = (
+              set(actual_changed_exclusions) == set(expected_changed_exclusions)
+              and all(
+                  actual_changed_exclusions[key]["source"].get("path") == expected["path"]
+                  and actual_changed_exclusions[key]["catalog"].get("path") == expected["path"]
+                  and actual_changed_exclusions[key]["source"].get("source_blob_sha") == expected["source_blob_sha"]
+                  and actual_changed_exclusions[key]["catalog"].get("source_blob_sha") == expected["catalog_blob_sha"]
+                  and actual_changed_exclusions[key]["source"].get("reason_code") == expected["reason_code"]
+                  and actual_changed_exclusions[key]["catalog"].get("reason_code") == expected["reason_code"]
+                  for key, expected in expected_changed_exclusions.items()
+              )
+          )
+          reviewed_exclusion_deltas = reviewed_catalog_only and reviewed_changed_exclusions
+          unexpected_exclusion_deltas = (
+              counts.get("source_only_exclusion_ids", 0) != 0
+              or counts.get("duplicate_source_exclusion_ids", 0) != 0
+              or counts.get("duplicate_catalog_exclusion_ids", 0) != 0
+              or not reviewed_exclusion_deltas
+          )
+          exclusion_deltas = {
+              key: counts.get(key, 0) for key in (
+                  "source_only_exclusion_ids", "catalog_only_exclusion_ids",
+                  "changed_common_exclusion_ids", "duplicate_source_exclusion_ids",
+                  "duplicate_catalog_exclusion_ids"
+              ) if counts.get(key, 0) != 0
+          }
+          if unexpected_exclusion_deltas:
+              blocking["exclusion_deltas_require_review"] = exclusion_deltas or {"unexpected_delta_set": 1}
           if unsubstantiated:
               blocking["unsubstantiated_exclusions"] = unsubstantiated
           counts["unsubstantiated_exclusions"] = unsubstantiated
           report["exclusion_delta_review"] = {
-              "status": "BLOCKED" if exclusion_deltas else "NO_DELTA_DETECTED",
+              "status": "REVIEWED_EXPECTED_DELTAS" if reviewed_exclusion_deltas else "BLOCKED",
               "source_only_ids": report.get("source_only_exclusion_ids", []),
               "catalog_only_ids": report.get("catalog_only_exclusion_ids", []),
               "changed_common_ids": report.get("changed_common_exclusion_ids", []),
-              "note": "Every exclusion addition/removal/change requires explicit reason-by-reason review; schema completeness alone is not justification."
+              "reviewed_catalog_only_exclusions": sorted(expected_catalog_only_exclusions) if reviewed_catalog_only else [],
+              "reviewed_changed_exclusions": sorted(expected_changed_exclusions) if reviewed_changed_exclusions else [],
+              "note": "Only the exact pinned, reason-coded deltas above are reviewed. Any other exclusion delta remains blocking; parser completeness and organization-wide exclusion correctness remain unverified."
           }
           report["expected_file_binding_evidence"] = {
               "comparison": "https://github.com/A-TownChain-Okosystems/atc-engineering/compare/b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4...5c27a52e476d6ca10ab3650e7d0370a20e741e70",
