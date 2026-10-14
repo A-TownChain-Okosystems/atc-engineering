@@ -9,6 +9,8 @@ on:
       - "docs/architecture/interface-contract-census.v1.json"
       - "docs/architecture/source-tree-manifest.b2ad23ee.json"
       - ".github/workflows/source-catalog-reconciliation.yml"
+      - "scripts/verify_reconciliation_evidence.py"
+      - "tests/test_verify_reconciliation_evidence.py"
   push:
     branches: [main]
     paths:
@@ -18,6 +20,8 @@ on:
       - "docs/architecture/interface-contract-census.v1.json"
       - "docs/architecture/source-tree-manifest.b2ad23ee.json"
       - ".github/workflows/source-catalog-reconciliation.yml"
+      - "scripts/verify_reconciliation_evidence.py"
+      - "tests/test_verify_reconciliation_evidence.py"
   workflow_dispatch:
 
 permissions:
@@ -123,3 +127,6 @@ jobs:
           print(json.dumps({"status": census["status"], "counts": expected, "source_bindings": "MATCHED_TO_PINNED_TREE"}, sort_keys=True))
           print("Source/blob binding is verified for listed records only; inventory completeness and consumer compatibility remain unverified.")
           PY
+
+      - name: Test fail-closed external workflow evidence verifier
+        run: python -m unittest discover -s tests -p 'test_verify_reconciliation_evidence.py' -v
