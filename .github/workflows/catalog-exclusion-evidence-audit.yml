@@ -49,7 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest tests/test_catalog_exclusion_audit.py
+          python -m unittest discover -s tests -p 'test_catalog_exclusion_audit.py'
 
       - name: Upload inventory and exclusion audit
         if: always()
