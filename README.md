@@ -113,7 +113,7 @@ Run the gate-integrated audit with:
 cargo run --release -p atc-audit-cli -- /path/to/repository --gate
 ```
 
-The command emits one deterministic `GATE_REPORT` JSON record using schema `atc.gate-report/v1`.
+The command emits one deterministic `GATE_REPORT` JSON record using schema `atc.gate-report/v1` and exits non-zero when readiness is blocked. CI may use `--gate-evidence` to record the exact `ALLOW` or `BLOCK` decision for build provenance without authorizing readiness; a separate readiness gate must still reject `BLOCK`, invalid separation of duties, missing human approval, or blocking controls.
 
 ## CI Enforcement
 
@@ -136,6 +136,7 @@ atc-audit-cli /path/to/repository
 atc-audit-cli /path/to/repository --requirements
 atc-audit-cli /path/to/repository --repair
 atc-audit-cli /path/to/repository --gate
+atc-audit-cli /path/to/repository --gate-evidence
 ```
 
 Planned higher-level commands remain:

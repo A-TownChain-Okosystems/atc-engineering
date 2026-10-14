@@ -103,6 +103,30 @@ mod tests {
     }
 
     #[test]
+    fn report_never_allows_invalid_sod_or_missing_human_approval() {
+        let input = ReadinessInput {
+            evidence: vec![EvidenceCheck {
+                control_id: "SEC-001".into(),
+                status: EvidenceStatus::Pass,
+            }],
+            sod: SeparationOfDuties {
+                coder: "same".into(),
+                validator: "same".into(),
+                auditor: "auditor".into(),
+                release_authority: "release".into(),
+                human_approval: false,
+            },
+            requested_state: DerivedState::TestnetReady,
+        };
+
+        let report = GateReport::from_input(&input);
+        assert_eq!(report.decision, GateDecision::Block);
+        assert!(!report.sod_valid);
+        assert!(!report.human_approval);
+        assert!(!report.is_allowed());
+    }
+
+    #[test]
     fn json_is_versioned_and_deterministic() {
         let input = ReadinessInput {
             evidence: vec![EvidenceCheck {
