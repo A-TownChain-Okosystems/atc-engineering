@@ -246,8 +246,14 @@ mod tests {
     #[test]
     fn registry_json_includes_all_finding_fields() {
         let mut finding = Finding::new(
-            "FND-2", "repo", "ERR-2", "error", FindingSeverity::Medium, "line one\nline two",
-        ).unwrap();
+            "FND-2",
+            "repo",
+            "ERR-2",
+            "error",
+            FindingSeverity::Medium,
+            "line one\nline two",
+        )
+        .unwrap();
         finding.path = Some("src/main.rs".into());
         finding.root_cause = "unknown".into();
         finding.implementation_plan = "investigate".into();
