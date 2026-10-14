@@ -66,13 +66,25 @@
       "finding_id": "ATCE-RECON-005",
       "category": "INTERFACE_CONTRACT",
       "status": "OPEN",
-      "description": "Initial evidence review found a declared integration graph, but source-bound interface/schema versions and producer/consumer contract mappings have not been reconciled; unmapped-interface count remains unknown.",
+      "description": "A bounded, source-bound census now records four initial interface/schema declarations: two have source implementation bindings, two are schema-only, all four lack a reconciled consumer mapping, and the integration-graph contract has no versioned schema. The inventory is intentionally non-exhaustive; the organization-wide unmapped-interface count remains unknown.",
       "evidence": [
         {
           "repository": "A-TownChain-Okosystems/atc-engineering",
           "path": "docs/architecture/ECOSYSTEM-INTEGRATION-001.md",
           "blob_sha": "b3bf5b1a3deb05f7d51e0b5b24a24789c19cb9bf",
           "symbol": null
+        },
+        {
+          "repository": "A-TownChain-Okosystems/atc-engineering",
+          "path": "docs/architecture/interface-contract-census.v1.json",
+          "blob_sha": "39be998cc35961ac6541f9295962019d3fbc5f60",
+          "symbol": null
+        },
+        {
+          "repository": "A-TownChain-Okosystems/atc-engineering",
+          "path": "crates/atc-integration/src/lib.rs",
+          "blob_sha": "19af7db9ae33520ff2ba48305694b7df59d19bba",
+          "symbol": "IntegrationGraph::validate"
         }
       ]
     },
@@ -103,7 +115,8 @@
     "Null counts mean unknown/not measured; they must not be interpreted as zero.",
     "The 342 symbols and 79 explicit exclusions were reproduced by workflow run 38549057606 at catalog commit 5c27a52e476d6ca10ab3650e7d0370a20e741e70; output status is DETECTED, not VERIFIED.",
     "A RECONCILED status requires complete scope dimensions, zero unresolved blocking findings, and exact-head CI evidence.",
-    "Interface and ownership review is PARTIAL: the integration graph is descriptive evidence, and 12 component candidates remain REVIEW_REQUIRED; unmapped interface and ownership-conflict counts are unknown, not zero."
+    "Interface and ownership review is PARTIAL: the integration graph is descriptive evidence, and 12 component candidates remain REVIEW_REQUIRED; unmapped interface and ownership-conflict counts are unknown, not zero.",
+    "A bounded interface-contract census is recorded in docs/architecture/interface-contract-census.v1.json. Its listed source/schema blob bindings are checked against the pinned tree manifest; this does not establish inventory completeness, schema conformance, consumer compatibility, or organization-wide unmapped-interface totals."
   ],
   "decision_rule": "Do not mark a candidate VERIFIED based only on file existence or CI success. Preserve BLOCKED/OPEN when source, normative, parser, interface, or ownership evidence is missing."
 }
