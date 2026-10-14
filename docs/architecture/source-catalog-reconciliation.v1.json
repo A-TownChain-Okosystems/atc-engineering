@@ -5,7 +5,7 @@
   "catalog_commit_sha": "5c27a52e476d6ca10ab3650e7d0370a20e741e70",
   "status": "BLOCKED",
   "scope": {
-    "source_census": "NOT_RUN",
+    "source_census": "PARTIAL",
     "normative_registry": "NOT_RUN",
     "parser_coverage": "PARTIAL",
     "interfaces_contracts": "NOT_RUN",
@@ -18,10 +18,13 @@
     "stale_catalog_entries": null,
     "duplicate_bindings": null,
     "orphan_catalog_entries": null,
-    "unsupported_files": 79,
+    "unsupported_files": null,
     "parse_errors": null,
     "unmapped_interfaces": null,
-    "ownership_conflicts": null
+    "ownership_conflicts": null,
+    "comparison_source_file_blobs": 115,
+    "catalog_snapshot_file_blobs": 117,
+    "catalog_exclusions": 79
   },
   "findings": [
     {
@@ -35,8 +38,15 @@
       "finding_id": "ATCE-RECON-002",
       "category": "MISSING_ENTRY",
       "status": "OPEN",
-      "description": "A complete source census and missing-entry diff have not been run; counts remain unknown.",
-      "evidence": []
+      "description": "Recursive Git-tree comparison is complete for the two pinned snapshots (115 versus 117 file blobs); generator CI on catalog_commit_sha reproduced 117 scanned files, 342 DETECTED symbols, and 79 explicit exclusions. A bidirectional symbol identity diff has not been run; missing-entry count remains unknown.",
+      "evidence": [
+        {
+          "repository": "A-TownChain-Okosystems/atc-engineering",
+          "path": "docs/architecture/source-tree-manifest.b2ad23ee.json",
+          "blob_sha": "7d4ed258529ada3b853cf7b346f22328647d9b8e",
+          "symbol": null
+        }
+      ]
     },
     {
       "finding_id": "ATCE-RECON-003",
@@ -49,7 +59,7 @@
       "finding_id": "ATCE-RECON-004",
       "category": "PARSER_COVERAGE",
       "status": "OPEN",
-      "description": "Current catalog reports 79 explicit exclusions; per-language parser completeness and exclusion correctness remain unverified.",
+      "description": "The exact catalog-commit workflow reproduced 79 explicit exclusions, but exclusion-by-exclusion correctness and parser completeness remain unverified.",
       "evidence": []
     },
     {
@@ -68,9 +78,10 @@
     }
   ],
   "limitations": [
-    "This is a fail-closed initial reconciliation record, not a completed source-to-catalog diff.",
+    "This is a fail-closed initial reconciliation record, not a completed source-to-catalog symbol diff.",
+    "comparison_source_file_blobs and catalog_snapshot_file_blobs count tracked file blobs in the two recursive Git trees; source_files_seen is the generator's scanned-file count from the catalog commit.",
     "Null counts mean unknown/not measured; they must not be interpreted as zero.",
-    "The existing 117-file/342-symbol/79-exclusion catalog output is DETECTED evidence only.",
+    "The 342 symbols and 79 explicit exclusions were reproduced by workflow run 38549057606 at catalog commit 5c27a52e476d6ca10ab3650e7d0370a20e741e70; output status is DETECTED, not VERIFIED.",
     "A RECONCILED status requires complete scope dimensions, zero unresolved blocking findings, and exact-head CI evidence."
   ],
   "decision_rule": "Do not mark a candidate VERIFIED based only on file existence or CI success. Preserve BLOCKED/OPEN when source, normative, parser, interface, or ownership evidence is missing."
