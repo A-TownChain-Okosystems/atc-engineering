@@ -180,7 +180,9 @@ def extract_tree_sitter(repo: str, rel: str, language: str, text: str, sha: str,
     records = []
     declaration_types = {"rust": {"function_item", "function_signature_item"},
                          "shell": {"function_definition"}}
-    def walk(node, scope=""):
+    stack = [(root, "")]
+    while stack:
+        node, scope = stack.pop()
         if node.type in declaration_types[language]:
             name_node = node.child_by_field_name("name")
             if name_node is None and language == "shell":
@@ -201,13 +203,14 @@ def extract_tree_sitter(repo: str, rel: str, language: str, text: str, sha: str,
                                          signature, visibility, sha, commit, []))
         child_scope = scope
         if language == "rust" and node.type in {"mod_item", "trait_item", "impl_item"}:
-            scope_node = node.child_by_field_name("name") or node.child_by_field_name("type")
+            scope_node = node.child_by_field_name("name")
+            if scope_node is None:
+                scope_node = node.child_by_field_name("type")
             if scope_node is not None:
                 scope_name = source[scope_node.start_byte:scope_node.end_byte].decode("utf-8").strip()
                 child_scope = f"{scope}::{scope_name}" if scope else scope_name
-        for child in node.named_children:
-            walk(child, child_scope)
-    walk(root)
+        for child in reversed(node.named_children):
+            stack.append((child, child_scope))
     return records
 
 
