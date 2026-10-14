@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - "scripts/validate_bidirectional_reconciliation.py"
+      - "scripts/reconciliation_status_contract.py"
+      - "tests/test_reconciliation_status_contract.py"
+      - "docs/architecture/reconciliation-status-contract.v1.json"
+      - "docs/architecture/reconciliation-status-contract.md"
       - "tests/test_bidirectional_reconciliation.py"
       - ".github/workflows/independent-bidirectional-reconciliation.yml"
   workflow_dispatch:
@@ -29,4 +33,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest discover -s tests -p 'test_bidirectional_reconciliation.py'
+          python -m unittest discover -s tests -p 'test_bidirectional_reconciliation.py' -v
+          python -m unittest discover -s tests -p 'test_reconciliation_status_contract.py' -v
