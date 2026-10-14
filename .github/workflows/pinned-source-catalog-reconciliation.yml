@@ -152,29 +152,47 @@ jobs:
           print(json.dumps({"status": report["status"], "counts": report["counts"]}, sort_keys=True))
           PY
 
-      - name: Fail closed on unresolved symbol, file, parser, or exclusion differences
+      - name: Fail closed on unresolved symbol, file, parser, or unsubstantiated exclusion differences
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           import json
+          import re
           from pathlib import Path
           report = json.loads(Path("reconciliation-artifacts/reconciliation-report.json").read_text())
           counts = report["counts"]
+          source = report.get("source_exclusions", [])
+          catalog = report.get("catalog_exclusions", [])
+
+          def unjustified(items):
+              required = ("exclusion_id", "repository", "path", "reason_code", "category", "reason", "rationale", "evidence")
+              bad = [item for item in items if any(not item.get(key) for key in required)
+                     or not re.fullmatch(r"[0-9a-f]{64}", item.get("exclusion_id", ""))
+                     or not isinstance(item.get("evidence"), list)
+                     or not all(isinstance(ev, dict) and ev.get("reference") for ev in item.get("evidence", []))]
+              ids = [item.get("exclusion_id") for item in items]
+              duplicate_ids = {value for value in ids if ids.count(value) > 1}
+              return len(bad) + len(duplicate_ids)
+
+          unsubstantiated = unjustified(source) + unjustified(catalog)
           blocking = {
               key: counts[key] for key in (
                   "source_only_symbol_ids", "catalog_only_symbol_ids",
                   "changed_common_symbol_ids", "duplicate_source_symbol_ids",
                   "duplicate_catalog_symbol_ids", "source_parse_errors",
-                  "catalog_parse_errors", "changed_file_bindings",
-                  "source_exclusions", "catalog_exclusions"
+                  "catalog_parse_errors", "changed_file_bindings"
               ) if counts.get(key) != 0
           }
+          if unsubstantiated:
+              blocking["unsubstantiated_exclusions"] = unsubstantiated
+          counts["unsubstantiated_exclusions"] = unsubstantiated
           report["status"] = "BLOCKED" if blocking else "DETECTED"
           Path("reconciliation-artifacts/reconciliation-report.json").write_text(
               json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8"
           )
-          print(json.dumps({"status": report["status"], "blocking_counts": blocking}, sort_keys=True))
+          print(json.dumps({"status": report["status"], "blocking_counts": blocking,
+                            "source_exclusions": len(source), "catalog_exclusions": len(catalog)}, sort_keys=True))
           if blocking:
               raise SystemExit("Reconciliation BLOCKED: unresolved source/catalog differences require explicit review")
           PY
