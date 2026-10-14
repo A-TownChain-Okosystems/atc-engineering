@@ -3,7 +3,7 @@
   "contract_id": "ATCE-RECONCILIATION-STATUS-CONSUMER-AUDIT-001",
   "repository": "A-TownChain-Okosystems/atc-engineering",
   "audit_status": "PARTIAL",
-  "audit_scope": "Bounded local reconciliation/catalog/interface-census/finding-lifecycle paths plus a pinned inventory of 26 visible non-archived repositories and two rounds of organization-wide code-search candidate discovery.",
+  "audit_scope": "Bounded local reconciliation/catalog/interface-census/finding-lifecycle paths plus pinned inventory of 26 visible non-archived repositories, two search rounds, and recursive Git-tree inventories for all 13 repositories without code-search indexing.",
   "normative_contract": "docs/architecture/reconciliation-status-contract.v1.json",
   "consumers_and_producers": [
     {
@@ -150,13 +150,14 @@
     "finding_lifecycle_equivalent_to_report_status": false
   },
   "residuals": [
-    "Repository listing and main-branch SHA pinning are complete for all 26 non-archived repositories visible to the authenticated account; seven archived repositories were excluded from active scope.",
-    "Thirteen of the 26 active repositories are not indexed for code search. Direct Git tree enumeration and source inspection is still required for these repositories; absence of search results cannot be used as a negative finding.",
-    "Two search rounds identified additional catalog producer, schema, discovery scanner, reconciliation producer, normative specification, roadmap, and audit-documentation candidates. The discovery register records these with pinned observed refs and caveats.",
-    "Every candidate still requires complete exact-ref inspection and classification, including executable consumers and their actual status transition logic. No proof yet that all status readers/writers and generated consumers are enumerated.",
-    "Consumer-specific negative regressions for each executable consumer and per-repository exact-SHA workflow/job/step/artifact evidence binding remain incomplete.",
-    "The audit is not organization-wide VERIFIED; keep status PARTIAL and closure blocked until all criteria are satisfied."
+    "Repository listing and main-branch SHA pinning are complete for all 26 non-archived repositories visible to the authenticated account; seven archived repositories remain outside active scope unless governance includes them.",
+    "Thirteen of the 26 active repositories are not indexed for code search. Their recursive Git trees were enumerated at pinned SHAs (all non-truncated), but candidate file contents are not all directly inspected.",
+    "Direct inspection of representative candidates found domain-separated catalog statuses, draft specs, local audit tools, governance workflows, and a VM execution-receipt gate. No inspected excerpt established a new consumer of the PR #29 reconciliation-report status contract, but absence of a consumer has not been proven.",
+    "The other 13 code-search-indexed repositories still require content-level source inspection at pinned SHAs; code-search results alone are insufficient to classify all readers/writers.",
+    "Complete exact-ref inspection and classification of all candidate workflows, scripts, schemas, report producers, status readers/writers, and generated consumers remains incomplete.",
+    "Consumer-specific negative regressions for every executable PR #29 status consumer and per-repository exact-SHA workflow/job/step/artifact evidence binding remain incomplete.",
+    "Audit closure remains blocked; status must stay PARTIAL / BLOCKED / NOT VERIFIED."
   ],
   "discovery_register": "docs/architecture/reconciliation-status-consumer-discovery.v1.json",
-  "repository_inventory": "The discovery register pins main-branch SHAs for all 26 visible non-archived repositories; 13 are not indexed for code search and require direct tree inspection."
+  "repository_inventory": "Main SHAs pinned for all 26 visible non-archived repositories. Recursive Git Trees API returned non-truncated trees for all 13 not indexed for code search; this is path inventory, not content-level audit."
 }
