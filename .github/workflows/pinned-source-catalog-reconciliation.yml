@@ -36,7 +36,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install source catalog parsers
-        run: python -m pip install --disable-pip-version-check 'tree-sitter-language-pack>=0.9,<1' 'markdown-it-py>=3,<5' 'PyYAML>=6,<7'
+        run: python -m pip install --disable-pip-version-check 'tree-sitter>=0.25,<0.26' 'tree-sitter-rust>=0.24,<0.25' 'tree-sitter-bash>=0.23,<0.24' 'markdown-it-py>=3,<5' 'PyYAML>=6,<7'
 
       - name: Git-tree manifest validator regression tests
         run: python -m unittest discover -s tests -p 'test_git_tree_manifest.py' -v
