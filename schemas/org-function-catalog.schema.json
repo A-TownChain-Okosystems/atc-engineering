@@ -93,6 +93,44 @@
         "additionalProperties": false
       }
     },
+    "parser_coverage": {
+      "type": "object",
+      "description": "Per-language extraction coverage. These metrics are DETECTED evidence and do not establish completeness or verification.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "parser_mode",
+          "files_seen",
+          "files_excluded_by_policy",
+          "files_analysed",
+          "unsupported_files",
+          "parse_errors",
+          "symbols_detected",
+          "status"
+        ],
+        "properties": {
+          "parser_mode": {
+            "enum": ["python_ast", "heuristic_regex", "none"]
+          },
+          "files_seen": { "type": "integer", "minimum": 0 },
+          "files_excluded_by_policy": { "type": "integer", "minimum": 0 },
+          "files_analysed": { "type": "integer", "minimum": 0 },
+          "unsupported_files": { "type": "integer", "minimum": 0 },
+          "parse_errors": { "type": "integer", "minimum": 0 },
+          "symbols_detected": { "type": "integer", "minimum": 0 },
+          "status": {
+            "enum": [
+              "EXCLUDED_BY_POLICY",
+              "UNSUPPORTED",
+              "PARTIAL",
+              "HEURISTIC_PARTIAL",
+              "DETECTED_NOT_VERIFIED"
+            ]
+          }
+        }
+      }
+    },
     "symbols": {
       "type": "array",
       "items": {
