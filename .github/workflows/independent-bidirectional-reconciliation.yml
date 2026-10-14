@@ -9,6 +9,7 @@ on:
       - "docs/architecture/reconciliation-status-contract.v1.json"
       - "docs/architecture/reconciliation-status-contract.md"
       - "schemas/reconciliation-verification-claim.schema.json"
+      - "docs/architecture/reconciliation-status-consumer-audit.v1.json"
       - "tests/test_bidirectional_reconciliation.py"
       - ".github/workflows/independent-bidirectional-reconciliation.yml"
   workflow_dispatch:
