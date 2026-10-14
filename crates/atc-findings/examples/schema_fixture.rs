@@ -11,7 +11,7 @@ fn main() {
         "JSON Schema conformance fixture",
     ).expect("valid finding fixture");
     finding.path = Some("crates/atc-findings/src/lib.rs".into());
-    finding.root_cause = "fixture".into();
+    finding.root_cause = r#"quote " and backslash \ "#.into();
     finding.implementation_plan = "validate emitted JSON against the committed schema".into();
 
     let mut registry = FindingRegistry::default();
