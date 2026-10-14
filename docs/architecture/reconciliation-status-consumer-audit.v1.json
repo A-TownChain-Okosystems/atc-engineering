@@ -151,12 +151,12 @@
   },
   "residuals": [
     "Repository listing and main-branch SHA pinning are complete for all 26 non-archived repositories visible to the authenticated account; seven archived repositories were excluded from active scope.",
-    "Twelve of the 26 active repositories are not indexed for code search. Direct Git tree enumeration and source inspection is still required for these repositories; absence of search results cannot be used as a negative finding.",
+    "Thirteen of the 26 active repositories are not indexed for code search. Direct Git tree enumeration and source inspection is still required for these repositories; absence of search results cannot be used as a negative finding.",
     "Two search rounds identified additional catalog producer, schema, discovery scanner, reconciliation producer, normative specification, roadmap, and audit-documentation candidates. The discovery register records these with pinned observed refs and caveats.",
     "Every candidate still requires complete exact-ref inspection and classification, including executable consumers and their actual status transition logic. No proof yet that all status readers/writers and generated consumers are enumerated.",
     "Consumer-specific negative regressions for each executable consumer and per-repository exact-SHA workflow/job/step/artifact evidence binding remain incomplete.",
     "The audit is not organization-wide VERIFIED; keep status PARTIAL and closure blocked until all criteria are satisfied."
   ],
   "discovery_register": "docs/architecture/reconciliation-status-consumer-discovery.v1.json",
-  "repository_inventory": "The discovery register pins main-branch SHAs for all 26 visible non-archived repositories; 12 are not indexed for code search and require direct tree inspection."
+  "repository_inventory": "The discovery register pins main-branch SHAs for all 26 visible non-archived repositories; 13 are not indexed for code search and require direct tree inspection."
 }
