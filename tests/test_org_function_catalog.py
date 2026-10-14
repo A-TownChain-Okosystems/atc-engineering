@@ -89,6 +89,20 @@ class CatalogTests(unittest.TestCase):
             self.assertIsNone(records[0]["source_blob_sha"])
             self.assertEqual(records[0]["evidence"][0]["reference"], "SKIP_DIRS:target")
 
+    def test_scan_reports_parser_coverage_per_language_and_does_not_claim_verification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "lib.rs").write_text("pub fn visible() {}\\n", encoding="utf-8")
+            (root / "data.yaml").write_text("key: value\\n", encoding="utf-8")
+            result = catalog.scan(root, "owner/sample")
+            self.assertEqual(result["parser_coverage"]["rust"]["parser_mode"], "heuristic_regex")
+            self.assertEqual(result["parser_coverage"]["rust"]["status"], "HEURISTIC_PARTIAL")
+            self.assertEqual(result["parser_coverage"]["rust"]["symbols_detected"], 1)
+            self.assertEqual(result["parser_coverage"]["yaml"]["parser_mode"], "none")
+            self.assertEqual(result["parser_coverage"]["yaml"]["status"], "UNSUPPORTED")
+            self.assertEqual(result["parser_coverage"]["yaml"]["unsupported_files"], 1)
+            self.assertEqual(result["status"], "DETECTED")
+
     def test_reconciliation_reports_added_removed_and_changed_symbols(self):
         old = {"repository": "owner/repo", "observed_commit_sha": "a" * 40, "symbols": [
             {"symbol_id": "one", "source_blob_sha": "x", "signature": "fn old()"},
