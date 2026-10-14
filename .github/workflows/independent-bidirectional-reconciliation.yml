@@ -1,0 +1,32 @@
+name: Independent Bidirectional Reconciliation Gate
+
+on:
+  pull_request:
+    paths:
+      - "scripts/validate_bidirectional_reconciliation.py"
+      - "tests/test_bidirectional_reconciliation.py"
+      - ".github/workflows/independent-bidirectional-reconciliation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run independent reconciliation regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_bidirectional_reconciliation.py'
