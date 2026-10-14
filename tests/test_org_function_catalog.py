@@ -41,6 +41,17 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(records[0]["qualified_name"], "simple_hash")
         self.assertTrue(records[0]["limitations"])
 
+    def test_git_worktree_metadata_is_not_inventoried(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").write_text("gitdir: /tmp/example/.git/worktrees/sample\n", encoding="utf-8")
+            (root / "source.py").write_text("def visible(): pass\n", encoding="utf-8")
+            result = catalog.scan(root, "owner/sample")
+            paths = {entry["path"] for entry in result["files"]}
+            self.assertIn("source.py", paths)
+            self.assertNotIn(".git", paths)
+            self.assertFalse(any(item["path"] == ".git" for item in result["exclusions"]))
+
     def test_scan_indexes_unsupported_files_with_reason_coded_exclusion(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -48,7 +59,15 @@ class CatalogTests(unittest.TestCase):
             result = catalog.scan(root, "owner/sample")
             self.assertEqual(len(result["files"]), 1)
             self.assertEqual(result["files"][0]["status"], "UNSUPPORTED")
-            self.assertEqual(result["exclusions"][0]["reason_code"], "UNSUPPORTED_FORMAT")
+            exclusion = result["exclusions"][0]
+            self.assertEqual(exclusion["reason_code"], "UNSUPPORTED_FORMAT")
+            self.assertEqual(exclusion["category"], "unsupported_format")
+            self.assertEqual(exclusion["repository"], "owner/sample")
+            self.assertEqual(exclusion["source_blob_sha"], catalog.blob_sha(b"binary"))
+            self.assertRegex(exclusion["exclusion_id"], r"^[0-9a-f]{64}$")
+            self.assertEqual(exclusion["rationale"], exclusion["reason"])
+            self.assertTrue(exclusion["evidence"])
+            self.assertIn(exclusion["source_blob_sha"], exclusion["evidence"][0]["reference"])
             self.assertTrue(result["limitations"])
 
     def test_excluded_directories_are_recorded_without_scanning_contents(self):
@@ -65,6 +84,24 @@ class CatalogTests(unittest.TestCase):
             records = [item for item in result["exclusions"] if item["path"] == "target"]
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0]["reason_code"], "EXCLUDED_DIRECTORY")
+            self.assertRegex(records[0]["exclusion_id"], r"^[0-9a-f]{64}$")
+            self.assertEqual(records[0]["category"], "scanner_policy")
+            self.assertIsNone(records[0]["source_blob_sha"])
+            self.assertEqual(records[0]["evidence"][0]["reference"], "SKIP_DIRS:target")
+
+    def test_scan_reports_parser_coverage_per_language_and_does_not_claim_verification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "lib.rs").write_text("pub fn visible() {}\n", encoding="utf-8")
+            (root / "data.yaml").write_text("key: value\n", encoding="utf-8")
+            result = catalog.scan(root, "owner/sample")
+            self.assertEqual(result["parser_coverage"]["rust"]["parser_mode"], "heuristic_regex")
+            self.assertEqual(result["parser_coverage"]["rust"]["status"], "HEURISTIC_PARTIAL")
+            self.assertEqual(result["parser_coverage"]["rust"]["symbols_detected"], 1)
+            self.assertEqual(result["parser_coverage"]["yaml"]["parser_mode"], "none")
+            self.assertEqual(result["parser_coverage"]["yaml"]["status"], "UNSUPPORTED")
+            self.assertEqual(result["parser_coverage"]["yaml"]["unsupported_files"], 1)
+            self.assertEqual(result["status"], "DETECTED")
 
     def test_reconciliation_reports_added_removed_and_changed_symbols(self):
         old = {"repository": "owner/repo", "observed_commit_sha": "a" * 40, "symbols": [

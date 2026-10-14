@@ -69,6 +69,24 @@ def classify(path: Path) -> str:
         return "configuration"
     return "first_party"
 
+def exclusion_record(repo: str, path: str, reason_code: str, reason: str, *,
+                     category: str, source_blob_sha: str | None = None,
+                     evidence_ref: str) -> dict:
+    """Create a stable, source/policy-bound exclusion record; never infer semantic meaning."""
+    identity = json.dumps([repo, path, reason_code], ensure_ascii=False, separators=(",", ":"))
+    return {
+        "exclusion_id": hashlib.sha256(identity.encode("utf-8")).hexdigest(),
+        "repository": repo,
+        "path": path,
+        "reason_code": reason_code,
+        "category": category,
+        "reason": reason,
+        "rationale": reason,
+        "source_blob_sha": source_blob_sha,
+        "evidence": [{"kind": "source_or_policy_reference", "reference": evidence_ref}],
+    }
+
+
 def symbol_record(repo: str, rel: str, language: str, kind: str, name: str, start: int, end: int,
                   signature: str, visibility: str, source_sha: str, commit: str, limitations: list[str]) -> dict:
     return {
@@ -135,18 +153,18 @@ def scan(root: Path, repo: str) -> dict:
             candidate = current / dirname
             rel_dir = candidate.relative_to(root).as_posix()
             if dirname in SKIP_DIRS:
-                exclusions.append({
-                    "path": rel_dir,
-                    "reason_code": "EXCLUDED_DIRECTORY",
-                    "reason": f"directory name '{dirname}' is excluded by scanner policy",
-                })
+                exclusions.append(exclusion_record(
+                    repo, rel_dir, "EXCLUDED_DIRECTORY",
+                    f"directory name '{dirname}' is excluded by scanner policy",
+                    category="scanner_policy", evidence_ref=f"SKIP_DIRS:{dirname}",
+                ))
                 continue
             if candidate.is_symlink():
-                exclusions.append({
-                    "path": rel_dir,
-                    "reason_code": "SYMLINK_NOT_FOLLOWED",
-                    "reason": "directory symlink is not followed to avoid scanning outside the repository tree",
-                })
+                exclusions.append(exclusion_record(
+                    repo, rel_dir, "SYMLINK_NOT_FOLLOWED",
+                    "directory symlink is not followed to avoid scanning outside the repository tree",
+                    category="safety_boundary", evidence_ref="scan():candidate.is_symlink",
+                ))
                 continue
             retained_dirs.append(dirname)
         dirnames[:] = retained_dirs
@@ -155,22 +173,35 @@ def scan(root: Path, repo: str) -> dict:
             if not path.is_file():
                 continue
             rel = path.relative_to(root).as_posix()
+            # Git worktrees represent repository metadata as a root-level .git file.
+            # It is not a tracked source file and must not enter the source census.
+            if ".git" in Path(rel).parts:
+                continue
             try:
                 data = path.read_bytes()
             except (OSError, ValueError) as exc:
                 limitations.append(f"file read failure: {rel}: {type(exc).__name__}")
-                exclusions.append({"path": rel, "reason_code": "READ_ERROR", "reason": type(exc).__name__})
+                exclusions.append(exclusion_record(
+                    repo, rel, "READ_ERROR", type(exc).__name__, category="read_failure",
+                    evidence_ref=f"filesystem-read:{rel}",
+                ))
                 continue
             language, classification, sha = EXTENSIONS.get(path.suffix.lower(), "unknown"), classify(Path(rel)), blob_sha(data)
             entry = {"path": rel, "language": language, "classification": classification, "blob_sha": sha, "status": "ANALYSED"}
             files.append(entry)
             if classification in {"vendored", "generated", "archived"}:
                 entry.update(status="SKIPPED", reason=f"classification={classification}; excluded from symbol extraction")
-                exclusions.append({"path": rel, "reason_code": classification.upper(), "reason": entry["reason"]})
+                exclusions.append(exclusion_record(
+                    repo, rel, classification.upper(), entry["reason"],
+                    category=classification, source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
+                ))
                 continue
             if language not in {"python", *PATTERNS.keys()}:
                 entry.update(status="UNSUPPORTED", reason="file inventoried; symbol extraction parser not implemented for this format")
-                exclusions.append({"path": rel, "reason_code": "UNSUPPORTED_FORMAT", "reason": entry["reason"]})
+                exclusions.append(exclusion_record(
+                    repo, rel, "UNSUPPORTED_FORMAT", entry["reason"],
+                    category="unsupported_format", source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
+                ))
                 continue
             try:
                 content = data.decode("utf-8")
@@ -178,10 +209,16 @@ def scan(root: Path, repo: str) -> dict:
                                else extract_heuristic(repo, rel, language, content, sha, commit))
             except UnicodeDecodeError:
                 entry.update(status="UNSUPPORTED", reason="not UTF-8 text; file indexed only")
-                exclusions.append({"path": rel, "reason_code": "NON_UTF8", "reason": entry["reason"]})
+                exclusions.append(exclusion_record(
+                    repo, rel, "NON_UTF8", entry["reason"],
+                    category="encoding_failure", source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
+                ))
             except ValueError as exc:
                 entry.update(status="PARSE_ERROR", reason=str(exc))
-                exclusions.append({"path": rel, "reason_code": "PARSE_ERROR", "reason": str(exc)})
+                exclusions.append(exclusion_record(
+                    repo, rel, "PARSE_ERROR", str(exc),
+                    category="parse_failure", source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
+                ))
                 limitations.append(f"{rel}: {exc}")
     # If heuristic parsers collapse distinct declarations onto the same identity, assign
     # deterministic occurrence suffixes in source order. This avoids silent ID collisions.
@@ -197,9 +234,51 @@ def scan(root: Path, repo: str) -> dict:
         limitations.append("repository commit SHA unavailable; output cannot be VERIFIED")
     if exclusions:
         limitations.append("one or more files or directories are explicitly excluded, unsupported, or have parse/read errors; catalog is not complete")
+
+    # Publish parser coverage by language instead of letting a successful scan imply
+    # complete extraction. Regex-based languages are explicitly heuristic; formats
+    # without an extractor remain visible as unsupported rather than silently omitted.
+    symbols_by_path = {}
+    for symbol in symbols:
+        symbols_by_path.setdefault(symbol["path"], 0)
+        symbols_by_path[symbol["path"]] += 1
+    parser_coverage = {}
+    for language in sorted({item["language"] for item in files}):
+        language_files = [item for item in files if item["language"] == language]
+        modes = {
+            "python": "python_ast",
+            **{key: "heuristic_regex" for key in PATTERNS},
+        }
+        mode = modes.get(language, "none")
+        analysed = sum(item["status"] == "ANALYSED" for item in language_files)
+        unsupported = sum(item["status"] == "UNSUPPORTED" for item in language_files)
+        parse_errors = sum(item["status"] == "PARSE_ERROR" for item in language_files)
+        skipped = sum(item["status"] == "SKIPPED" for item in language_files)
+        symbol_count = sum(symbols_by_path.get(item["path"], 0) for item in language_files)
+        if analysed + unsupported + parse_errors == 0 and skipped:
+            coverage_status = "EXCLUDED_BY_POLICY"
+        elif mode == "none":
+            coverage_status = "UNSUPPORTED"
+        elif unsupported or parse_errors:
+            coverage_status = "PARTIAL"
+        elif mode == "heuristic_regex":
+            coverage_status = "HEURISTIC_PARTIAL"
+        else:
+            coverage_status = "DETECTED_NOT_VERIFIED"
+        parser_coverage[language] = {
+            "parser_mode": mode,
+            "files_seen": len(language_files),
+            "files_excluded_by_policy": skipped,
+            "files_analysed": analysed,
+            "unsupported_files": unsupported,
+            "parse_errors": parse_errors,
+            "symbols_detected": symbol_count,
+            "status": coverage_status,
+        }
     return {"schema_version": SCHEMA_VERSION, "repository": repo, "observed_commit_sha": commit,
             "generated_at": datetime.now(timezone.utc).isoformat(), "status": "DETECTED",
             "files": files, "symbols": sorted(symbols, key=lambda s: (s["path"], s["source_start_line"], s["qualified_name"])),
+            "parser_coverage": parser_coverage,
             "exclusions": exclusions, "limitations": limitations}
 
 def reconcile(current: dict, baseline: dict) -> dict:

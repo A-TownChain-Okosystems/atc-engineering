@@ -93,6 +93,44 @@
         "additionalProperties": false
       }
     },
+    "parser_coverage": {
+      "type": "object",
+      "description": "Per-language extraction coverage. These metrics are DETECTED evidence and do not establish completeness or verification.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "parser_mode",
+          "files_seen",
+          "files_excluded_by_policy",
+          "files_analysed",
+          "unsupported_files",
+          "parse_errors",
+          "symbols_detected",
+          "status"
+        ],
+        "properties": {
+          "parser_mode": {
+            "enum": ["python_ast", "heuristic_regex", "none"]
+          },
+          "files_seen": { "type": "integer", "minimum": 0 },
+          "files_excluded_by_policy": { "type": "integer", "minimum": 0 },
+          "files_analysed": { "type": "integer", "minimum": 0 },
+          "unsupported_files": { "type": "integer", "minimum": 0 },
+          "parse_errors": { "type": "integer", "minimum": 0 },
+          "symbols_detected": { "type": "integer", "minimum": 0 },
+          "status": {
+            "enum": [
+              "EXCLUDED_BY_POLICY",
+              "UNSUPPORTED",
+              "PARTIAL",
+              "HEURISTIC_PARTIAL",
+              "DETECTED_NOT_VERIFIED"
+            ]
+          }
+        }
+      }
+    },
     "symbols": {
       "type": "array",
       "items": {
@@ -275,11 +313,25 @@
       "items": {
         "type": "object",
         "required": [
+          "exclusion_id",
+          "repository",
           "path",
           "reason_code",
-          "reason"
+          "category",
+          "reason",
+          "rationale",
+          "source_blob_sha",
+          "evidence"
         ],
         "properties": {
+          "exclusion_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "repository": {
+            "type": "string",
+            "minLength": 1
+          },
           "path": {
             "type": "string",
             "minLength": 1
@@ -297,9 +349,55 @@
               "SYMLINK_NOT_FOLLOWED"
             ]
           },
+          "category": {
+            "enum": [
+              "read_failure",
+              "archived",
+              "vendored",
+              "generated",
+              "unsupported_format",
+              "encoding_failure",
+              "parse_failure",
+              "scanner_policy",
+              "safety_boundary"
+            ]
+          },
           "reason": {
             "type": "string",
             "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_blob_sha": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "reference"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reference": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            }
           }
         },
         "additionalProperties": false
