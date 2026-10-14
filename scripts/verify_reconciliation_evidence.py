@@ -92,6 +92,9 @@ class GitHubActionsEvidenceVerifier:
         jobs = jobs_payload.get("jobs")
         if not isinstance(jobs, list):
             raise EvidenceVerificationError("workflow jobs list is missing")
+        total_jobs = jobs_payload.get("total_count")
+        if not isinstance(total_jobs, int) or total_jobs != len(jobs):
+            raise EvidenceVerificationError("workflow jobs response is incomplete or paginated; refusing partial evidence")
         matches = [job for job in jobs if isinstance(job, dict) and job.get("name") == job_name]
         if len(matches) != 1:
             raise EvidenceVerificationError("named job is missing or ambiguous")
@@ -118,11 +121,10 @@ class GitHubActionsEvidenceVerifier:
         if not logs.strip():
             raise EvidenceVerificationError("job logs are empty")
         expected_log_hash = item.get("log_sha256")
-        if expected_log_hash is not None:
-            if not isinstance(expected_log_hash, str) or not SHA256.fullmatch(expected_log_hash):
-                raise EvidenceVerificationError("log_sha256 is malformed")
-            if log_sha256 != expected_log_hash:
-                raise EvidenceVerificationError("job log SHA-256 mismatch")
+        if not isinstance(expected_log_hash, str) or not SHA256.fullmatch(expected_log_hash):
+            raise EvidenceVerificationError("log_sha256 must be supplied as a full lowercase SHA-256")
+        if log_sha256 != expected_log_hash:
+            raise EvidenceVerificationError("job log SHA-256 mismatch")
 
         artifact_verified = False
         artifact_id = item.get("artifact_id")
@@ -136,6 +138,9 @@ class GitHubActionsEvidenceVerifier:
             artifacts = artifacts_payload.get("artifacts")
             if not isinstance(artifacts, list):
                 raise EvidenceVerificationError("workflow artifact list is missing")
+            total_artifacts = artifacts_payload.get("total_count")
+            if not isinstance(total_artifacts, int) or total_artifacts != len(artifacts):
+                raise EvidenceVerificationError("workflow artifact response is incomplete or paginated; refusing partial evidence")
             found = [a for a in artifacts if isinstance(a, dict) and a.get("id") == artifact_id]
             if len(found) != 1:
                 raise EvidenceVerificationError("artifact is missing or ambiguous for the referenced run")
