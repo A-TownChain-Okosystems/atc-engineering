@@ -44,8 +44,8 @@ class CatalogTests(unittest.TestCase):
     def test_git_worktree_metadata_is_not_inventoried(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / ".git").write_text("gitdir: /tmp/example/.git/worktrees/sample\\n", encoding="utf-8")
-            (root / "source.py").write_text("def visible(): pass\\n", encoding="utf-8")
+            (root / ".git").write_text("gitdir: /tmp/example/.git/worktrees/sample\n", encoding="utf-8")
+            (root / "source.py").write_text("def visible(): pass\n", encoding="utf-8")
             result = catalog.scan(root, "owner/sample")
             paths = {entry["path"] for entry in result["files"]}
             self.assertIn("source.py", paths)
