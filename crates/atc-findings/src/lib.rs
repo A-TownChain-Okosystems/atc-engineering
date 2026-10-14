@@ -181,7 +181,26 @@ impl FindingRegistry {
             } else {
                 ","
             };
-            out.push_str(&format!("    {{\"id\":\"{}\",\"repository\":\"{}\",\"code\":\"{}\",\"category\":\"{}\",\"severity\":\"{}\",\"state\":\"{}\",\"iteration\":{}}}{}\n", esc(&f.id), esc(&f.repository), esc(&f.code), esc(&f.category), f.severity.as_str(), f.state.as_str(), f.iteration, comma));
+            let path = f
+                .path
+                .as_ref()
+                .map(|value| format!("\\\"{}\\\"", esc(value)))
+                .unwrap_or_else(|| "null".to_string());
+            out.push_str(&format!(
+                "    {{\\\"id\\\":\\\"{}\\\",\\\"repository\\\":\\\"{}\\\",\\\"path\\\":{},\\\"code\\\":\\\"{}\\\",\\\"category\\\":\\\"{}\\\",\\\"severity\\\":\\\"{}\\\",\\\"state\\\":\\\"{}\\\",\\\"description\\\":\\\"{}\\\",\\\"root_cause\\\":\\\"{}\\\",\\\"implementation_plan\\\":\\\"{}\\\",\\\"iteration\\\":{}}}{}\\n",
+                esc(&f.id),
+                esc(&f.repository),
+                path,
+                esc(&f.code),
+                esc(&f.category),
+                f.severity.as_str(),
+                f.state.as_str(),
+                esc(&f.description),
+                esc(&f.root_cause),
+                esc(&f.implementation_plan),
+                f.iteration,
+                comma
+            ));
         }
         out.push_str("  ],\n  \"immutable\": true\n}\n");
         fs::write(path, out)
@@ -190,14 +209,61 @@ impl FindingRegistry {
 }
 
 fn esc(s: &str) -> String {
-    s.replace('\\', "\\\\")
-        .replace('"', "\\\"")
-        .replace('\n', "\\n")
+    let mut escaped = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '"' => escaped.push_str("\\\""),
+            '\\' => escaped.push_str("\\\\"),
+            '\u{08}' => escaped.push_str("\\b"),
+            '\u{0C}' => escaped.push_str("\\f"),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            control if control <= '\u{1F}' => {
+                escaped.push_str(&format!("\\u{:04x}", control as u32));
+            }
+            other => escaped.push(other),
+        }
+    }
+    escaped
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn json_escaping_covers_every_json_control_character() {
+        let input: String = (0u8..=0x1f).map(char::from).collect();
+        let escaped = esc(&input);
+        assert!(!escaped.chars().any(|ch| ch <= '\u{1f}'));
+        assert!(escaped.contains("\\u0000"));
+        assert!(escaped.contains("\\b"));
+        assert!(escaped.contains("\\f"));
+        assert!(escaped.contains("\\t"));
+        assert!(escaped.contains("\\u001f"));
+    }
+
+    #[test]
+    fn registry_json_includes_all_finding_fields() {
+        let mut finding = Finding::new(
+            "FND-2", "repo", "ERR-2", "error", FindingSeverity::Medium, "line one\nline two",
+        ).unwrap();
+        finding.path = Some("src/main.rs".into());
+        finding.root_cause = "unknown".into();
+        finding.implementation_plan = "investigate".into();
+        let mut registry = FindingRegistry::default();
+        registry.register(finding).unwrap();
+        let root = std::env::temp_dir().join(format!("atc-findings-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        registry.write_json(&root).unwrap();
+        let output = fs::read_to_string(root.join(".atc/findings/registry.json")).unwrap();
+        assert!(output.contains("\\\"path\\\":\\\"src/main.rs\\\""));
+        assert!(output.contains("\\\"description\\\":\\\"line one\\\\nline two\\\""));
+        assert!(output.contains("\\\"root_cause\\\":\\\"unknown\\\""));
+        assert!(output.contains("\\\"implementation_plan\\\":\\\"investigate\\\""));
+        fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn lifecycle_is_enforced() {
         let mut f = Finding::new(
