@@ -380,6 +380,7 @@ jobs:
           PY
 
       - name: Independently compare source and catalog inventories in both directions
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
