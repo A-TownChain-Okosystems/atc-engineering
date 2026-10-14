@@ -187,10 +187,10 @@
     }
   ],
   "required_follow_up": [
-    "Repository listing and default-branch SHA pinning completed for the 26 non-archived repositories visible to the authenticated account; seven archived repositories were excluded from the active scan but must be considered if they are in scope.",
-    "Code-search index is unavailable for 12 active repositories; inspect their pinned Git trees directly or record an explicit access/tooling blocker. Do not infer absence of consumers from no search results.",
-    "For each repository, inspect all relevant workflow files, scripts, schemas, report producers, status readers/writers, and generated consumers at the pinned SHA.",
-    "Classify each hit as normative specification, producer, consumer, schema, test, documentation, unrelated homonym, or unknown; unknown classifications remain blockers.",
+    "Repository listing and default-branch SHA pinning completed for the 26 non-archived repositories visible to the authenticated account; seven archived repositories were excluded from the active scan but must be considered if in scope.",
+    "Directly enumerate repository trees at pinned SHAs for the 12 active repositories not indexed for code search and scan them locally or via Git tree APIs.",
+    "For all 26 repositories, inspect workflow files, scripts, schemas, report producers, status readers/writers, and generated consumers at pinned SHAs; code search is only supplemental discovery.",
+    "Classify every candidate as normative specification, producer, consumer, schema, test, documentation, unrelated homonym, or unknown; unknown classifications remain blockers.",
     "Fetch referenced workflow runs, jobs, steps, exit codes, logs, and artifacts and bind each evidence record to the exact source SHA.",
     "Add consumer-specific negative tests proving DETECTED and RECONCILED cannot be promoted to VERIFIED, then run exact-head CI after the complete audit inventory is updated."
   ],
@@ -370,5 +370,81 @@
         "code_search_indexed": false
       }
     ]
+  },
+  "search_round_2": {
+    "queries": [
+      "\"DETECTED\" \"RECONCILED\" \"VERIFIED\"",
+      "\"independent-bidirectional-reconciliation.json\"",
+      "\"reconciliation-report.json\"",
+      "\"DISCOVERED_NOT_SEMANTICALLY_VERIFIED\"",
+      "\"status == \\\"VERIFIED\\\"\"",
+      "\"status\": \"RECONCILED\""
+    ],
+    "result_summary": [
+      {
+        "repository": "A-TownChain-Okosystems/atc-algorithm",
+        "path": "docs/function-catalog.json",
+        "ref": "f25b43383433766c43df6c5c494ecb70cdb4a4b7",
+        "classification": "catalog producer/artifact",
+        "finding": "Status values are domain-specific; evidence reports tests NOT_RECONCILED and semantic contracts verified count 0."
+      },
+      {
+        "repository": "A-TownChain-Okosystems/atc-algorithm",
+        "path": "schemas/function-catalog.schema.json",
+        "ref": "f25b43383433766c43df6c5c494ecb70cdb4a4b7",
+        "classification": "schema",
+        "finding": "Constrains catalog statuses; does not itself establish behavioral verification."
+      },
+      {
+        "repository": "A-TownChain-Okosystems/a-townchain-ecosystem",
+        "path": "tools/scan_public_symbols.py",
+        "ref": "c91c8c6fc60b1c28403c3125f728495e2efa124b",
+        "classification": "discovery producer",
+        "finding": "Scans public symbols; discovery output must not be treated as proof of full function coverage."
+      },
+      {
+        "repository": "A-TownChain-Okosystems/a-townchain-ecosystem",
+        "path": "tools/reconcile_component_function_catalog.py",
+        "ref": "c91c8c6fc60b1c28403c3125f728495e2efa124b",
+        "classification": "reconciliation producer",
+        "finding": "Explicitly warns dynamic/generated/macro-expanded/conditional/indirect entrypoints may be absent and SHA mismatch blocks reconciliation."
+      },
+      {
+        "repository": "A-TownChain-Okosystems/a-townchain-ecosystem",
+        "path": "docs/architecture/ATC-COMPONENT-FUNCTION-CATALOG-001.md",
+        "ref": "c91c8c6fc60b1c28403c3125f728495e2efa124b",
+        "classification": "normative/architecture documentation",
+        "finding": "Catalog currently describes 30 components, 98 functions, 7 cross-component interfaces and 7 production gates; these counts do not prove source completeness."
+      },
+      {
+        "repository": "A-TownChain-Okosystems/a-townchain-ecosystem",
+        "path": "docs/architecture/ATC-COMPONENT-FUNCTION-SPECIFICATION-001.json",
+        "ref": "c91c8c6fc60b1c28403c3125f728495e2efa124b",
+        "classification": "normative specification",
+        "finding": "Explicitly says unknown/unscanned functions must not be marked absent and completeness cannot be claimed until active repositories and public/exported entrypoints are covered."
+      },
+      {
+        "repository": "A-TownChain-Okosystems/globus-os",
+        "path": "ROADMAP.md",
+        "ref": "3bf000143ec9bfad79d0bacc36b99b8111178b95",
+        "classification": "roadmap/status documentation",
+        "finding": "Inventory reconciliation and status synchronization remain listed work; status changes are tied to current-SHA evidence."
+      },
+      {
+        "repository": "A-TownChain-Okosystems/atc-engineering",
+        "path": "docs/ENGINEERING_AUDIT.md",
+        "ref": "b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4",
+        "classification": "audit documentation",
+        "finding": "Uses reconciled/verified vocabulary as audit metadata; not itself an executable consumer."
+      },
+      {
+        "repository": "A-TownChain-Okosystems/a-townchain-ecosystem",
+        "path": "docs/governance/ATC-PR-REGISTRY-001-POLICY.md",
+        "ref": "c91c8c6fc60b1c28403c3125f728495e2efa124b",
+        "classification": "normative policy",
+        "finding": "Has its own PR registry status vocabulary and completeness limitations; separate from reconciliation status contract."
+      }
+    ],
+    "limitations": "This search round returns additional candidates but does not inspect every path or establish exhaustive producer/consumer classification. Queries for the two report filenames returned no results; absence in code search is not evidence that no such files or consumers exist."
   }
 }
