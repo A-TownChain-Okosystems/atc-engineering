@@ -146,6 +146,84 @@ def extract_heuristic(repo: str, rel: str, language: str, text: str, sha: str, c
             ["heuristic declaration match; body range, overloads, nested scopes, visibility, and signature may be incomplete"]))
     return out
 
+def validate_document_format(language: str, text: str) -> None:
+    """Parse non-executable repository formats with format-specific parsers."""
+    if language == "json":
+        json.loads(text)
+    elif language == "toml":
+        import tomllib
+        tomllib.loads(text)
+    elif language == "yaml":
+        import yaml
+        list(yaml.compose_all(text))
+    elif language == "markdown":
+        from markdown_it import MarkdownIt
+        MarkdownIt("commonmark").parse(text)
+    else:
+        raise ValueError(f"no document parser for {language}")
+
+
+def extract_tree_sitter(repo: str, rel: str, language: str, text: str, sha: str, commit: str) -> list[dict]:
+    """Extract Rust/Bash function declarations from concrete syntax trees."""
+    from tree_sitter_language_pack import get_parser
+
+    parser_language = {"rust": "rust", "shell": "bash"}.get(language)
+    if parser_language is None:
+        raise ValueError(f"no tree-sitter grammar for {language}")
+    tree = get_parser(parser_language).parse(text.encode("utf-8"))
+    root = tree.root_node
+    if root.has_error:
+        raise ValueError(f"{parser_language} syntax tree contains ERROR or missing nodes")
+
+    source = text.encode("utf-8")
+    records = []
+    declaration_types = {"rust": {"function_item", "function_signature_item"},
+                         "shell": {"function_definition"}}
+    def walk(node, scope=""):
+        if node.type in declaration_types[language]:
+            name_node = node.child_by_field_name("name")
+            if name_node is None and language == "shell":
+                name_node = next((child for child in node.named_children if child.type in {"word", "identifier"}), None)
+            if name_node is None:
+                raise ValueError(f"parser found {node.type} without a name at line {node.start_point.row + 1}")
+            name = source[name_node.start_byte:name_node.end_byte].decode("utf-8").strip()
+            qualified = f"{scope}::{name}" if scope else name
+            body = node.child_by_field_name("body")
+            signature_end = body.start_byte if body is not None else node.end_byte
+            signature = source[node.start_byte:signature_end].decode("utf-8").strip().rstrip("{").strip()
+            if not signature:
+                raise ValueError(f"empty parser-derived signature for {qualified} at line {node.start_point.row + 1}")
+            start_line = node.start_point.row + 1
+            end_line = node.end_point.row + 1
+            visibility = "public" if re.search(r"^\\s*pub\\b", signature) else ("private" if language == "shell" else "unknown")
+            records.append(symbol_record(repo, rel, language, "function", qualified, start_line, end_line,
+                                         signature, visibility, sha, commit, []))
+        child_scope = scope
+        if language == "rust" and node.type in {"mod_item", "trait_item", "impl_item"}:
+            scope_node = node.child_by_field_name("name") or node.child_by_field_name("type")
+            if scope_node is not None:
+                scope_name = source[scope_node.start_byte:scope_node.end_byte].decode("utf-8").strip()
+                child_scope = f"{scope}::{scope_name}" if scope else scope_name
+        for child in node.named_children:
+            walk(child, child_scope)
+    walk(root)
+    return records
+
+
+def explicit_unknown_classification(rel: str) -> tuple[str, str] | None:
+    """Allowlist metadata files with no executable symbol semantics, per path."""
+    name = Path(rel).name.lower()
+    if name == ".gitignore":
+        return ("repository_metadata", "Git ignore patterns configure repository tooling and contain no executable declarations")
+    if name == "cargo.lock":
+        return ("dependency_lockfile", "Cargo.lock is a generated dependency-resolution lockfile, not a source declaration file")
+    if name == "license":
+        return ("legal_text", "LICENSE contains legal terms and is not an executable source format")
+    if name == "codeowners":
+        return ("ownership_metadata", "CODEOWNERS maps paths to reviewers and is not an executable source format")
+    return None
+
+
 def scan(root: Path, repo: str) -> dict:
     root, commit = root.resolve(), git_sha(root)
     files, symbols, limitations, exclusions = [], [], [], []
