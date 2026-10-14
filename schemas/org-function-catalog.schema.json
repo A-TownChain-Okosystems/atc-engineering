@@ -292,7 +292,9 @@
               "GENERATED",
               "UNSUPPORTED_FORMAT",
               "NON_UTF8",
-              "PARSE_ERROR"
+              "PARSE_ERROR",
+              "EXCLUDED_DIRECTORY",
+              "SYMLINK_NOT_FOLLOWED"
             ]
           },
           "reason": {
