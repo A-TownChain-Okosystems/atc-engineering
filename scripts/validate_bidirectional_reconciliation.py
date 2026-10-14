@@ -102,7 +102,7 @@ def _errors_for_inventory(label: str, doc: dict) -> list[dict]:
     return errors
 
 
-def reconcile(source: dict, catalog: dict) -> dict:
+def reconcile(source: dict, catalog: dict, expected_deltas: dict | None = None) -> dict:
     errors = _errors_for_inventory("source", source) + _errors_for_inventory("catalog", catalog)
     if source.get("repository") != catalog.get("repository"):
         errors.append({"code": "REPOSITORY_MISMATCH", "side": "pair", "detail": f"{source.get('repository')} != {catalog.get('repository')}"})
@@ -116,13 +116,76 @@ def reconcile(source: dict, catalog: dict) -> dict:
 
     source_files = unique_map(source.get("files", []), "path")
     catalog_files = unique_map(catalog.get("files", []), "path")
-    for path in sorted(set(source_files) - set(catalog_files)):
-        errors.append({"code": "SOURCE_FILE_MISSING_FROM_CATALOG_CENSUS", "side": "source_to_catalog", "detail": path})
-    for path in sorted(set(catalog_files) - set(source_files)):
-        errors.append({"code": "CATALOG_FILE_NOT_IN_SOURCE_CENSUS", "side": "catalog_to_source", "detail": path})
-    for path in sorted(set(source_files) & set(catalog_files)):
-        if source_files[path].get("blob_sha") != catalog_files[path].get("blob_sha"):
-            errors.append({"code": "FILE_BLOB_MISMATCH", "side": "pair", "detail": path})
+    actual_file_deltas = {}
+    for path in sorted(set(source_files) | set(catalog_files)):
+        left, right = source_files.get(path), catalog_files.get(path)
+        if left is None or right is None or left.get("blob_sha") != right.get("blob_sha"):
+            actual_file_deltas[path] = {
+                "change_type": "added" if left is None else ("deleted" if right is None else "modified"),
+                "source_blob_sha": left.get("blob_sha") if left else None,
+                "catalog_blob_sha": right.get("blob_sha") if right else None,
+            }
+
+    expected_by_path = {}
+    if expected_deltas is None:
+        for path, delta in sorted(actual_file_deltas.items()):
+            errors.append({"code": "UNEXPLAINED_FILE_DELTA", "side": "pair", "detail": f"{path}:{delta['change_type']}"})
+    else:
+        if expected_deltas.get("repository") != source.get("repository") or expected_deltas.get("repository") != catalog.get("repository"):
+            errors.append({"code": "EXPECTED_DELTA_REPOSITORY_MISMATCH", "side": "pair", "detail": str(expected_deltas.get("repository"))})
+        if expected_deltas.get("source_commit_sha") != source.get("observed_commit_sha") or expected_deltas.get("catalog_commit_sha") != catalog.get("observed_commit_sha"):
+            errors.append({"code": "EXPECTED_DELTA_COMMIT_MISMATCH", "side": "pair", "detail": f"{expected_deltas.get('source_commit_sha')}...{expected_deltas.get('catalog_commit_sha')}"})
+        if expected_deltas.get("status") != "REVIEWED_EXPECTED_CHANGE_SET" or expected_deltas.get("merge_approval") != "NOT_GRANTED":
+            errors.append({"code": "EXPECTED_DELTA_GOVERNANCE_INVALID", "side": "pair", "detail": "expected change set must remain reviewed evidence, not merge approval"})
+        contract_evidence = expected_deltas.get("evidence")
+        if not isinstance(contract_evidence, list) or not contract_evidence or any(not isinstance(item, str) or not item for item in contract_evidence):
+            errors.append({"code": "EXPECTED_DELTA_EVIDENCE_MISSING", "side": "pair", "detail": "contract evidence must be non-empty"})
+        entries = expected_deltas.get("expected_deltas")
+        if not isinstance(entries, list):
+            errors.append({"code": "EXPECTED_DELTA_LIST_INVALID", "side": "pair", "detail": "expected_deltas must be an array"})
+            entries = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                errors.append({"code": "EXPECTED_DELTA_RECORD_INVALID", "side": "pair", "detail": "entry must be an object"})
+                continue
+            path = entry.get("path")
+            if not isinstance(path, str) or not path:
+                errors.append({"code": "EXPECTED_DELTA_PATH_INVALID", "side": "pair", "detail": str(path)})
+                continue
+            if path in expected_by_path:
+                errors.append({"code": "EXPECTED_DELTA_PATH_DUPLICATE", "side": "pair", "detail": path})
+                continue
+            expected_by_path[path] = entry
+            actual = actual_file_deltas.get(path)
+            if actual is None:
+                errors.append({"code": "STALE_EXPECTED_FILE_DELTA", "side": "pair", "detail": path})
+                continue
+            for field in ("change_type", "source_blob_sha", "catalog_blob_sha"):
+                if entry.get(field) != actual.get(field):
+                    errors.append({"code": "EXPECTED_FILE_DELTA_BINDING_MISMATCH", "side": "pair", "detail": f"{path}:{field}:{entry.get(field)!r}!={actual.get(field)!r}"})
+            if not isinstance(entry.get("rationale"), str) or not entry["rationale"].strip():
+                errors.append({"code": "EXPECTED_FILE_DELTA_RATIONALE_MISSING", "side": "pair", "detail": path})
+            evidence = entry.get("evidence")
+            if not isinstance(evidence, list) or not evidence or any(not isinstance(item, str) or not item for item in evidence):
+                errors.append({"code": "EXPECTED_FILE_DELTA_EVIDENCE_MISSING", "side": "pair", "detail": path})
+        for path, delta in sorted(actual_file_deltas.items()):
+            if path not in expected_by_path:
+                errors.append({"code": "UNEXPLAINED_FILE_DELTA", "side": "pair", "detail": f"{path}:{delta['change_type']}"})
+
+    # Exclusion lists are reconciled independently of file changes. Stable IDs
+    # are only identity keys; every evidence-bearing field must also match.
+    source_exclusions = unique_map(source.get("exclusions", []), "exclusion_id")
+    catalog_exclusions = unique_map(catalog.get("exclusions", []), "exclusion_id")
+    for exclusion_id in sorted(set(source_exclusions) - set(catalog_exclusions)):
+        errors.append({"code": "SOURCE_EXCLUSION_MISSING_FROM_CATALOG", "side": "source_to_catalog", "detail": str(exclusion_id)})
+    for exclusion_id in sorted(set(catalog_exclusions) - set(source_exclusions)):
+        errors.append({"code": "CATALOG_EXCLUSION_MISSING_FROM_SOURCE", "side": "catalog_to_source", "detail": str(exclusion_id)})
+    exclusion_fields = ("repository", "path", "reason_code", "category", "reason", "rationale", "source_blob_sha", "evidence")
+    for exclusion_id in sorted(set(source_exclusions) & set(catalog_exclusions)):
+        left, right = source_exclusions[exclusion_id], catalog_exclusions[exclusion_id]
+        for field in exclusion_fields:
+            if left.get(field) != right.get(field):
+                errors.append({"code": "EXCLUSION_BINDING_MISMATCH", "side": "pair", "detail": f"{exclusion_id}:{field}"})
 
     source_symbols = unique_map(source.get("symbols", []), "symbol_id")
     catalog_symbols = unique_map(catalog.get("symbols", []), "symbol_id")
@@ -166,11 +229,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source_inventory")
     parser.add_argument("catalog_inventory")
+    parser.add_argument("--expected-deltas", default=None, help="reviewed exact commit-to-commit file delta contract")
     parser.add_argument("--output", default="-")
     args = parser.parse_args()
     source = json.loads(Path(args.source_inventory).read_text(encoding="utf-8"))
     catalog = json.loads(Path(args.catalog_inventory).read_text(encoding="utf-8"))
-    report = reconcile(source, catalog)
+    expected_deltas = json.loads(Path(args.expected_deltas).read_text(encoding="utf-8")) if args.expected_deltas else None
+    report = reconcile(source, catalog, expected_deltas)
     rendered = json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
     if args.output == "-":
         print(rendered, end="")
