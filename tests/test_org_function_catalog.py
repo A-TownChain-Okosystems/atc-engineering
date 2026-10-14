@@ -85,6 +85,19 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(all(record["signature"].strip() for record in records))
         self.assertTrue(all(not record["limitations"] for record in records))
 
+    def test_symlink_is_inventoried_as_git_blob_without_following_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "target.txt").write_text("target contents", encoding="utf-8")
+            (root / "link.txt").symlink_to("target.txt")
+            result = catalog.scan(root, "owner/sample")
+            link = next(item for item in result["files"] if item["path"] == "link.txt")
+            self.assertEqual(link["status"], "SKIPPED")
+            self.assertEqual(link["blob_sha"], catalog.blob_sha(b"target.txt"))
+            exclusion = next(item for item in result["exclusions"] if item["path"] == "link.txt")
+            self.assertEqual(exclusion["reason_code"], "SYMLINK_FILE_NOT_FOLLOWED")
+            self.assertIn("link.txt#" + link["blob_sha"], exclusion["evidence"][0]["reference"])
+
     def test_git_worktree_metadata_is_not_inventoried(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
