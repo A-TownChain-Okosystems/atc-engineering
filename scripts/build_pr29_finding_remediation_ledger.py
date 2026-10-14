@@ -33,7 +33,7 @@ FIX_TESTS = {
     "PARSER_NOT_AUTHORITATIVE": {
         "root_cause": "The baseline reported unsupported or non-authoritative parser coverage for the required formats; current inventories use explicit parser identities and fail closed on parse errors.",
         "fix_refs": ["scripts/org_function_catalog.py#validate_document_format", "scripts/org_function_catalog.py#extract_tree_sitter", "schemas/org-function-catalog.schema.json", "scripts/validate_bidirectional_reconciliation.py"],
-        "test_refs": ["tests/test_org_function_catalog.py#test_document_parsers_accept_valid_and_reject_malformed_inputs", "tests/test_org_function_catalog.py#test_scan_reports_parser_coverage_per_language_and_does_not_claim_verification", "tests/test_bidirectional_reconciliation.py#test_parser_coverage_must_be_authoritative"],
+        "test_refs": ["tests/test_org_function_catalog.py#test_document_parsers_accept_valid_and_reject_malformed_inputs", "tests/test_org_function_catalog.py#test_scan_reports_parser_coverage_per_language_and_does_not_claim_verification", "tests/test_bidirectional_reconciliation.py#test_heuristic_parser_cannot_be_authoritative"],
     },
     "CATALOG_FILE_NOT_IN_SOURCE_CENSUS": {
         "root_cause": "The pinned catalog commit contains a reviewed added evidence/schema file that does not exist in the earlier pinned source commit; the difference is bound by the exact Git trees and reviewed expected-delta contract.",
