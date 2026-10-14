@@ -111,7 +111,7 @@
         ],
         "properties": {
           "parser_mode": {
-            "enum": ["python_ast", "heuristic_regex", "none"]
+            "enum": ["python_ast", "tree_sitter_rust_cst", "tree_sitter_bash_cst", "stdlib_json", "commonmark_ast", "stdlib_tomllib", "pyyaml_ast", "explicit_unknown_classifier", "heuristic_regex", "none"]
           },
           "files_seen": { "type": "integer", "minimum": 0 },
           "files_excluded_by_policy": { "type": "integer", "minimum": 0 },
@@ -121,6 +121,7 @@
           "symbols_detected": { "type": "integer", "minimum": 0 },
           "status": {
             "enum": [
+              "AUTHORITATIVE_COMPLETE",
               "EXCLUDED_BY_POLICY",
               "UNSUPPORTED",
               "PARTIAL",
@@ -343,8 +344,14 @@
               "VENDORED",
               "GENERATED",
               "UNSUPPORTED_FORMAT",
+              "UNCLASSIFIED_UNKNOWN_FORMAT",
               "NON_UTF8",
               "PARSE_ERROR",
+              "REPOSITORY_METADATA",
+              "DEPENDENCY_LOCKFILE",
+              "LEGAL_TEXT",
+              "OWNERSHIP_METADATA",
+              "SYMLINK_FILE_NOT_FOLLOWED",
               "EXCLUDED_DIRECTORY",
               "SYMLINK_NOT_FOLLOWED"
             ]
@@ -359,7 +366,11 @@
               "encoding_failure",
               "parse_failure",
               "scanner_policy",
-              "safety_boundary"
+              "safety_boundary",
+              "repository_metadata",
+              "dependency_lockfile",
+              "legal_text",
+              "ownership_metadata"
             ]
           },
           "reason": {
