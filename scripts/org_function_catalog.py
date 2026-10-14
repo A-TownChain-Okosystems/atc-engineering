@@ -300,7 +300,7 @@ def scan(root: Path, repo: str) -> dict:
                         entry.update(status="SKIPPED", classification=category, reason=reason)
                         exclusions.append(exclusion_record(
                             repo, rel, category.upper(), reason, category=category,
-                            source_blob_sha=sha, evidence_ref=f"explicit-unknown-classifier:{category};{rel}#{sha}",
+                            source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
                         ))
                 else:
                     entry.update(status="UNSUPPORTED", reason=f"no authoritative parser configured for language={language}")
