@@ -101,16 +101,23 @@ jobs:
               "unmapped_producer_bindings": sum(c["producer_binding"] == "UNMAPPED" for c in census["contracts"]),
               "unmapped_consumer_bindings": sum(c["consumer_binding"] == "UNMAPPED" for c in census["contracts"]),
               "contracts_without_versioned_schema": sum(c["schema"] is None for c in census["contracts"]),
-              "fully_reconciled_contracts": sum(c["status"] in {"RECONCILED", "VERIFIED"} for c in census["contracts"]),
+              "reconciled_contracts": sum(c["status"] == "RECONCILED" for c in census["contracts"]),
+              "verified_contracts": sum(c["status"] == "VERIFIED" for c in census["contracts"]),
           }
           if census["counts"] != expected:
               raise SystemExit(f"interface census count mismatch: expected={expected}; actual={census['counts']}")
-          if census["status"] in {"RECONCILED", "VERIFIED"} and (
+          if census["status"] == "RECONCILED" and (
               expected["unmapped_producer_bindings"] or expected["unmapped_consumer_bindings"]
               or expected["contracts_without_versioned_schema"]
-              or expected["fully_reconciled_contracts"] != len(census["contracts"])
+              or expected["reconciled_contracts"] != len(census["contracts"])
           ):
-              raise SystemExit("interface census cannot claim reconciled/verified while mappings or contracts remain open")
+              raise SystemExit("interface census cannot claim RECONCILED while mappings remain open or any contract lacks RECONCILED status")
+          if census["status"] == "VERIFIED" and (
+              expected["unmapped_producer_bindings"] or expected["unmapped_consumer_bindings"]
+              or expected["contracts_without_versioned_schema"]
+              or expected["verified_contracts"] != len(census["contracts"])
+          ):
+              raise SystemExit("interface census cannot claim VERIFIED while mappings remain open or any contract lacks VERIFIED status")
           if census["status"] != "BLOCKED":
               raise SystemExit("initial interface census must remain BLOCKED until all listed mappings are reconciled")
           print(json.dumps({"status": census["status"], "counts": expected, "source_bindings": "MATCHED_TO_PINNED_TREE"}, sort_keys=True))
