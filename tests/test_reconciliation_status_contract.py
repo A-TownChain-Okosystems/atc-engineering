@@ -1,4 +1,8 @@
+import json
 import unittest
+from pathlib import Path
+
+import jsonschema
 
 from scripts.reconciliation_status_contract import (
     StatusContractError,
@@ -106,6 +110,17 @@ class ReconciliationStatusContractTests(unittest.TestCase):
         claim["criteria"][0]["evidence_ids"] = ["missing"]
         with self.assertRaises(StatusContractError):
             validate_verification_claim(claim)
+
+    def test_versioned_json_schema_accepts_valid_claim_and_rejects_promotions(self):
+        schema_path = Path(__file__).resolve().parents[1] / "schemas" / "reconciliation-verification-claim.schema.json"
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        jsonschema.Draft202012Validator.check_schema(schema)
+        jsonschema.validate(valid_claim(), schema)
+        for status in ("DETECTED", "RECONCILED", "GREEN"):
+            invalid = valid_claim()
+            invalid["status"] = status
+            with self.assertRaises(jsonschema.ValidationError):
+                jsonschema.validate(invalid, schema)
 
     def test_explicitly_scoped_verification_claim_passes(self):
         validate_verification_claim(valid_claim())
