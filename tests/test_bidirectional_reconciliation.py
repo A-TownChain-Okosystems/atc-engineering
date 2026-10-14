@@ -76,7 +76,7 @@ class BidirectionalReconciliationTests(unittest.TestCase):
         source, catalog = inventory(), inventory()
         catalog["files"][0]["blob_sha"] = "c" * 40
         report = module.reconcile(source, catalog)
-        self.assertIn("FILE_BLOB_MISMATCH", {item["code"] for item in report["findings"]})
+        self.assertIn("UNEXPLAINED_FILE_DELTA", {item["code"] for item in report["findings"]})
 
 
     def test_reviewed_expected_file_delta_is_exactly_bound_to_both_inventories(self):
