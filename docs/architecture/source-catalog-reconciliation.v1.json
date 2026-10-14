@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "repository": "A-TownChain-Okosystems/atc-engineering",
+  "source_commit_sha": "b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4",
+  "catalog_commit_sha": "5c27a52e476d6ca10ab3650e7d0370a20e741e70",
+  "status": "BLOCKED",
+  "scope": {
+    "source_census": "NOT_RUN",
+    "normative_registry": "NOT_RUN",
+    "parser_coverage": "PARTIAL",
+    "interfaces_contracts": "NOT_RUN",
+    "organization_ownership": "NOT_RUN"
+  },
+  "counts": {
+    "source_files_seen": 117,
+    "catalog_symbols": 342,
+    "missing_catalog_entries": null,
+    "stale_catalog_entries": null,
+    "duplicate_bindings": null,
+    "orphan_catalog_entries": null,
+    "unsupported_files": 79,
+    "parse_errors": null,
+    "unmapped_interfaces": null,
+    "ownership_conflicts": null
+  },
+  "findings": [
+    {
+      "finding_id": "ATCE-RECON-001",
+      "category": "NORMATIVE_ID",
+      "status": "BLOCKED",
+      "description": "The 12 candidate component IDs are proposals; no canonical normative registry binding has been established.",
+      "evidence": []
+    },
+    {
+      "finding_id": "ATCE-RECON-002",
+      "category": "MISSING_ENTRY",
+      "status": "OPEN",
+      "description": "A complete source census and missing-entry diff have not been run; counts remain unknown.",
+      "evidence": []
+    },
+    {
+      "finding_id": "ATCE-RECON-003",
+      "category": "STALE_ENTRY",
+      "status": "OPEN",
+      "description": "Stale, duplicate, and orphan catalog entries have not been exhaustively reconciled against the source tree.",
+      "evidence": []
+    },
+    {
+      "finding_id": "ATCE-RECON-004",
+      "category": "PARSER_COVERAGE",
+      "status": "OPEN",
+      "description": "Current catalog reports 79 explicit exclusions; per-language parser completeness and exclusion correctness remain unverified.",
+      "evidence": []
+    },
+    {
+      "finding_id": "ATCE-RECON-005",
+      "category": "INTERFACE_CONTRACT",
+      "status": "OPEN",
+      "description": "Source-bound interface and contract mapping is incomplete.",
+      "evidence": []
+    },
+    {
+      "finding_id": "ATCE-RECON-006",
+      "category": "OWNERSHIP_CONFLICT",
+      "status": "OPEN",
+      "description": "Organization-wide canonical ownership and duplicate-implementation reconciliation has not been run.",
+      "evidence": []
+    }
+  ],
+  "limitations": [
+    "This is a fail-closed initial reconciliation record, not a completed source-to-catalog diff.",
+    "Null counts mean unknown/not measured; they must not be interpreted as zero.",
+    "The existing 117-file/342-symbol/79-exclusion catalog output is DETECTED evidence only.",
+    "A RECONCILED status requires complete scope dimensions, zero unresolved blocking findings, and exact-head CI evidence."
+  ],
+  "decision_rule": "Do not mark a candidate VERIFIED based only on file existence or CI success. Preserve BLOCKED/OPEN when source, normative, parser, interface, or ownership evidence is missing."
+}
