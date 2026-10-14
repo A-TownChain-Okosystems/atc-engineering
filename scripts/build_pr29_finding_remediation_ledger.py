@@ -159,10 +159,20 @@ def build_ledger(args) -> dict:
     expected_delta, delta_raw = read_json(Path(args.expected_deltas))
     baseline_dir = Path(args.baseline_dir)
     baseline_report, baseline_report_raw = read_json(baseline_dir / "independent-bidirectional-reconciliation.json")
-    baseline_inventories = {
-        "source": read_json(baseline_dir / "source-inventory.json")[0],
-        "catalog": read_json(baseline_dir / "catalog-inventory.json")[0],
+    baseline_source, baseline_source_raw = read_json(baseline_dir / "source-inventory.json")
+    baseline_catalog, baseline_catalog_raw = read_json(baseline_dir / "catalog-inventory.json")
+    baseline_legacy_report, baseline_legacy_raw = read_json(baseline_dir / "reconciliation-report.json")
+    baseline_member_bytes = {
+        "independent-bidirectional-reconciliation.json": baseline_report_raw,
+        "source-inventory.json": baseline_source_raw,
+        "catalog-inventory.json": baseline_catalog_raw,
+        "reconciliation-report.json": baseline_legacy_raw,
     }
+    expected_member_hashes = contract.get("baseline_file_sha256", {})
+    for name, raw in baseline_member_bytes.items():
+        if sha256(raw) != expected_member_hashes.get(name):
+            raise ValueError(f"baseline artifact member SHA-256 mismatch: {name}")
+    baseline_inventories = {"source": baseline_source, "catalog": baseline_catalog}
     current_inventories = {
         "source": read_json(Path(args.source_inventory))[0],
         "catalog": read_json(Path(args.catalog_inventory))[0],
@@ -222,6 +232,8 @@ def build_ledger(args) -> dict:
             "artifact_name": contract.get("baseline_artifact_name"),
             "artifact_sha256": contract.get("baseline_artifact_sha256"),
             "independent_report_sha256": sha256(baseline_report_raw),
+            "legacy_reconciliation_report_sha256": sha256(baseline_legacy_raw),
+            "member_hashes_verified": True,
             "finding_count": len(baseline_report.get("findings", [])),
             "source_commit_sha": contract.get("source_commit_sha"),
             "catalog_commit_sha": contract.get("catalog_commit_sha"),
