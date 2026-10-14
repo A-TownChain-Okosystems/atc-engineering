@@ -157,6 +157,17 @@ def scan(root: Path, repo: str) -> dict:
             entry.update(status="PARSE_ERROR", reason=str(exc))
             exclusions.append({"path": rel, "reason_code": "PARSE_ERROR", "reason": str(exc)})
             limitations.append(f"{rel}: {exc}")
+    # If heuristic parsers collapse distinct declarations onto the same identity, assign
+    # deterministic occurrence suffixes in source order. This avoids silent ID collisions;
+    # relative declaration order, unlike absolute line numbers, survives line insertions.
+    by_id = {}
+    for symbol in symbols:
+        by_id.setdefault(symbol["symbol_id"], []).append(symbol)
+    for base_id, group in by_id.items():
+        if len(group) > 1:
+            for ordinal, symbol in enumerate(sorted(group, key=lambda item: (item["path"], item["source_start_line"], item["qualified_name"])), 1):
+                symbol["symbol_id"] = hashlib.sha256(f"{base_id}:occurrence:{ordinal}".encode("utf-8")).hexdigest()
+            limitations.append(f"duplicate parser identity disambiguated by source order: {base_id}")
     if commit == "0" * 40:
         limitations.append("repository commit SHA unavailable; output cannot be VERIFIED")
     if exclusions:
