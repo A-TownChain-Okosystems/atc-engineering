@@ -185,6 +185,11 @@ def extract_tree_sitter(repo: str, rel: str, language: str, text: str, sha: str,
     stack = [(root, "")]
     while stack:
         node, scope = stack.pop()
+        # Macro token trees are opaque Rust syntax, not source declarations. Do
+        # not descend into them: large nested token trees can stress native
+        # grammar traversal and macro-generated declarations are not source-bound.
+        if language == "rust" and node.type in {"macro_invocation", "macro_definition", "macro_rules_definition", "token_tree"}:
+            continue
         if node.type in declaration_types[language]:
             name_node = node.child_by_field_name("name")
             if name_node is None and language == "shell":
