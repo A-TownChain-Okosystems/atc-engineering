@@ -79,5 +79,64 @@ class BidirectionalReconciliationTests(unittest.TestCase):
         self.assertIn("FILE_BLOB_MISMATCH", {item["code"] for item in report["findings"]})
 
 
+    def test_reviewed_expected_file_delta_is_exactly_bound_to_both_inventories(self):
+        source = inventory()
+        catalog = inventory()
+        source["observed_commit_sha"] = "a" * 40
+        catalog["observed_commit_sha"] = "b" * 40
+        catalog["files"].append({"path": "docs/new.json", "blob_sha": "c" * 40, "status": "ANALYSED"})
+        evidence = ["https://github.com/owner/repo/compare/" + "a" * 40 + "..." + "b" * 40]
+        contract = {
+            "repository": "owner/repo",
+            "source_commit_sha": "a" * 40,
+            "catalog_commit_sha": "b" * 40,
+            "status": "REVIEWED_EXPECTED_CHANGE_SET",
+            "merge_approval": "NOT_GRANTED",
+            "evidence": evidence,
+            "expected_deltas": [{
+                "path": "docs/new.json", "change_type": "added",
+                "source_blob_sha": None, "catalog_blob_sha": "c" * 40,
+                "rationale": "A reviewed catalog-only manifest addition.",
+                "evidence": evidence,
+            }],
+        }
+        report = module.reconcile(source, catalog, contract)
+        self.assertEqual(report["status"], "RECONCILED")
+        self.assertEqual(report["counts"]["blocking_findings"], 0)
+
+    def test_unexplained_file_delta_blocks_even_with_an_expected_delta_contract(self):
+        source = inventory()
+        catalog = inventory()
+        source["observed_commit_sha"] = "a" * 40
+        catalog["observed_commit_sha"] = "b" * 40
+        catalog["files"].append({"path": "unexpected.json", "blob_sha": "c" * 40, "status": "ANALYSED"})
+        contract = {
+            "repository": "owner/repo",
+            "source_commit_sha": "a" * 40,
+            "catalog_commit_sha": "b" * 40,
+            "status": "REVIEWED_EXPECTED_CHANGE_SET",
+            "merge_approval": "NOT_GRANTED",
+            "evidence": ["compare evidence"],
+            "expected_deltas": [],
+        }
+        report = module.reconcile(source, catalog, contract)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertIn("UNEXPLAINED_FILE_DELTA", {item["code"] for item in report["findings"]})
+
+    def test_exclusion_evidence_is_reconciled_bidirectionally(self):
+        source = inventory()
+        catalog = inventory()
+        exclusion = {
+            "exclusion_id": "e" * 64, "repository": "owner/repo", "path": "src.py",
+            "reason_code": "POLICY", "category": "policy", "reason": "test",
+            "rationale": "reviewed test rationale", "source_blob_sha": "b" * 40,
+            "evidence": [{"reference": "src.py#" + "b" * 40}],
+        }
+        source["exclusions"] = [dict(exclusion)]
+        catalog["exclusions"] = [dict(exclusion, rationale="different rationale")]
+        report = module.reconcile(source, catalog)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertIn("EXCLUSION_BINDING_MISMATCH", {item["code"] for item in report["findings"]})
+
 if __name__ == "__main__":
     unittest.main()
