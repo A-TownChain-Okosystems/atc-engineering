@@ -10,6 +10,7 @@ on:
       - "docs/architecture/reconciliation-status-contract.md"
       - "schemas/reconciliation-verification-claim.schema.json"
       - "docs/architecture/reconciliation-status-consumer-audit.v1.json"
+      - "docs/architecture/reconciliation-status-consumer-discovery.v1.json"
       - "tests/test_bidirectional_reconciliation.py"
       - ".github/workflows/independent-bidirectional-reconciliation.yml"
   workflow_dispatch:
@@ -33,6 +34,8 @@ jobs:
           python-version: "3.12"
       - name: Install JSON Schema validator
         run: python -m pip install --disable-pip-version-check 'jsonschema>=4,<5'
+      - name: Validate status consumer discovery artifact
+        run: python -m json.tool docs/architecture/reconciliation-status-consumer-discovery.v1.json > /dev/null
       - name: Run independent reconciliation regression tests
         shell: bash
         run: |
