@@ -68,7 +68,7 @@ def verifier(responses=None):
     responses = responses if responses is not None else fixture_responses()
 
     def open_request(request, timeout=30):
-        path = request.full_url.split("/repos/owner/repo/", 1)[1]
+        path = "/" + request.full_url.split("/repos/owner/repo/", 1)[1]
         if path not in responses:
             raise AssertionError(f"unexpected API request: {path}")
         value = responses[path]
