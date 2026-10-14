@@ -10,6 +10,7 @@ on:
       - "tests/test_git_tree_manifest.py"
       - ".github/workflows/pinned-source-catalog-reconciliation.yml"
       - "docs/architecture/source-catalog-reconciliation.v1.json"
+      - "docs/architecture/source-catalog-expected-tree-delta.v1.json"
       - "schemas/source-catalog-reconciliation.schema.json"
   workflow_dispatch:
 
@@ -421,6 +422,7 @@ jobs:
         run: |
           set -euo pipefail
           python scripts/validate_bidirectional_reconciliation.py \
+            --expected-deltas docs/architecture/source-catalog-expected-tree-delta.v1.json \
             reconciliation-artifacts/source-inventory.json \
             reconciliation-artifacts/catalog-inventory.json \
             --output reconciliation-artifacts/independent-bidirectional-reconciliation.json
