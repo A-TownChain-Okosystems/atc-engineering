@@ -135,6 +135,7 @@ fn scan_tree(
         if !archived_or_documentation
             && path.file_name().and_then(|name| name.to_str()) == Some("Cargo.toml")
             && text.contains("[workspace")
+            && !path.parent().map(|dir| dir.join("Cargo.lock").is_file()).unwrap_or(false)
             && !root.join("Cargo.lock").is_file()
         {
             report.findings.push(Finding {
