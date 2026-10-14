@@ -170,7 +170,8 @@ def extract_tree_sitter(repo: str, rel: str, language: str, text: str, sha: str,
     parser_language = {"rust": "rust", "shell": "bash"}.get(language)
     if parser_language is None:
         raise ValueError(f"no tree-sitter grammar for {language}")
-    parser = get_parser(parser_language)\n    tree = parser.parse(text.encode("utf-8"))
+    parser = get_parser(parser_language)
+    tree = parser.parse(text.encode("utf-8"))
     root = tree.root_node
     if root.has_error:
         raise ValueError(f"{parser_language} syntax tree contains ERROR or missing nodes")
