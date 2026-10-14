@@ -184,10 +184,10 @@ impl FindingRegistry {
             let path = f
                 .path
                 .as_ref()
-                .map(|value| format!("\\\"{}\\\"", esc(value)))
+                .map(|value| format!("\"{}\"", esc(value)))
                 .unwrap_or_else(|| "null".to_string());
             out.push_str(&format!(
-                "    {{\\\"id\\\":\\\"{}\\\",\\\"repository\\\":\\\"{}\\\",\\\"path\\\":{},\\\"code\\\":\\\"{}\\\",\\\"category\\\":\\\"{}\\\",\\\"severity\\\":\\\"{}\\\",\\\"state\\\":\\\"{}\\\",\\\"description\\\":\\\"{}\\\",\\\"root_cause\\\":\\\"{}\\\",\\\"implementation_plan\\\":\\\"{}\\\",\\\"iteration\\\":{}}}{}\\n",
+                "    {{\"id\":\"{}\",\"repository\":\"{}\",\"path\":{},\"code\":\"{}\",\"category\":\"{}\",\"severity\":\"{}\",\"state\":\"{}\",\"description\":\"{}\",\"root_cause\":\"{}\",\"implementation_plan\":\"{}\",\"iteration\":{}}}{}\\n",
                 esc(&f.id),
                 esc(&f.repository),
                 path,
@@ -212,8 +212,8 @@ fn esc(s: &str) -> String {
     let mut escaped = String::with_capacity(s.len());
     for ch in s.chars() {
         match ch {
-            '"' => escaped.push_str("\\\""),
-            '\\' => escaped.push_str("\\\\"),
+            '"' => escaped.push_str("\""),
+            '\\' => escaped.push_str("\\"),
             '\u{08}' => escaped.push_str("\\b"),
             '\u{0C}' => escaped.push_str("\\f"),
             '\n' => escaped.push_str("\\n"),
@@ -257,10 +257,10 @@ mod tests {
         let _ = fs::remove_dir_all(&root);
         registry.write_json(&root).unwrap();
         let output = fs::read_to_string(root.join(".atc/findings/registry.json")).unwrap();
-        assert!(output.contains("\\\"path\\\":\\\"src/main.rs\\\""));
-        assert!(output.contains("\\\"description\\\":\\\"line one\\\\nline two\\\""));
-        assert!(output.contains("\\\"root_cause\\\":\\\"unknown\\\""));
-        assert!(output.contains("\\\"implementation_plan\\\":\\\"investigate\\\""));
+        assert!(output.contains("\"path\":\"src/main.rs\""));
+        assert!(output.contains("\"description\":\"line one\\\\nline two\""));
+        assert!(output.contains("\"root_cause\":\"unknown\""));
+        assert!(output.contains("\"implementation_plan\":\"investigate\""));
         fs::remove_dir_all(root).unwrap();
     }
 
