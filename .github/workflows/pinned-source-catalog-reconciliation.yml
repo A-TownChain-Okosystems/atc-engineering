@@ -81,11 +81,11 @@ jobs:
           set -euo pipefail
           test -s reconciliation-artifacts/source-inventory.json
           test -s reconciliation-artifacts/catalog-inventory.json
-          python scripts/validate_git_tree_inventory.py \\
-            --source-manifest reconciliation-artifacts/source-git-tree-manifest.json \\
-            --source-inventory reconciliation-artifacts/source-inventory.json \\
-            --catalog-manifest reconciliation-artifacts/catalog-git-tree-manifest.json \\
-            --catalog-inventory reconciliation-artifacts/catalog-inventory.json \\
+          python scripts/validate_git_tree_inventory.py \
+            --source-manifest reconciliation-artifacts/source-git-tree-manifest.json \
+            --source-inventory reconciliation-artifacts/source-inventory.json \
+            --catalog-manifest reconciliation-artifacts/catalog-git-tree-manifest.json \
+            --catalog-inventory reconciliation-artifacts/catalog-inventory.json \
             --output reconciliation-artifacts/git-tree-reconciliation.json
 
       - name: Produce deterministic identity-delta report
