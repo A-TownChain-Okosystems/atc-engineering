@@ -127,8 +127,7 @@ def scan(root: Path, repo: str) -> dict:
     root, commit = root.resolve(), git_sha(root)
     files, symbols, limitations, exclusions = [], [], [], []
     # Prune excluded build/cache directories explicitly and record each exclusion.
-    # os.walk with topdown=True prevents scanning their contents, while the manifest
-    # still explains why those subtrees are outside this source census.
+    # This records policy boundaries without scanning potentially large generated trees.
     for current_dir, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
         current = Path(current_dir)
         retained_dirs = []
@@ -159,11 +158,11 @@ def scan(root: Path, repo: str) -> dict:
             try:
                 data = path.read_bytes()
             except (OSError, ValueError) as exc:
-                limitations.append(f"file read failure: {path}: {type(exc).__name__}")
+                limitations.append(f"file read failure: {rel}: {type(exc).__name__}")
                 exclusions.append({"path": rel, "reason_code": "READ_ERROR", "reason": type(exc).__name__})
                 continue
             language, classification, sha = EXTENSIONS.get(path.suffix.lower(), "unknown"), classify(Path(rel)), blob_sha(data)
-        entry = {"path": rel, "language": language, "classification": classification, "blob_sha": sha, "status": "ANALYSED"}
+            entry = {"path": rel, "language": language, "classification": classification, "blob_sha": sha, "status": "ANALYSED"}
             files.append(entry)
             if classification in {"vendored", "generated", "archived"}:
                 entry.update(status="SKIPPED", reason=f"classification={classification}; excluded from symbol extraction")
@@ -184,9 +183,8 @@ def scan(root: Path, repo: str) -> dict:
                 entry.update(status="PARSE_ERROR", reason=str(exc))
                 exclusions.append({"path": rel, "reason_code": "PARSE_ERROR", "reason": str(exc)})
                 limitations.append(f"{rel}: {exc}")
-        # If heuristic parsers collapse distinct declarations onto the same identity, assign
-    # deterministic occurrence suffixes in source order. This avoids silent ID collisions;
-    # relative declaration order, unlike absolute line numbers, survives line insertions.
+    # If heuristic parsers collapse distinct declarations onto the same identity, assign
+    # deterministic occurrence suffixes in source order. This avoids silent ID collisions.
     by_id = {}
     for symbol in symbols:
         by_id.setdefault(symbol["symbol_id"], []).append(symbol)
@@ -198,7 +196,7 @@ def scan(root: Path, repo: str) -> dict:
     if commit == "0" * 40:
         limitations.append("repository commit SHA unavailable; output cannot be VERIFIED")
     if exclusions:
-        limitations.append("one or more files have explicit exclusions, unsupported formats, or parse/read errors; catalog is not complete")
+        limitations.append("one or more files or directories are explicitly excluded, unsupported, or have parse/read errors; catalog is not complete")
     return {"schema_version": SCHEMA_VERSION, "repository": repo, "observed_commit_sha": commit,
             "generated_at": datetime.now(timezone.utc).isoformat(), "status": "DETECTED",
             "files": files, "symbols": sorted(symbols, key=lambda s: (s["path"], s["source_start_line"], s["qualified_name"])),
