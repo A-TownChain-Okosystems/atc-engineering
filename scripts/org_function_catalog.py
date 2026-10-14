@@ -126,38 +126,65 @@ def extract_heuristic(repo: str, rel: str, language: str, text: str, sha: str, c
 def scan(root: Path, repo: str) -> dict:
     root, commit = root.resolve(), git_sha(root)
     files, symbols, limitations, exclusions = [], [], [], []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or any(part in SKIP_DIRS for part in path.parts):
-            continue
-        try:
-            rel, data = path.relative_to(root).as_posix(), path.read_bytes()
-        except (OSError, ValueError) as exc:
-            limitations.append(f"file read failure: {path}: {type(exc).__name__}")
-            exclusions.append({"path": str(path), "reason_code": "READ_ERROR", "reason": type(exc).__name__})
-            continue
-        language, classification, sha = EXTENSIONS.get(path.suffix.lower(), "unknown"), classify(Path(rel)), blob_sha(data)
+    # Prune excluded build/cache directories explicitly and record each exclusion.
+    # os.walk with topdown=True prevents scanning their contents, while the manifest
+    # still explains why those subtrees are outside this source census.
+    for current_dir, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
+        current = Path(current_dir)
+        retained_dirs = []
+        for dirname in sorted(dirnames):
+            candidate = current / dirname
+            rel_dir = candidate.relative_to(root).as_posix()
+            if dirname in SKIP_DIRS:
+                exclusions.append({
+                    "path": rel_dir,
+                    "reason_code": "EXCLUDED_DIRECTORY",
+                    "reason": f"directory name '{dirname}' is excluded by scanner policy",
+                })
+                continue
+            if candidate.is_symlink():
+                exclusions.append({
+                    "path": rel_dir,
+                    "reason_code": "SYMLINK_NOT_FOLLOWED",
+                    "reason": "directory symlink is not followed to avoid scanning outside the repository tree",
+                })
+                continue
+            retained_dirs.append(dirname)
+        dirnames[:] = retained_dirs
+        for filename in sorted(filenames):
+            path = current / filename
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root).as_posix()
+            try:
+                data = path.read_bytes()
+            except (OSError, ValueError) as exc:
+                limitations.append(f"file read failure: {path}: {type(exc).__name__}")
+                exclusions.append({"path": rel, "reason_code": "READ_ERROR", "reason": type(exc).__name__})
+                continue
+            language, classification, sha = EXTENSIONS.get(path.suffix.lower(), "unknown"), classify(Path(rel)), blob_sha(data)
         entry = {"path": rel, "language": language, "classification": classification, "blob_sha": sha, "status": "ANALYSED"}
-        files.append(entry)
-        if classification in {"vendored", "generated", "archived"}:
-            entry.update(status="SKIPPED", reason=f"classification={classification}; excluded from symbol extraction")
-            exclusions.append({"path": rel, "reason_code": classification.upper(), "reason": entry["reason"]})
-            continue
-        if language not in {"python", *PATTERNS.keys()}:
-            entry.update(status="UNSUPPORTED", reason="file inventoried; symbol extraction parser not implemented for this format")
-            exclusions.append({"path": rel, "reason_code": "UNSUPPORTED_FORMAT", "reason": entry["reason"]})
-            continue
-        try:
-            content = data.decode("utf-8")
-            symbols.extend(extract_python(repo, rel, content, sha, commit) if language == "python"
-                           else extract_heuristic(repo, rel, language, content, sha, commit))
-        except UnicodeDecodeError:
-            entry.update(status="UNSUPPORTED", reason="not UTF-8 text; file indexed only")
-            exclusions.append({"path": rel, "reason_code": "NON_UTF8", "reason": entry["reason"]})
-        except ValueError as exc:
-            entry.update(status="PARSE_ERROR", reason=str(exc))
-            exclusions.append({"path": rel, "reason_code": "PARSE_ERROR", "reason": str(exc)})
-            limitations.append(f"{rel}: {exc}")
-    # If heuristic parsers collapse distinct declarations onto the same identity, assign
+            files.append(entry)
+            if classification in {"vendored", "generated", "archived"}:
+                entry.update(status="SKIPPED", reason=f"classification={classification}; excluded from symbol extraction")
+                exclusions.append({"path": rel, "reason_code": classification.upper(), "reason": entry["reason"]})
+                continue
+            if language not in {"python", *PATTERNS.keys()}:
+                entry.update(status="UNSUPPORTED", reason="file inventoried; symbol extraction parser not implemented for this format")
+                exclusions.append({"path": rel, "reason_code": "UNSUPPORTED_FORMAT", "reason": entry["reason"]})
+                continue
+            try:
+                content = data.decode("utf-8")
+                symbols.extend(extract_python(repo, rel, content, sha, commit) if language == "python"
+                               else extract_heuristic(repo, rel, language, content, sha, commit))
+            except UnicodeDecodeError:
+                entry.update(status="UNSUPPORTED", reason="not UTF-8 text; file indexed only")
+                exclusions.append({"path": rel, "reason_code": "NON_UTF8", "reason": entry["reason"]})
+            except ValueError as exc:
+                entry.update(status="PARSE_ERROR", reason=str(exc))
+                exclusions.append({"path": rel, "reason_code": "PARSE_ERROR", "reason": str(exc)})
+                limitations.append(f"{rel}: {exc}")
+        # If heuristic parsers collapse distinct declarations onto the same identity, assign
     # deterministic occurrence suffixes in source order. This avoids silent ID collisions;
     # relative declaration order, unlike absolute line numbers, survives line insertions.
     by_id = {}
