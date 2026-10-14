@@ -61,23 +61,27 @@ jobs:
           test "${#generator_blob}" -eq 40
           mkdir -p reconciliation-artifacts
 
-      - name: Download and verify original 361-finding baseline artifact
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download pinned baseline artifact by immutable run and artifact name
+        uses: actions/download-artifact@v4
+        with:
+          name: pinned-source-catalog-reconciliation-38568553298-1
+          run-id: 38568553298
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: reconciliation-artifacts/baseline-361
+
+      - name: Verify downloaded baseline artifact member hashes
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p reconciliation-artifacts/baseline-361
-          curl --fail --location --silent --show-error \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/11896618352/zip" \
-            -o /tmp/pr29-baseline-361.zip
-          echo "21cfc22c127113b9b928b773e2322ee90a421bef152244687cb536e937d2b7bf  /tmp/pr29-baseline-361.zip" | sha256sum --check
-          unzip -q /tmp/pr29-baseline-361.zip -d reconciliation-artifacts/baseline-361
-          test -s reconciliation-artifacts/baseline-361/independent-bidirectional-reconciliation.json
-          test -s reconciliation-artifacts/baseline-361/source-inventory.json
-          test -s reconciliation-artifacts/baseline-361/catalog-inventory.json
+          cd reconciliation-artifacts/baseline-361
+          cat > SHA256SUMS <<'EOF'
+          56ce15481cd60ad0dd4a504af0c46cbad9a50e196ef221f485a29b0e9d3da85c  catalog-inventory.json
+          009d8352a1b9e22a43600e88fbbdda65b5ae0713a75cc3490eddc77ee7cea94d  independent-bidirectional-reconciliation.json
+          fcf8fbb637e7a960c4646b6d25ba1da88d868e63d061725711110d165a4a64ba  reconciliation-report.json
+          4c8bdc8ef5313dd1b117a2943ff2226ae4ae7a787febc143b903909eb759f8d6  source-inventory.json
+          EOF
+          sha256sum --check SHA256SUMS
+          rm SHA256SUMS
 
       - name: Generate separate inventories from exact Git trees
         shell: bash
