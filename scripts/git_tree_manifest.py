@@ -19,11 +19,11 @@ def build_manifest(root: Path, commit: str) -> dict:
         ["git", "-C", str(root), "ls-tree", "-r", "-t", "-z", "--full-tree", commit]
     )
     entries = []
-    for record in raw.split(b"\\0"):
+    for record in raw.split(b"\0"):
         if not record:
             continue
         try:
-            metadata, path_bytes = record.split(b"\\t", 1)
+            metadata, path_bytes = record.split(b"\t", 1)
             mode, object_type, sha = metadata.decode("ascii").split(" ", 2)
             path = path_bytes.decode("utf-8", errors="surrogateescape")
         except (ValueError, UnicodeDecodeError) as exc:
@@ -48,7 +48,7 @@ def main() -> int:
     result = build_manifest(Path(args.root), args.commit)
     target = Path(args.output)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(result, ensure_ascii=True, sort_keys=True, indent=2) + "\\n", encoding="utf-8")
+    target.write_text(json.dumps(result, ensure_ascii=True, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"commit_sha": result["commit_sha"], "entries": result["entry_count"], "output": str(target)}, sort_keys=True))
     return 0
 
