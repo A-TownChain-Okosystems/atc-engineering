@@ -1,4 +1,5 @@
 import importlib.util
+import unittest
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "validate_catalog_exclusions.py"
@@ -22,7 +23,7 @@ def exclusion(path, blob, reason="UNSUPPORTED_FORMAT", evidence=None):
     }
 
 
-class TestExclusionAudit:
+class TestExclusionAudit(unittest.TestCase):
     def test_matching_file_blob_and_path_evidence_pass(self):
         blob = "b" * 40
         report = audit_module.audit_inventory({
