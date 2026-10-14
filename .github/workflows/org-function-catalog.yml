@@ -36,6 +36,12 @@ jobs:
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install authoritative parser dependencies
+        run: python -m pip install --disable-pip-version-check 'tree-sitter>=0.25,<0.26' 'tree-sitter-rust>=0.24,<0.25' 'tree-sitter-bash>=0.23,<0.24' 'markdown-it-py>=3,<5' 'PyYAML>=6,<7'
       - name: Python syntax validation
         run: python -m py_compile scripts/org_function_catalog.py tests/test_org_function_catalog.py
       - name: Install schema validator
@@ -68,6 +74,28 @@ jobs:
               raise SystemExit("file-level exclusion without reason")
           print(f"Schema valid: {len(data['files'])} files, {len(data['symbols'])} symbols, {len(data['exclusions'])} explicit exclusions")
           print(f"Catalog status remains {data['status']}; schema validity does not imply completeness or VERIFIED.")
+          PY
+      - name: Validate component candidate evidence manifest
+        run: |
+          python -m json.tool schemas/atc-engineering-component-evidence.schema.json > /dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+          schema = json.loads(Path("schemas/atc-engineering-component-evidence.schema.json").read_text())
+          data = json.loads(Path("docs/architecture/atc-engineering-component-evidence.v1.json").read_text())
+          errors = sorted(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(data),
+                          key=lambda error: list(map(str, error.absolute_path)))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+          ids = [item["component_id"] for item in data["candidates"]]
+          if len(ids) != len(set(ids)):
+              raise SystemExit("duplicate candidate component_id")
+          if any(item["status"] != "PARTIAL_SOURCE_SUPPORT" for item in data["candidates"]):
+              print("Non-partial candidate status requires explicit reviewer attention.")
+          print(f"Validated {len(ids)} candidate records; none is promoted to CONFIRMED or VERIFIED.")
           PY
       - name: Validate system requirements register
         run: |
