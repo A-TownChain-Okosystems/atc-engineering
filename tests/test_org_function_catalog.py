@@ -41,6 +41,18 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(records[0]["qualified_name"], "simple_hash")
         self.assertTrue(records[0]["limitations"])
 
+    def test_heuristic_signature_uses_declaration_line_after_blank_lines(self):
+        source = "\\n\\npub fn first(value: u32) -> u32 { value }\\n\\n\\npub fn second() {}\\n"
+        records = catalog.extract_heuristic(
+            "owner/repo", "src/lib.rs", "rust", source, "a" * 40, "b" * 40
+        )
+        self.assertEqual([record["qualified_name"] for record in records], ["first", "second"])
+        self.assertEqual(records[0]["source_start_line"], 3)
+        self.assertEqual(records[1]["source_start_line"], 6)
+        self.assertEqual(records[0]["signature"], "pub fn first(value: u32) -> u32 { value }")
+        self.assertEqual(records[1]["signature"], "pub fn second() {}")
+        self.assertTrue(all(record["signature"].strip() for record in records))
+
     def test_git_worktree_metadata_is_not_inventoried(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
