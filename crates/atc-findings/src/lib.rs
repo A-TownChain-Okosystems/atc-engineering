@@ -270,7 +270,7 @@ mod tests {
         registry.write_json(&root).unwrap();
         let output = fs::read_to_string(root.join(".atc/findings/registry.json")).unwrap();
         assert!(output.contains("\"path\":\"src/main.rs\""));
-        assert!(output.contains("\"description\":\"line one\\\\nline two\""));
+        assert!(output.contains("\"description\":\"line one\\nline two\""));
         assert!(output.contains("\"root_cause\":\"unknown\""));
         assert!(output.contains("\"implementation_plan\":\"investigate\""));
         fs::remove_dir_all(root).unwrap();
