@@ -94,6 +94,30 @@ jobs:
               return {item["path"]: item for item in doc.get("files", [])}
           sf, cf = file_map(source), file_map(catalog)
           file_paths = sorted(set(sf) | set(cf))
+          source_exclusions = source.get("exclusions", [])
+          catalog_exclusions = catalog.get("exclusions", [])
+
+          def exclusions_by_id(items):
+              result = {}
+              duplicates = {}
+              for item in items:
+                  key = item.get("exclusion_id")
+                  if key in result:
+                      duplicates.setdefault(key, [result[key]]).append(item)
+                  else:
+                      result[key] = item
+              return result, duplicates
+
+          src_exclusions, src_exclusion_dups = exclusions_by_id(source_exclusions)
+          cat_exclusions, cat_exclusion_dups = exclusions_by_id(catalog_exclusions)
+          source_exclusion_ids = set(src_exclusions)
+          catalog_exclusion_ids = set(cat_exclusions)
+          source_only_exclusion_ids = sorted(source_exclusion_ids - catalog_exclusion_ids)
+          catalog_only_exclusion_ids = sorted(catalog_exclusion_ids - source_exclusion_ids)
+          changed_common_exclusion_ids = sorted(
+              key for key in source_exclusion_ids & catalog_exclusion_ids
+              if src_exclusions[key] != cat_exclusions[key]
+          )
           file_deltas = [
               {"path": path, "source_status": sf.get(path, {}).get("status", "ABSENT"),
                "catalog_status": cf.get(path, {}).get("status", "ABSENT"),
@@ -124,8 +148,13 @@ jobs:
                   "changed_common_symbol_ids": len(changed),
                   "duplicate_source_symbol_ids": len(src_dups),
                   "duplicate_catalog_symbol_ids": len(cat_dups),
-                  "source_exclusions": len(source.get("exclusions", [])),
-                  "catalog_exclusions": len(catalog.get("exclusions", [])),
+                  "source_exclusions": len(source_exclusions),
+                  "catalog_exclusions": len(catalog_exclusions),
+                  "source_only_exclusion_ids": len(source_only_exclusion_ids),
+                  "catalog_only_exclusion_ids": len(catalog_only_exclusion_ids),
+                  "changed_common_exclusion_ids": len(changed_common_exclusion_ids),
+                  "duplicate_source_exclusion_ids": len(src_exclusion_dups),
+                  "duplicate_catalog_exclusion_ids": len(cat_exclusion_dups),
                   "source_parse_errors": sum(1 for x in source.get("files", []) if x.get("status") == "PARSE_ERROR"),
                   "catalog_parse_errors": sum(1 for x in catalog.get("files", []) if x.get("status") == "PARSE_ERROR"),
                   "changed_file_bindings": len(file_deltas)
@@ -136,8 +165,13 @@ jobs:
               "duplicate_source_symbol_ids": {k: [x.get("path") for x in v] for k, v in sorted(src_dups.items())},
               "duplicate_catalog_symbol_ids": {k: [x.get("path") for x in v] for k, v in sorted(cat_dups.items())},
               "changed_file_bindings": file_deltas,
-              "source_exclusions": source.get("exclusions", []),
-              "catalog_exclusions": catalog.get("exclusions", []),
+              "source_only_exclusion_ids": source_only_exclusion_ids,
+              "catalog_only_exclusion_ids": catalog_only_exclusion_ids,
+              "changed_common_exclusion_ids": changed_common_exclusion_ids,
+              "duplicate_source_exclusion_ids": {k: [x.get("path") for x in v] for k, v in sorted(src_exclusion_dups.items())},
+              "duplicate_catalog_exclusion_ids": {k: [x.get("path") for x in v] for k, v in sorted(cat_exclusion_dups.items())},
+              "source_exclusions": source_exclusions,
+              "catalog_exclusions": catalog_exclusions,
               "limitations": [
                   "This compares two generated inventories from the pinned trees; it is not proof that every source declaration is captured.",
                   "Non-Python extractors are heuristic and may miss declarations or report false positives.",
@@ -214,9 +248,24 @@ jobs:
           }
           if unresolved_file_bindings:
               blocking["unresolved_file_bindings"] = unresolved_file_bindings
+          exclusion_delta_keys = (
+              "source_only_exclusion_ids", "catalog_only_exclusion_ids",
+              "changed_common_exclusion_ids", "duplicate_source_exclusion_ids",
+              "duplicate_catalog_exclusion_ids"
+          )
+          exclusion_deltas = {key: counts.get(key, 0) for key in exclusion_delta_keys if counts.get(key, 0) != 0}
+          if exclusion_deltas:
+              blocking["exclusion_deltas_require_review"] = exclusion_deltas
           if unsubstantiated:
               blocking["unsubstantiated_exclusions"] = unsubstantiated
           counts["unsubstantiated_exclusions"] = unsubstantiated
+          report["exclusion_delta_review"] = {
+              "status": "BLOCKED" if exclusion_deltas else "NO_DELTA_DETECTED",
+              "source_only_ids": report.get("source_only_exclusion_ids", []),
+              "catalog_only_ids": report.get("catalog_only_exclusion_ids", []),
+              "changed_common_ids": report.get("changed_common_exclusion_ids", []),
+              "note": "Every exclusion addition/removal/change requires explicit reason-by-reason review; schema completeness alone is not justification."
+          }
           report["expected_file_binding_evidence"] = {
               "comparison": "https://github.com/A-TownChain-Okosystems/atc-engineering/compare/b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4...5c27a52e476d6ca10ab3650e7d0370a20e741e70",
               "expected_paths": sorted(expected_file_deltas),
