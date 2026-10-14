@@ -17,5 +17,11 @@
     "FILE_BLOB_MISMATCH": "Resolve only through an exact modified-file record in the expected-delta contract with matching old/new blob bindings and passing independent tree gates."
   },
   "merge_approval": "NOT_GRANTED",
-  "governance": "This contract pins the historical baseline for per-finding accounting. It does not approve merge or imply organization-wide VERIFIED status."
+  "governance": "This contract pins the historical baseline for per-finding accounting. It does not approve merge or imply organization-wide VERIFIED status.",
+  "baseline_file_sha256": {
+    "catalog-inventory.json": "56ce15481cd60ad0dd4a504af0c46cbad9a50e196ef221f485a29b0e9d3da85c",
+    "independent-bidirectional-reconciliation.json": "009d8352a1b9e22a43600e88fbbdda65b5ae0713a75cc3490eddc77ee7cea94d",
+    "reconciliation-report.json": "fcf8fbb637e7a960c4646b6d25ba1da88d868e63d061725711110d165a4a64ba",
+    "source-inventory.json": "4c8bdc8ef5313dd1b117a2943ff2226ae4ae7a787febc143b903909eb759f8d6"
+  }
 }
