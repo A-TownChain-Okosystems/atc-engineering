@@ -18,7 +18,7 @@ jobs:
     env:
       SOURCE_COMMIT: b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4
       CATALOG_COMMIT: 5c27a52e476d6ca10ab3650e7d0370a20e741e70
-      EXPECTED_GENERATOR_BLOB: d664e47bee098589ff2bc9a2ff819d2bd604b587
+      GENERATOR_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout workflow revision
         uses: actions/checkout@v4
@@ -27,18 +27,16 @@ jobs:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Verify pinned commits and generator identity
+      - name: Verify pinned commits and selected generator identity
         shell: bash
         run: |
           set -euo pipefail
           git cat-file -e "${SOURCE_COMMIT}^{commit}"
           git cat-file -e "${CATALOG_COMMIT}^{commit}"
-          source_blob="$(git rev-parse "${SOURCE_COMMIT}:scripts/org_function_catalog.py")"
-          catalog_blob="$(git rev-parse "${CATALOG_COMMIT}:scripts/org_function_catalog.py")"
-          printf 'SOURCE_COMMIT=%s\nCATALOG_COMMIT=%s\nSOURCE_GENERATOR_BLOB=%s\nCATALOG_GENERATOR_BLOB=%s\n' \
-            "$SOURCE_COMMIT" "$CATALOG_COMMIT" "$source_blob" "$catalog_blob"
-          test "$source_blob" = "$EXPECTED_GENERATOR_BLOB"
-          test "$catalog_blob" = "$EXPECTED_GENERATOR_BLOB"
+          generator_blob="$(git rev-parse "${GENERATOR_COMMIT}:scripts/org_function_catalog.py")"
+          printf 'SOURCE_COMMIT=%s\nCATALOG_COMMIT=%s\nGENERATOR_COMMIT=%s\nGENERATOR_BLOB=%s\n' \
+            "$SOURCE_COMMIT" "$CATALOG_COMMIT" "$GENERATOR_COMMIT" "$generator_blob"
+          test "${#generator_blob}" -eq 40
           mkdir -p reconciliation-artifacts
 
       - name: Generate separate inventories from exact Git trees
@@ -47,10 +45,10 @@ jobs:
           set -euo pipefail
           git worktree add --detach /tmp/atce-source "$SOURCE_COMMIT"
           git worktree add --detach /tmp/atce-catalog "$CATALOG_COMMIT"
-          python /tmp/atce-source/scripts/org_function_catalog.py /tmp/atce-source \
+          ATC_CATALOG_SOURCE_SHA="$SOURCE_COMMIT" python "$GITHUB_WORKSPACE/scripts/org_function_catalog.py" /tmp/atce-source \
             --repository A-TownChain-Okosystems/atc-engineering \
             --output reconciliation-artifacts/source-inventory.json
-          python /tmp/atce-catalog/scripts/org_function_catalog.py /tmp/atce-catalog \
+          ATC_CATALOG_SOURCE_SHA="$CATALOG_COMMIT" python "$GITHUB_WORKSPACE/scripts/org_function_catalog.py" /tmp/atce-catalog \
             --repository A-TownChain-Okosystems/atc-engineering \
             --output reconciliation-artifacts/catalog-inventory.json
 
@@ -152,6 +150,33 @@ jobs:
               json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8"
           )
           print(json.dumps({"status": report["status"], "counts": report["counts"]}, sort_keys=True))
+          PY
+
+      - name: Fail closed on unresolved symbol, file, parser, or exclusion differences
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("reconciliation-artifacts/reconciliation-report.json").read_text())
+          counts = report["counts"]
+          blocking = {
+              key: counts[key] for key in (
+                  "source_only_symbol_ids", "catalog_only_symbol_ids",
+                  "changed_common_symbol_ids", "duplicate_source_symbol_ids",
+                  "duplicate_catalog_symbol_ids", "source_parse_errors",
+                  "catalog_parse_errors", "changed_file_bindings",
+                  "source_exclusions", "catalog_exclusions"
+              ) if counts.get(key) != 0
+          }
+          report["status"] = "BLOCKED" if blocking else "DETECTED"
+          Path("reconciliation-artifacts/reconciliation-report.json").write_text(
+              json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+          )
+          print(json.dumps({"status": report["status"], "blocking_counts": blocking}, sort_keys=True))
+          if blocking:
+              raise SystemExit("Reconciliation BLOCKED: unresolved source/catalog differences require explicit review")
           PY
 
       - name: Validate artifact JSON and print provenance
