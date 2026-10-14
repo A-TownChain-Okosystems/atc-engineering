@@ -187,12 +187,12 @@
     }
   ],
   "required_follow_up": [
-    "Repository listing and default-branch SHA pinning completed for the 26 non-archived repositories visible to the authenticated account; seven archived repositories were excluded from the active scan but must be considered if in scope.",
-    "Directly enumerate repository trees at pinned SHAs for the 13 active repositories not indexed for code search and scan them locally or via Git tree APIs.",
-    "For all 26 repositories, inspect workflow files, scripts, schemas, report producers, status readers/writers, and generated consumers at pinned SHAs; code search is only supplemental discovery.",
+    "Complete content-level inspection of all candidate workflows, scripts, schemas, catalog/report producers and status readers/writers in the 13 tree-enumerated repositories; path inventories alone do not establish consumer completeness.",
+    "Repeat targeted direct file inspection for the other 13 code-search-indexed active repositories at their pinned SHAs, not just search-result excerpts.",
     "Classify every candidate as normative specification, producer, consumer, schema, test, documentation, unrelated homonym, or unknown; unknown classifications remain blockers.",
-    "Fetch referenced workflow runs, jobs, steps, exit codes, logs, and artifacts and bind each evidence record to the exact source SHA.",
-    "Add consumer-specific negative tests proving DETECTED and RECONCILED cannot be promoted to VERIFIED, then run exact-head CI after the complete audit inventory is updated."
+    "Fetch and bind relevant workflow runs, jobs, steps, exit codes, logs and artifacts to each exact source SHA.",
+    "Add consumer-specific negative regressions proving DETECTED and RECONCILED cannot be promoted to VERIFIED for each executable PR #29 status consumer.",
+    "Re-run all relevant workflows on the final PR head and retain PARTIAL/BLOCKED until all closure criteria pass."
   ],
   "closure_criteria": {
     "repository_fleet_complete": true,
@@ -211,7 +211,7 @@
     "archived_repository_count": 7,
     "private_repositories_visible": 1,
     "default_branch": "main",
-    "coverage_note": "The listing is complete for the repositories visible to this authenticated account at the time of retrieval (33 total; 26 non-archived, 7 archived). It does not prove visibility into repositories inaccessible to the account, nor does listing alone classify status consumers. Correction: 13 active repositories (not 12) are not indexed for code search, based on the 26 pinned inventory entries.",
+    "coverage_note": "All 26 active repositories visible to the authenticated account have pinned main SHAs. 13 of 26 are not code-search-indexed; recursive Git Trees API inventories were retrieved for all 13 pinned commits with truncated=false. Tree enumeration is not equivalent to inspecting every file's semantics.",
     "active_repositories": [
       {
         "repository": "a-townchain-os",
@@ -454,5 +454,208 @@
       }
     ],
     "limitations": "This search round returns additional candidates but does not inspect every path or establish exhaustive producer/consumer classification. Queries for the two report filenames returned no results; absence in code search is not evidence that no such files or consumers exist."
+  },
+  "direct_tree_inventory": {
+    "method": "GitHub Git Trees API recursive=true at each pinned default_branch_sha",
+    "scanned_count": 13,
+    "note": "All 13 repositories lacking code-search indexing were directly enumerated by Git tree at the pinned SHA. All returned trees reported truncated=false. This is path inventory only, not full file-content classification.",
+    "repositories": [
+      {
+        "repository": "aurora-ai",
+        "sha": "648e8bbbb94c0facb140a4613dcba29b47165072",
+        "tree_entries": 521,
+        "review_candidates": [
+          ".github/workflows/governance-ci.yml",
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md",
+          "docs/AURORA_FUNCTION_CATALOG.md",
+          "modules/atc-aistudio/src/utils/auditUtils.ts",
+          "modules/atc-aistudio/src/components/GitHubStatusDashboard.tsx"
+        ],
+        "directly_inspected": [
+          {
+            "path": "modules/atc-aistudio/src/utils/auditUtils.ts",
+            "blob_sha": "a0aff58128b6eb975f76370f2946bd898ec6f541",
+            "classification": "UI/audit score helper",
+            "finding": "Consumes Pass/Warn/Fail audit-result labels and computes counts/average score; no evidence that it consumes PR #29 reconciliation states."
+          }
+        ]
+      },
+      {
+        "repository": "genesis-engine",
+        "sha": "8b7100e8a88f3c9bb6e24ddda31706902f125bb5",
+        "tree_entries": 270,
+        "review_candidates": [
+          ".github/workflows/governance-ci.yml",
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md",
+          "docs/architecture/genesis-function-catalog.json",
+          "docs/architecture/genesis-function-catalog.schema.json"
+        ],
+        "directly_inspected": [
+          {
+            "path": "docs/architecture/genesis-function-catalog.json",
+            "blob_sha": "6bac1e3e260e798b12922d54e8d7882759102609",
+            "classification": "function catalog contract/report",
+            "finding": "Defines separate contract, implementation, and verification enums; explicitly states catalog is not implementation evidence and requires exact-SHA workflow evidence for VERIFIED. Domain-separated; potential policy analogue, not a PR #29 status consumer."
+          }
+        ]
+      },
+      {
+        "repository": "atc-node",
+        "sha": "a817db43a089d172dd4688f366286c60dbf71a0e",
+        "tree_entries": 55,
+        "review_candidates": [
+          ".github/workflows/governance-ci.yml",
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md"
+        ],
+        "directly_inspected": [
+          {
+            "path": ".github/workflows/governance-ci.yml",
+            "blob_sha": "cb51cf53ee4de5ad44aaba8a9a48d6bd1ce56d32",
+            "classification": "governance workflow",
+            "finding": "Runs atc-standards repository audit against repository metadata/registry; not shown to consume PR #29 reconciliation status."
+          }
+        ]
+      },
+      {
+        "repository": "genesis-chronicles",
+        "sha": "9710bd9b314ca4bce836589f5fc8649619fc5604",
+        "tree_entries": 117,
+        "review_candidates": [
+          ".github/workflows/governance-ci.yml",
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md"
+        ]
+      },
+      {
+        "repository": "atc-launchpad",
+        "sha": "bd1a48c69983247a8428f90a77edd061ba79316b",
+        "tree_entries": 55,
+        "review_candidates": [
+          ".github/workflows/governance-ci.yml",
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md"
+        ]
+      },
+      {
+        "repository": "atc-marketplace",
+        "sha": "5c3bab7da8a80d58af725b7dea2478ece2456f39",
+        "tree_entries": 121,
+        "review_candidates": [
+          ".github/workflows/governance-ci.yml",
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md"
+        ]
+      },
+      {
+        "repository": "atc-compute",
+        "sha": "89d833edf338085d6141b0c703ebf92a0db83a5e",
+        "tree_entries": 55,
+        "review_candidates": [
+          ".github/workflows/governance-ci.yml",
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md",
+          "docs/specs/ATC-COMP-506-VERIFICATION.md"
+        ],
+        "directly_inspected": [
+          {
+            "path": "docs/specs/ATC-COMP-506-VERIFICATION.md",
+            "blob_sha": "5d22df3baecd2029adc3f9664d49edea10368ef4",
+            "classification": "draft normative specification",
+            "finding": "Explicitly says SPEC-DRAFT, implementation PENDING, tests/evidence PENDING; status requirements are not proof of a runtime consumer."
+          }
+        ]
+      },
+      {
+        "repository": "atc-vm",
+        "sha": "21132a49355eb5fd6ea4b8a7b4e4deb5d9be60f0",
+        "tree_entries": 60,
+        "review_candidates": [
+          ".github/workflows/contract-exec-gate.yml",
+          ".github/workflows/governance-ci.yml",
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md"
+        ],
+        "directly_inspected": [
+          {
+            "path": ".github/workflows/contract-exec-gate.yml",
+            "blob_sha": "5652f82ac1d6398f8f74ee64207f43295ea8acd9",
+            "classification": "executable conformance workflow",
+            "finding": "Builds native VM runner, executes vectors, verifies a receipt with status PASS, and uploads evidence; PASS is a domain-specific execution receipt, not evidence of PR #29 report-status consumption."
+          }
+        ]
+      },
+      {
+        "repository": "atc-zkp",
+        "sha": "df9e694772ffc955129739805fc1692753dbea84",
+        "tree_entries": 91,
+        "review_candidates": [
+          ".github/workflows/determinism-gate.yml",
+          ".github/workflows/governance-ci.yml",
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md"
+        ]
+      },
+      {
+        "repository": "demo-repository",
+        "sha": "6fca8f6356751e7e820e85ebf1984584392189b8",
+        "tree_entries": 27,
+        "review_candidates": [
+          "ROADMAP.md",
+          "STATUS.md",
+          "docs/ENGINEERING_AUDIT.md"
+        ]
+      },
+      {
+        "repository": "atc-ide",
+        "sha": "40a07acbbb2f240f0d409e97bd0262b8c63688b4",
+        "tree_entries": 98,
+        "review_candidates": [
+          "src/utils/auditEngine.ts",
+          "src/types/audit.ts",
+          "src/components/AuditPanel.tsx",
+          "src/components/WorkflowPanel.tsx",
+          "docs/ENGINEERING_AUDIT.md"
+        ],
+        "directly_inspected": [
+          {
+            "path": "src/utils/auditEngine.ts",
+            "blob_sha": "4666dbd51a9e0c62eb0c7172e358c20bd4e9e322",
+            "classification": "local static project-audit engine",
+            "finding": "Analyzes provided file contents for security/completeness/functionality/linkage and returns severity counts and health score; no PR #29 status consumer semantics observed in inspected excerpt."
+          }
+        ]
+      },
+      {
+        "repository": "genesis-franchise-factory",
+        "sha": "673fa560322b1449e8f23cc38bf839de1b246361",
+        "tree_entries": 66,
+        "review_candidates": [
+          ".github/workflows/governance-ci.yml",
+          "docs/ENGINEERING_AUDIT.md",
+          "tests/test_spec_gate.py"
+        ]
+      },
+      {
+        "repository": "atc-toolchain",
+        "sha": "aaed3daad2f6823349bb8c89bbeb996a7911317e",
+        "tree_entries": 17,
+        "review_candidates": [
+          ".github/workflows/governance-ci.yml",
+          "docs/ENGINEERING_AUDIT.md"
+        ]
+      }
+    ]
   }
 }
