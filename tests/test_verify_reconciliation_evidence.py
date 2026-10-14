@@ -33,6 +33,7 @@ def fixture_responses():
             "id": 123, "head_sha": SHA, "status": "completed", "conclusion": "success"
         },
         "/actions/runs/123/jobs?per_page=100": {
+            "total_count": 1,
             "jobs": [{
                 "id": 456, "name": "contract-tests", "head_sha": SHA,
                 "status": "completed", "conclusion": "success",
@@ -43,6 +44,7 @@ def fixture_responses():
         },
         "/actions/jobs/456/logs": LOGS,
         "/actions/runs/123/artifacts?per_page=100": {
+            "total_count": 1,
             "artifacts": [{
                 "id": 789, "expired": False, "workflow_run": {"id": 123}
             }]
@@ -59,6 +61,7 @@ def valid_claim():
         "evidence": [{
             "evidence_id": "e1", "head_sha": SHA, "workflow_run_id": 123,
             "job": "contract-tests", "step": "verify-status-contract",
+            "log_sha256": hashlib.sha256(LOGS).hexdigest(),
             "artifact_id": 789, "artifact_sha256": hashlib.sha256(ARCHIVE).hexdigest(),
         }],
     }
@@ -95,6 +98,24 @@ class VerifyExternalEvidenceTests(unittest.TestCase):
         responses = fixture_responses()
         responses["/actions/runs/123/jobs?per_page=100"]["jobs"][0]["conclusion"] = "failure"
         with self.assertRaisesRegex(EvidenceVerificationError, "job did not complete successfully"):
+            verifier(responses).verify_claim(valid_claim())
+
+    def test_missing_log_hash_blocks(self):
+        claim = valid_claim()
+        del claim["evidence"][0]["log_sha256"]
+        with self.assertRaisesRegex(EvidenceVerificationError, "log_sha256 must be supplied"):
+            verifier().verify_claim(claim)
+
+    def test_incomplete_jobs_page_blocks(self):
+        responses = fixture_responses()
+        responses["/actions/runs/123/jobs?per_page=100"]["total_count"] = 2
+        with self.assertRaisesRegex(EvidenceVerificationError, "jobs response is incomplete"):
+            verifier(responses).verify_claim(valid_claim())
+
+    def test_incomplete_artifacts_page_blocks(self):
+        responses = fixture_responses()
+        responses["/actions/runs/123/artifacts?per_page=100"]["total_count"] = 2
+        with self.assertRaisesRegex(EvidenceVerificationError, "artifact response is incomplete"):
             verifier(responses).verify_claim(valid_claim())
 
     def test_missing_step_blocks(self):
