@@ -171,7 +171,9 @@ def extract_tree_sitter(repo: str, rel: str, language: str, text: str, sha: str,
     if parser_language is None:
         raise ValueError(f"no tree-sitter grammar for {language}")
     parser = get_parser(parser_language)
+    print(f"TREE_PARSER_START language={language} path={rel}", flush=True)
     tree = parser.parse(text.encode("utf-8"))
+    print(f"TREE_PARSER_OK language={language} path={rel}", flush=True)
     root = tree.root_node
     if root.has_error:
         raise ValueError(f"{parser_language} syntax tree contains ERROR or missing nodes")
