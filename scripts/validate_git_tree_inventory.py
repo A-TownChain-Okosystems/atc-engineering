@@ -8,7 +8,6 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from git_tree_manifest import build_manifest
 
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 BLOB_MODES = {"100644", "100755", "120000"}
@@ -133,6 +132,7 @@ def reconcile(source_manifest: dict, source_inventory: dict, catalog_manifest: d
 
 
 def main() -> int:
+    from git_tree_manifest import build_manifest
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-manifest", required=True)
     parser.add_argument("--source-inventory", required=True)
