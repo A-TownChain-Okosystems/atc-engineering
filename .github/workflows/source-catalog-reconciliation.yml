@@ -1,0 +1,54 @@
+name: Source-to-Catalog Reconciliation Contract
+
+on:
+  pull_request:
+    paths:
+      - "schemas/source-catalog-reconciliation.schema.json"
+      - "docs/architecture/source-catalog-reconciliation.v1.json"
+      - ".github/workflows/source-catalog-reconciliation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "schemas/source-catalog-reconciliation.schema.json"
+      - "docs/architecture/source-catalog-reconciliation.v1.json"
+      - ".github/workflows/source-catalog-reconciliation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-reconciliation-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install schema validator
+        run: python -m pip install --disable-pip-version-check 'jsonschema>=4.20,<5'
+      - name: Validate report schema and fail-closed status
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+          schema = json.loads(Path("schemas/source-catalog-reconciliation.schema.json").read_text())
+          report = json.loads(Path("docs/architecture/source-catalog-reconciliation.v1.json").read_text())
+          errors = sorted(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(report),
+                          key=lambda error: list(map(str, error.absolute_path)))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+          if report["status"] == "RECONCILED":
+              complete = all(value == "COMPLETE" for value in report["scope"].values())
+              unresolved = [f for f in report["findings"] if f["status"] != "RESOLVED"]
+              unknown_counts = [key for key, value in report["counts"].items() if value is None]
+              if not complete or unresolved or unknown_counts:
+                  raise SystemExit("RECONCILED status rejected: incomplete scope, unresolved findings, or unknown counts")
+          if report["status"] == "BLOCKED" and not any(f["status"] == "BLOCKED" for f in report["findings"]):
+              raise SystemExit("BLOCKED report requires at least one explicit BLOCKED finding")
+          print(f"Valid reconciliation contract: status={report['status']}; source={report['source_commit_sha']}; catalog={report['catalog_commit_sha']}")
+          print("Schema validity does not establish source completeness, normative correctness, or VERIFIED status.")
+          PY
