@@ -22,7 +22,19 @@ def inventory():
         }],
         "exclusions": [],
         "parser_coverage": {
-            fmt: {"parser_mode": "authoritative_parser", "status": "AUTHORITATIVE_COMPLETE"}
+            fmt: {
+                "parser_mode": {
+                    "json": "stdlib_json",
+                    "markdown": "commonmark_ast",
+                    "python": "python_ast",
+                    "rust": "rust_syn_ast",
+                    "shell": "bash_ast",
+                    "toml": "stdlib_tomllib",
+                    "unknown": "explicit_unknown_classifier",
+                    "yaml": "pyyaml_ast",
+                }[fmt],
+                "status": "AUTHORITATIVE_COMPLETE",
+            }
             for fmt in FORMATS
         },
     }
