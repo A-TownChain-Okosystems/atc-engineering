@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def validate(crate: str, schema_path: str) -> None:
     completed = subprocess.run(
-        ["cargo", "run", "--locked", "--quiet", "-p", crate, "--example", "schema_fixture"],
+        ["cargo", "run", "--locked", "--quiet", "-p", crate, "--example", "evidence_schema_fixture"],
         cwd=ROOT,
         check=True,
         text=True,
