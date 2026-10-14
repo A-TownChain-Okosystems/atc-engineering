@@ -92,8 +92,8 @@ class CatalogTests(unittest.TestCase):
     def test_scan_reports_parser_coverage_per_language_and_does_not_claim_verification(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "lib.rs").write_text("pub fn visible() {}\\n", encoding="utf-8")
-            (root / "data.yaml").write_text("key: value\\n", encoding="utf-8")
+            (root / "lib.rs").write_text("pub fn visible() {}\n", encoding="utf-8")
+            (root / "data.yaml").write_text("key: value\n", encoding="utf-8")
             result = catalog.scan(root, "owner/sample")
             self.assertEqual(result["parser_coverage"]["rust"]["parser_mode"], "heuristic_regex")
             self.assertEqual(result["parser_coverage"]["rust"]["status"], "HEURISTIC_PARTIAL")
