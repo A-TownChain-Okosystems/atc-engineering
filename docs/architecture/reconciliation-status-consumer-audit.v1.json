@@ -3,7 +3,7 @@
   "contract_id": "ATCE-RECONCILIATION-STATUS-CONSUMER-AUDIT-001",
   "repository": "A-TownChain-Okosystems/atc-engineering",
   "audit_status": "PARTIAL",
-  "audit_scope": "Bounded local reconciliation/catalog/interface-census/finding-lifecycle paths plus a partial organization-wide code-search candidate register. Not a complete organization-wide repository-fleet audit.",
+  "audit_scope": "Bounded local reconciliation/catalog/interface-census/finding-lifecycle paths plus an inventory-pinned, partial organization-wide status-consumer discovery covering 26 non-archived repositories visible to the authenticated account.",
   "normative_contract": "docs/architecture/reconciliation-status-contract.v1.json",
   "consumers_and_producers": [
     {
@@ -150,10 +150,12 @@
     "finding_lifecycle_equivalent_to_report_status": false
   },
   "residuals": [
-    "Organization-wide discovery found candidate status producers, schemas, documentation, and potential consumers in atc-algorithm, a-townchain-ecosystem, globus-os, atclang, atc-standards, .github, and a-townchain-os-docs; see the discovery register for exact observed refs and limitations.",
-    "Code-search discovery is ranked/truncated and may reflect default-branch snapshots. Every candidate requires direct exact-commit inspection and executable producer/consumer classification; audit closure remains BLOCKED.",
-    "The audit does not yet prove complete active/private repository pagination, all workflow/script/status readers and writers, or per-repository exact-SHA workflow/job/step/artifact evidence.",
-    "Workflow evidence references must be revalidated on the final exact PR head after the final audit and schema changes."
+    "The visible repository inventory and main-branch SHA pinning are complete for 26/26 non-archived repositories returned by the authenticated account; seven archived repositories are excluded from active scope and remain a potential separate audit scope.",
+    "Twelve active repositories are not indexed for code search. No absence-of-consumer conclusion can be drawn for them; direct tree inspection is required.",
+    "Candidate status producers, schemas, documentation, and potential consumers in atc-algorithm, a-townchain-ecosystem, globus-os, atclang, atc-standards, .github, and a-townchain-os-docs still require exact-ref inspection and classification beyond the currently bounded paths.",
+    "The audit does not yet prove all workflow/script readers and writers are enumerated, consumer-specific negative regressions exist for every executable consumer, or exact-SHA workflow/job/step/artifact evidence is bound per in-scope repository.",
+    "Workflow evidence must be revalidated on the final exact PR head after the latest discovery-register update."
   ],
-  "discovery_register": "docs/architecture/reconciliation-status-consumer-discovery.v1.json"
+  "discovery_register": "docs/architecture/reconciliation-status-consumer-discovery.v1.json",
+  "repository_inventory": "The discovery register pins main-branch SHAs for all 26 visible non-archived repositories; 12 are not indexed for code search and require direct tree inspection."
 }
