@@ -198,14 +198,21 @@ fn scan_tree(
 }
 
 fn is_non_production_path(path: &Path) -> bool {
-    let mut components = path.components();
-    (matches!(
-        components.next(),
-        Some(std::path::Component::Normal(name)) if name == "docs"
-    ) && matches!(
-        components.next(),
-        Some(std::path::Component::Normal(name)) if name == "archive" || name == "wiki"
-    )) || path.starts_with(Path::new("wiki"))
+    // Exemption gilt fuer Archiv-/Wiki-Inhalte an JEDEr Pfadtiefe: das
+    // Oekosystem-Repo vendort komplette Repos unter components/<repo>/docs/archive/
+    // (z.B. components/a-townchain-os-docs/docs/archive/kai-os-legacy/...), und
+    // deren Archivkopien sind absichtliche Duplikate, keine Drift-Befunde
+    // (Fleet-Reproduktion 2026-10-14: 442 Schein-Duplikate in a-townchain-os-docs).
+    let mut prev: Option<&std::ffi::OsStr> = None;
+    for component in path.components() {
+        if let std::path::Component::Normal(name) = component {
+            if name == "archive" || name == "wiki" {
+                return true;
+            }
+            prev = Some(name);
+        }
+    }
+    path.starts_with(Path::new("wiki"))
 }
 
 fn audit_cargo_path_dependencies(
@@ -313,8 +320,13 @@ fn contains_todo_marker(text: &str, syntax: CommentSyntax) -> bool {
             index += 1;
         }
 
-        let upper = comment.to_ascii_uppercase();
-        if upper.contains("TODO") || upper.contains("FIXME") {
+        // Triage-Qualitaet: nur Marker am Kommentar-Anfang zaehlen (Standard-
+        // Konvention "// TODO: ..." / "// FIXME: ..."). Mentions in Kommentaren
+        // ueber TODO-Features ("// Toggle TODO item", "// Sync TODO.md") sind
+        // keine offenen Marker und feuern nicht (Fleet-Reproduktion 2026-10-14:
+        // 23 False-Positive-Dateien in atc-ide/aistudio-Komponenten).
+        let trimmed = comment.trim_start().to_ascii_uppercase();
+        if trimmed.starts_with("TODO") || trimmed.starts_with("FIXME") {
             return true;
         }
     }
@@ -490,6 +502,38 @@ mod tests {
         // Identifier und Testnamen -> kein Finding
         assert!(!any_syntax(&format!("fn {m1}_marker_helper() {{}}")));
         assert!(!any_syntax(&format!("let {m1}_count = 42;")));
+    }
+
+    #[test]
+    fn nested_archive_paths_are_exempt() {
+        assert!(is_non_production_path(Path::new(
+            "components/a-townchain-os-docs/docs/archive/kai-os-legacy/atclang/lexer/lexer.py"
+        )));
+        assert!(is_non_production_path(Path::new(
+            "components/a-townchain-os-docs/docs/archive/repos-rescue/archiviert-atc-cli/src/main.rs"
+        )));
+        assert!(is_non_production_path(Path::new("docs/archive/x.rs")));
+        assert!(is_non_production_path(Path::new("docs/wiki/kai-os/code/backend/api/kai_routes.py")));
+        assert!(is_non_production_path(Path::new("wiki/kai-os/code/x.py")));
+        assert!(is_non_production_path(Path::new(
+            "components/a-townchain-os-docs/wiki/kai-os/code/backend/api/kai_routes.py"
+        )));
+        // Produktionssourcen bleiben geprueft
+        assert!(!is_non_production_path(Path::new("src/main.rs")));
+        assert!(!is_non_production_path(Path::new("modules/atc-linux-edition/src/app.rs")));
+        assert!(!is_non_production_path(Path::new("docs/TECHNICAL_DOCUMENTATION.md")));
+    }
+
+    #[test]
+    fn marker_mention_is_not_a_marker() {
+        // Kommentare, die TODO-Features erwaehnen, sind keine offenen Marker
+        assert!(!any_syntax("// Toggle TODO item"));
+        assert!(!any_syntax("// Automatically keep TODO.md synchronized"));
+        assert!(!any_syntax("// Live extracted TODOs from files"));
+        // Echte Marker am Kommentar-Anfang bleiben erkannt (auch klein/ohne Doppelpunkt)
+        assert!(any_syntax("// todo implement"));
+        assert!(any_syntax("// FIXME(user): broken"));
+        assert!(any_syntax("# TODO: shell marker"));
     }
 
     #[test]
