@@ -53,6 +53,38 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(records[1]["signature"], "pub fn second() {}")
         self.assertTrue(all(record["signature"].strip() for record in records))
 
+    def test_document_parsers_accept_valid_and_reject_malformed_inputs(self):
+        valid = {
+            "json": '{"key": 1}',
+            "markdown": "# Heading\\n\\nA paragraph.",
+            "toml": '[package]\\nname = "demo"\\n',
+            "yaml": "key: value\\nitems:\\n  - one\\n",
+        }
+        invalid = {
+            "json": '{"key": ',
+            "markdown": "# Heading\\n\\nA paragraph.",  # CommonMark accepts ordinary text syntax.
+            "toml": '[package\\nname = "demo"',
+            "yaml": "key: [unterminated",
+        }
+        for language, text in valid.items():
+            with self.subTest(language=language):
+                catalog.validate_document_format(language, text)
+        for language in ("json", "toml", "yaml"):
+            with self.subTest(language=language):
+                with self.assertRaises(Exception):
+                    catalog.validate_document_format(language, invalid[language])
+
+    def test_rust_tree_sitter_extraction_uses_ast_ranges_and_nonempty_signatures(self):
+        source = "\\n\\npub fn first(value: u32) -> u32 { value }\\n\\n\\npub fn second() {}\\n"
+        records = catalog.extract_tree_sitter(
+            "owner/repo", "src/lib.rs", "rust", source, "a" * 40, "b" * 40
+        )
+        self.assertEqual([record["qualified_name"] for record in records], ["first", "second"])
+        self.assertEqual(records[0]["source_start_line"], 3)
+        self.assertEqual(records[1]["source_start_line"], 6)
+        self.assertTrue(all(record["signature"].strip() for record in records))
+        self.assertTrue(all(not record["limitations"] for record in records))
+
     def test_git_worktree_metadata_is_not_inventoried(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
