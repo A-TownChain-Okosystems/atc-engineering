@@ -138,6 +138,10 @@ jobs:
               "generator_blob_sha": hashlib.sha1(
                   b"blob " + str(len(generator_bytes)).encode() + b"\0" + generator_bytes
               ).hexdigest(),
+              "parser_coverage": {
+                  "source": source.get("parser_coverage", {}),
+                  "catalog": catalog.get("parser_coverage", {}),
+              },
               "counts": {
                   "source_files": len(source.get("files", [])),
                   "catalog_files": len(catalog.get("files", [])),
@@ -335,11 +339,38 @@ jobs:
               "unresolved_paths": sorted(set(unexpected_file_deltas) | set(missing_expected_file_deltas)),
               "note": "Expected deltas are explicitly bound to exact source/catalog blob SHAs; this is not a RECONCILED or VERIFIED status claim."
           }
-          report["status"] = "BLOCKED" if blocking else "DETECTED"
+          # Zero identity deltas do not prove parser completeness. Only an
+          # explicit COMPLETE status from an authoritative parser satisfies this gate.
+          def incomplete_languages(inventory):
+              coverage = inventory.get("parser_coverage")
+              if not isinstance(coverage, dict) or not coverage:
+                  return ["<missing-parser-coverage>"]
+              return sorted(
+                  language for language, item in coverage.items()
+                  if not isinstance(item, dict)
+                  or item.get("status") != "COMPLETE"
+                  or item.get("parser_mode") in ("heuristic_regex", "none")
+              )
+
+          parser_blockers = {
+              "source": incomplete_languages(json.loads(Path("reconciliation-artifacts/source-inventory.json").read_text())),
+              "catalog": incomplete_languages(json.loads(Path("reconciliation-artifacts/catalog-inventory.json").read_text())),
+          }
+          report["parser_coverage_gate"] = {
+              "status": "BLOCKED" if any(parser_blockers.values()) else "COMPLETE",
+              "incomplete_languages": parser_blockers,
+              "rule": "Only explicit COMPLETE coverage backed by authoritative parsers may satisfy this gate; DETECTED_NOT_VERIFIED, HEURISTIC_PARTIAL, PARTIAL, UNSUPPORTED, missing, and unknown values block reconciliation."
+          }
+          report["status"] = "BLOCKED" if blocking or any(parser_blockers.values()) else "DETECTED"
+          report["reconciliation_blockers"] = {
+              "inventory_and_binding": blocking,
+              "parser_coverage": parser_blockers,
+          }
           Path("reconciliation-artifacts/reconciliation-report.json").write_text(
               json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8"
           )
           print(json.dumps({"status": report["status"], "blocking_counts": blocking,
+                            "parser_coverage_gate": report["parser_coverage_gate"],
                             "expected_file_bindings": counts["expected_file_bindings"],
                             "unresolved_file_bindings": unresolved_file_bindings,
                             "source_exclusions": len(source), "catalog_exclusions": len(catalog)}, sort_keys=True))
