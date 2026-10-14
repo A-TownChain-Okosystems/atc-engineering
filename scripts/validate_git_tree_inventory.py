@@ -8,6 +8,8 @@ import re
 from collections import Counter
 from pathlib import Path
 
+from git_tree_manifest import build_manifest
+
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 BLOB_MODES = {"100644", "100755", "120000"}
 TREE_MODES = {"040000", "40000"}
@@ -136,14 +138,26 @@ def main() -> int:
     parser.add_argument("--source-inventory", required=True)
     parser.add_argument("--catalog-manifest", required=True)
     parser.add_argument("--catalog-inventory", required=True)
+    parser.add_argument("--root", default=".", help="Git checkout containing both pinned commits")
     parser.add_argument("--output", default="-")
     args = parser.parse_args()
-    report = reconcile(
-        json.loads(Path(args.source_manifest).read_text(encoding="utf-8")),
-        json.loads(Path(args.source_inventory).read_text(encoding="utf-8")),
-        json.loads(Path(args.catalog_manifest).read_text(encoding="utf-8")),
-        json.loads(Path(args.catalog_inventory).read_text(encoding="utf-8")),
-    )
+    source_manifest = json.loads(Path(args.source_manifest).read_text(encoding="utf-8"))
+    catalog_manifest = json.loads(Path(args.catalog_manifest).read_text(encoding="utf-8"))
+    source_inventory = json.loads(Path(args.source_inventory).read_text(encoding="utf-8"))
+    catalog_inventory = json.loads(Path(args.catalog_inventory).read_text(encoding="utf-8"))
+    report = reconcile(source_manifest, source_inventory, catalog_manifest, catalog_inventory)
+    # Rebuild each manifest directly from Git, independently of the supplied
+    # artifact, so an empty or truncated manifest cannot pass by self-consistency.
+    for side, manifest in (("source", source_manifest), ("catalog", catalog_manifest)):
+        try:
+            actual = build_manifest(Path(args.root), manifest.get("commit_sha", ""))
+            if actual.get("entries") != manifest.get("entries") or actual.get("entry_count") != manifest.get("entry_count"):
+                report["findings"].append({"code": "GIT_TREE_MANIFEST_NOT_AUTHENTICATED", "side": side, "path": "", "detail": "manifest differs from a fresh git ls-tree enumeration"})
+        except Exception as exc:
+            report["findings"].append({"code": "GIT_TREE_MANIFEST_REGENERATION_FAILED", "side": side, "path": "", "detail": f"{type(exc).__name__}: {exc}"})
+    report["findings"].sort(key=lambda item: (item["side"], item["code"], item["path"], item["detail"]))
+    report["counts"]["blocking_findings"] = len(report["findings"])
+    report["status"] = "PASS" if not report["findings"] else "BLOCKED"
     rendered = json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2) + "\n"
     if args.output == "-":
         print(rendered, end="")
