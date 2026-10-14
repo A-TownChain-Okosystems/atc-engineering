@@ -91,6 +91,8 @@
       "additionalProperties": false,
       "required": [
         "source_files_seen",
+        "comparison_source_file_blobs",
+        "catalog_snapshot_file_blobs",
         "catalog_symbols",
         "missing_catalog_entries",
         "stale_catalog_entries",
@@ -164,6 +166,14 @@
             "integer",
             "null"
           ],
+          "minimum": 0
+        },
+        "comparison_source_file_blobs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "catalog_snapshot_file_blobs": {
+          "type": "integer",
           "minimum": 0
         }
       }
