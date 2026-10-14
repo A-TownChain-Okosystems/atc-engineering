@@ -11,6 +11,6 @@ fn main() {
         EvidenceStatus::Pass,
     );
     record.integrity_digest = "0123456789abcdef".into();
-    record.provenance = "schema conformance fixture".into();
+    record.provenance = r#"schema "conformance" fixture \ "#.into();
     println!("{}", record.to_json());
 }
