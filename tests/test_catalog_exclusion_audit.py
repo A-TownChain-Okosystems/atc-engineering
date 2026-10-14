@@ -43,7 +43,21 @@ class TestExclusionAudit(unittest.TestCase):
         codes = {error["code"] for error in report["errors"]}
         assert report["status"] == "BLOCKED"
         assert "EXCLUSION_BLOB_MISMATCH" in codes
-        assert "MISSING_PATH_BLOB_EVIDENCE" in codes
+        assert "MISSING_PATH_BLOB_EVIDENCE" not in codes
+
+
+    def test_missing_path_blob_evidence_blocks(self):
+        blob = "b" * 40
+        item = exclusion("schema.json", blob, evidence=[
+            {"kind": "source_or_policy_reference", "reference": "schema.json#wrong"}
+        ])
+        report = audit_module.audit_inventory({
+            "repository": "owner/repo", "observed_commit_sha": "c" * 40,
+            "files": [{"path": "schema.json", "blob_sha": blob, "status": "UNSUPPORTED"}],
+            "exclusions": [item],
+        })
+        assert report["status"] == "BLOCKED"
+        assert any(error["code"] == "MISSING_PATH_BLOB_EVIDENCE" for error in report["errors"])
 
     def test_unsupported_file_without_exclusion_blocks(self):
         report = audit_module.audit_inventory({
