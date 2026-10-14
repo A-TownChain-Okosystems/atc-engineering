@@ -14,6 +14,16 @@ from pathlib import Path
 
 REQUIRED_FORMATS = ("json", "markdown", "python", "rust", "shell", "toml", "unknown", "yaml")
 AUTHORITATIVE_STATUSES = {"AUTHORITATIVE", "AUTHORITATIVE_COMPLETE", "VERIFIED"}
+AUTHORITATIVE_MODES = {
+    "json": {"stdlib_json"},
+    "markdown": {"commonmark_ast"},
+    "python": {"python_ast"},
+    "rust": {"rust_syn_ast"},
+    "shell": {"bash_ast"},
+    "toml": {"stdlib_tomllib"},
+    "unknown": {"explicit_unknown_classifier"},
+    "yaml": {"pyyaml_ast"},
+}
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -65,7 +75,7 @@ def _errors_for_inventory(label: str, doc: dict) -> list[dict]:
         entry = coverage.get(fmt)
         if not isinstance(entry, dict):
             errors.append({"code": "PARSER_GROUP_MISSING", "side": label, "detail": fmt})
-        elif entry.get("status") not in AUTHORITATIVE_STATUSES or entry.get("parser_mode") in {None, "", "none", "heuristic_regex"}:
+        elif entry.get("status") not in AUTHORITATIVE_STATUSES or entry.get("parser_mode") not in AUTHORITATIVE_MODES[fmt]:
             errors.append({"code": "PARSER_NOT_AUTHORITATIVE", "side": label, "detail": f"{fmt}:{entry.get('parser_mode')}:{entry.get('status')}"})
 
     exclusions = doc.get("exclusions", []) if isinstance(doc.get("exclusions"), list) else []
