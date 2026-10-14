@@ -139,6 +139,7 @@ class VerifyExternalEvidenceTests(unittest.TestCase):
     def test_missing_artifact_blocks(self):
         responses = fixture_responses()
         responses["/actions/runs/123/artifacts?per_page=100"]["artifacts"] = []
+        responses["/actions/runs/123/artifacts?per_page=100"]["total_count"] = 0
         with self.assertRaisesRegex(EvidenceVerificationError, "artifact is missing"):
             verifier(responses).verify_claim(valid_claim())
 
