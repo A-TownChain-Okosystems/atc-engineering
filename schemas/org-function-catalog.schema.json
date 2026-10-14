@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/A-TownChain-Okosystems/atc-engineering/blob/main/schemas/org-function-catalog.schema.json",
   "title": "A-TownChain Organization Function Catalog",
-  "description": "Versioned, source-commit-bound inventory. Extraction completeness is explicit; schema validity alone does not imply verification.",
+  "description": "Source-bound discovery catalog. Schema validity does not imply completeness or verification.",
   "type": "object",
   "required": [
     "schema_version",
@@ -12,11 +12,12 @@
     "status",
     "files",
     "symbols",
+    "exclusions",
     "limitations"
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "repository": {
       "type": "string",
@@ -55,7 +56,8 @@
         ],
         "properties": {
           "path": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "language": {
             "type": "string"
@@ -104,33 +106,41 @@
           "symbol_kind",
           "qualified_name",
           "visibility",
+          "source_start_line",
+          "source_end_line",
           "source_blob_sha",
           "observed_commit_sha",
           "status",
+          "component_id",
+          "contract_refs",
           "limitations"
         ],
         "properties": {
           "schema_version": {
-            "const": "1.0.0"
+            "const": "1.1.0"
           },
           "symbol_id": {
             "type": "string",
             "pattern": "^[0-9a-f]{64}$"
           },
           "repository": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "path": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "language": {
             "type": "string"
           },
           "symbol_kind": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "qualified_name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "signature": {
             "type": "string"
@@ -232,6 +242,18 @@
               "null"
             ]
           },
+          "component_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "evidence": {
             "type": "array",
             "items": {
@@ -243,6 +265,41 @@
             "items": {
               "type": "string"
             }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "reason_code",
+          "reason"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason_code": {
+            "enum": [
+              "READ_ERROR",
+              "ARCHIVED",
+              "VENDORED",
+              "GENERATED",
+              "UNSUPPORTED_FORMAT",
+              "NON_UTF8",
+              "PARSE_ERROR",
+              "EXCLUDED_DIRECTORY",
+              "SYMLINK_NOT_FOLLOWED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "additionalProperties": false

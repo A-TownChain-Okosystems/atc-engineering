@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic, offline first-pass catalog generator.
-
-Python symbols are parsed with ast. Other languages are file-inventoried and only
-common declaration forms are heuristically extracted; such records explicitly carry
-a heuristic limitation and MUST NOT be treated as complete API documentation.
-"""
+"""Deterministic, offline first-pass source catalog with explicit limitations."""
 from __future__ import annotations
 
 import argparse
@@ -17,8 +12,8 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-SCHEMA_VERSION = "1.0.0"
-SKIP_DIRS = {".git", "target", "node_modules", ".venv", "venv", "dist", "build", "__pycache__", "vendor", "third_party"}
+SCHEMA_VERSION = "1.1.0"
+SKIP_DIRS = {".git", "target", "node_modules", ".venv", "venv", "dist", "build", "__pycache__"}
 EXTENSIONS = {
     ".py": "python", ".rs": "rust", ".js": "javascript", ".jsx": "javascript",
     ".ts": "typescript", ".tsx": "typescript", ".go": "go", ".java": "java",
@@ -39,7 +34,7 @@ PATTERNS = {
 }
 
 def git_sha(root: Path) -> str:
-    env_sha = os.environ.get("GITHUB_SHA", "")
+    env_sha = os.environ.get("ATC_CATALOG_SOURCE_SHA", "") or os.environ.get("GITHUB_SHA", "")
     if re.fullmatch(r"[0-9a-f]{40,64}", env_sha):
         return env_sha
     try:
@@ -47,12 +42,16 @@ def git_sha(root: Path) -> str:
         if re.fullmatch(r"[0-9a-f]{40,64}", value):
             return value
     except (OSError, subprocess.CalledProcessError):
-        # A repository without a readable Git checkout has no trustworthy SHA.
-        return "0" * 40
+        pass
     return "0" * 40
 
 def blob_sha(data: bytes) -> str:
     return hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
+
+def stable_symbol_id(repo: str, rel: str, kind: str, qualified_name: str, signature: str = "") -> str:
+    """Identity excludes line numbers and includes signature to distinguish overloads."""
+    identity = json.dumps([repo, rel, kind, qualified_name, signature.strip()], ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
 def classify(path: Path) -> str:
     parts = {part.lower() for part in path.parts}
@@ -72,15 +71,16 @@ def classify(path: Path) -> str:
 
 def symbol_record(repo: str, rel: str, language: str, kind: str, name: str, start: int, end: int,
                   signature: str, visibility: str, source_sha: str, commit: str, limitations: list[str]) -> dict:
-    stable = hashlib.sha256(f"{repo}:{rel}:{kind}:{name}:{start}".encode()).hexdigest()
     return {
-        "schema_version": SCHEMA_VERSION, "symbol_id": stable, "repository": repo, "path": rel,
-        "language": language, "symbol_kind": kind, "qualified_name": name, "signature": signature,
-        "visibility": visibility, "summary": "", "parameters": [], "return_type": None, "errors": [],
-        "side_effects": [], "security_boundary": None, "dependencies": [], "callers": [], "callees": [],
-        "tests": [], "doc_url_or_path": None, "source_start_line": start, "source_end_line": max(start, end),
+        "schema_version": SCHEMA_VERSION, "symbol_id": stable_symbol_id(repo, rel, kind, name, signature),
+        "repository": repo, "path": rel, "language": language, "symbol_kind": kind,
+        "qualified_name": name, "signature": signature, "visibility": visibility, "summary": "",
+        "parameters": [], "return_type": None, "errors": [], "side_effects": [],
+        "security_boundary": None, "dependencies": [], "callers": [], "callees": [], "tests": [],
+        "doc_url_or_path": None, "source_start_line": start, "source_end_line": max(start, end),
         "source_blob_sha": source_sha, "observed_commit_sha": commit, "status": "DETECTED",
-        "canonical_owner": repo, "evidence": [f"{rel}:{start}-{max(start, end)}"], "limitations": limitations,
+        "canonical_owner": repo, "component_id": None, "contract_refs": [],
+        "evidence": [f"{rel}:{start}-{max(start, end)}"], "limitations": limitations,
     }
 
 def extract_python(repo: str, rel: str, text: str, sha: str, commit: str) -> list[dict]:
@@ -88,21 +88,18 @@ def extract_python(repo: str, rel: str, text: str, sha: str, commit: str) -> lis
         tree = ast.parse(text, filename=rel)
     except SyntaxError as exc:
         raise ValueError(f"python parse error line {exc.lineno}: {exc.msg}") from exc
-    lines = text.splitlines()
-    records = []
+    lines, records = text.splitlines(), []
     def walk(body, prefix=""):
         for node in body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 name = f"{prefix}.{node.name}" if prefix else node.name
-                start = node.lineno
-                end = getattr(node, "end_lineno", start) or start
+                start, end = node.lineno, getattr(node, "end_lineno", node.lineno) or node.lineno
                 signature = lines[start - 1].strip() if 0 < start <= len(lines) else node.name
                 records.append(symbol_record(repo, rel, "python", "method" if prefix else "function", name, start, end, signature,
                     "private" if node.name.startswith("_") else "public", sha, commit, []))
             elif isinstance(node, ast.ClassDef):
                 name = f"{prefix}.{node.name}" if prefix else node.name
-                start = node.lineno
-                end = getattr(node, "end_lineno", start) or start
+                start, end = node.lineno, getattr(node, "end_lineno", node.lineno) or node.lineno
                 signature = lines[start - 1].strip() if 0 < start <= len(lines) else node.name
                 records.append(symbol_record(repo, rel, "python", "class", name, start, end, signature,
                     "private" if node.name.startswith("_") else "public", sha, commit, []))
@@ -114,91 +111,142 @@ def extract_heuristic(repo: str, rel: str, language: str, text: str, sha: str, c
     pattern = PATTERNS.get(language)
     if not pattern:
         return []
-    lines = text.splitlines()
-    out = []
+    lines, out = text.splitlines(), []
     for match in pattern.finditer(text):
         name = next((g for g in match.groups() if g), None)
         if not name:
             continue
         start = text.count("\n", 0, match.start()) + 1
         signature = lines[start - 1].strip() if start <= len(lines) else name
-        vis = "public" if re.search(r"^\\s*pub\\b|^\\s*export\\b|^\\s*public\\b", signature) else "unknown"
+        vis = "public" if re.search(r"^\s*(?:pub\b|export\b|public\b)", signature) else "unknown"
         out.append(symbol_record(repo, rel, language, "function", name, start, start, signature, vis, sha, commit,
-            ["heuristic declaration match; body range, overloads, visibility, and signature may be incomplete"]))
+            ["heuristic declaration match; body range, overloads, nested scopes, visibility, and signature may be incomplete"]))
     return out
 
 def scan(root: Path, repo: str) -> dict:
-    root = root.resolve()
-    commit = git_sha(root)
-    files, symbols, limitations = [], [], []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or any(part in SKIP_DIRS for part in path.parts):
-            continue
-        try:
+    root, commit = root.resolve(), git_sha(root)
+    files, symbols, limitations, exclusions = [], [], [], []
+    # Prune excluded build/cache directories explicitly and record each exclusion.
+    # This records policy boundaries without scanning potentially large generated trees.
+    for current_dir, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
+        current = Path(current_dir)
+        retained_dirs = []
+        for dirname in sorted(dirnames):
+            candidate = current / dirname
+            rel_dir = candidate.relative_to(root).as_posix()
+            if dirname in SKIP_DIRS:
+                exclusions.append({
+                    "path": rel_dir,
+                    "reason_code": "EXCLUDED_DIRECTORY",
+                    "reason": f"directory name '{dirname}' is excluded by scanner policy",
+                })
+                continue
+            if candidate.is_symlink():
+                exclusions.append({
+                    "path": rel_dir,
+                    "reason_code": "SYMLINK_NOT_FOLLOWED",
+                    "reason": "directory symlink is not followed to avoid scanning outside the repository tree",
+                })
+                continue
+            retained_dirs.append(dirname)
+        dirnames[:] = retained_dirs
+        for filename in sorted(filenames):
+            path = current / filename
+            if not path.is_file():
+                continue
             rel = path.relative_to(root).as_posix()
-            data = path.read_bytes()
-        except (OSError, ValueError) as exc:
-            limitations.append(f"file read failure: {path}: {type(exc).__name__}")
-            continue
-        language = EXTENSIONS.get(path.suffix.lower(), "unknown")
-        classification = classify(Path(rel))
-        sha = blob_sha(data)
-        entry = {"path": rel, "language": language, "classification": classification, "blob_sha": sha, "status": "ANALYSED"}
-        files.append(entry)
-        if language not in {"python", *PATTERNS.keys()}:
-            entry["status"] = "UNSUPPORTED"
-            entry["reason"] = "file inventoried; symbol extraction parser not implemented for this format"
-            continue
-        if classification in {"vendored", "generated", "archived"}:
-            entry["status"] = "SKIPPED"
-            entry["reason"] = f"classification={classification}; indexed but excluded from symbol extraction"
-            continue
-        try:
-            content = data.decode("utf-8")
-            if language == "python":
-                symbols.extend(extract_python(repo, rel, content, sha, commit))
-            elif language in PATTERNS:
-                symbols.extend(extract_heuristic(repo, rel, language, content, sha, commit))
-            else:
-                entry["status"] = "UNSUPPORTED"
-                entry["reason"] = "no symbol parser implemented"
-        except UnicodeDecodeError:
-            entry["status"] = "UNSUPPORTED"
-            entry["reason"] = "not UTF-8 text; file indexed only"
-        except ValueError as exc:
-            entry["status"] = "PARSE_ERROR"
-            entry["reason"] = str(exc)
-            limitations.append(f"{rel}: {exc}")
+            try:
+                data = path.read_bytes()
+            except (OSError, ValueError) as exc:
+                limitations.append(f"file read failure: {rel}: {type(exc).__name__}")
+                exclusions.append({"path": rel, "reason_code": "READ_ERROR", "reason": type(exc).__name__})
+                continue
+            language, classification, sha = EXTENSIONS.get(path.suffix.lower(), "unknown"), classify(Path(rel)), blob_sha(data)
+            entry = {"path": rel, "language": language, "classification": classification, "blob_sha": sha, "status": "ANALYSED"}
+            files.append(entry)
+            if classification in {"vendored", "generated", "archived"}:
+                entry.update(status="SKIPPED", reason=f"classification={classification}; excluded from symbol extraction")
+                exclusions.append({"path": rel, "reason_code": classification.upper(), "reason": entry["reason"]})
+                continue
+            if language not in {"python", *PATTERNS.keys()}:
+                entry.update(status="UNSUPPORTED", reason="file inventoried; symbol extraction parser not implemented for this format")
+                exclusions.append({"path": rel, "reason_code": "UNSUPPORTED_FORMAT", "reason": entry["reason"]})
+                continue
+            try:
+                content = data.decode("utf-8")
+                symbols.extend(extract_python(repo, rel, content, sha, commit) if language == "python"
+                               else extract_heuristic(repo, rel, language, content, sha, commit))
+            except UnicodeDecodeError:
+                entry.update(status="UNSUPPORTED", reason="not UTF-8 text; file indexed only")
+                exclusions.append({"path": rel, "reason_code": "NON_UTF8", "reason": entry["reason"]})
+            except ValueError as exc:
+                entry.update(status="PARSE_ERROR", reason=str(exc))
+                exclusions.append({"path": rel, "reason_code": "PARSE_ERROR", "reason": str(exc)})
+                limitations.append(f"{rel}: {exc}")
+    # If heuristic parsers collapse distinct declarations onto the same identity, assign
+    # deterministic occurrence suffixes in source order. This avoids silent ID collisions.
+    by_id = {}
+    for symbol in symbols:
+        by_id.setdefault(symbol["symbol_id"], []).append(symbol)
+    for base_id, group in by_id.items():
+        if len(group) > 1:
+            for ordinal, symbol in enumerate(sorted(group, key=lambda item: (item["path"], item["source_start_line"], item["qualified_name"])), 1):
+                symbol["symbol_id"] = hashlib.sha256(f"{base_id}:occurrence:{ordinal}".encode("utf-8")).hexdigest()
+            limitations.append(f"duplicate parser identity disambiguated by source order: {base_id}")
     if commit == "0" * 40:
         limitations.append("repository commit SHA unavailable; output cannot be VERIFIED")
-    if any(f["status"] in {"UNSUPPORTED", "PARSE_ERROR", "SKIPPED"} for f in files):
-        limitations.append("one or more files were skipped, unsupported, or failed parsing; catalog is not complete")
-    return {
-        "schema_version": SCHEMA_VERSION, "repository": repo, "observed_commit_sha": commit,
-        "generated_at": datetime.now(timezone.utc).isoformat(), "status": "DETECTED",
-        "files": files, "symbols": sorted(symbols, key=lambda s: (s["path"], s["source_start_line"], s["qualified_name"])),
-        "limitations": limitations,
-    }
+    if exclusions:
+        limitations.append("one or more files or directories are explicitly excluded, unsupported, or have parse/read errors; catalog is not complete")
+    return {"schema_version": SCHEMA_VERSION, "repository": repo, "observed_commit_sha": commit,
+            "generated_at": datetime.now(timezone.utc).isoformat(), "status": "DETECTED",
+            "files": files, "symbols": sorted(symbols, key=lambda s: (s["path"], s["source_start_line"], s["qualified_name"])),
+            "exclusions": exclusions, "limitations": limitations}
+
+def reconcile(current: dict, baseline: dict) -> dict:
+    """Compare symbol identities and source bindings; never upgrades lifecycle status."""
+    if current.get("repository") != baseline.get("repository"):
+        raise ValueError("baseline repository does not match current repository")
+    old = {s["symbol_id"]: s for s in baseline.get("symbols", [])}
+    new = {s["symbol_id"]: s for s in current.get("symbols", [])}
+    added = sorted(new.keys() - old.keys())
+    removed = sorted(old.keys() - new.keys())
+    changed = sorted(k for k in old.keys() & new.keys()
+                     if old[k].get("source_blob_sha") != new[k].get("source_blob_sha")
+                     or old[k].get("signature") != new[k].get("signature"))
+    return {"schema_version": "1.0.0", "repository": current["repository"],
+            "baseline_commit_sha": baseline.get("observed_commit_sha"),
+            "current_commit_sha": current.get("observed_commit_sha"),
+            "status": "RESIDUAL" if (added or removed or changed or current.get("exclusions")) else "DETECTED",
+            "added_symbol_ids": added, "removed_symbol_ids": removed,
+            "changed_symbol_ids": changed, "current_exclusions": current.get("exclusions", []),
+            "limitations": ["heuristic parser coverage is incomplete; reconciliation is not proof of complete source coverage"]}
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", nargs="?", default=".", help="repository checkout to inventory")
     parser.add_argument("--repository", default=None, help="canonical owner/repository label")
     parser.add_argument("--output", default="-", help="JSON output path, or - for stdout")
+    parser.add_argument("--baseline", default=None, help="prior catalog JSON for symbol reconciliation")
+    parser.add_argument("--reconciliation-output", default=None, help="write reconciliation JSON to this path")
     args = parser.parse_args()
     root = Path(args.root)
     if not root.is_dir():
         parser.error(f"not a directory: {root}")
-    repo = args.repository or root.name
-    catalog = scan(root, repo)
+    catalog = scan(root, args.repository or root.name)
     rendered = json.dumps(catalog, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
     if args.output == "-":
         print(rendered, end="")
     else:
-        target = Path(args.output)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(rendered, encoding="utf-8")
-    print(f"CATALOG: repository={repo} commit={catalog['observed_commit_sha']} files={len(catalog['files'])} symbols={len(catalog['symbols'])} limitations={len(catalog['limitations'])}", file=__import__("sys").stderr)
+        target = Path(args.output); target.parent.mkdir(parents=True, exist_ok=True); target.write_text(rendered, encoding="utf-8")
+    if args.baseline:
+        baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
+        report = reconcile(catalog, baseline)
+        report_text = json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        if args.reconciliation_output:
+            target = Path(args.reconciliation_output); target.parent.mkdir(parents=True, exist_ok=True); target.write_text(report_text, encoding="utf-8")
+        else:
+            print(report_text, file=__import__("sys").stderr)
+    print(f"CATALOG: repository={catalog['repository']} commit={catalog['observed_commit_sha']} files={len(catalog['files'])} symbols={len(catalog['symbols'])} exclusions={len(catalog['exclusions'])}", file=__import__("sys").stderr)
     return 0
 
 if __name__ == "__main__":

@@ -35,12 +35,40 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Python syntax validation
         run: python -m py_compile scripts/org_function_catalog.py tests/test_org_function_catalog.py
+      - name: Install schema validator
+        run: python -m pip install --disable-pip-version-check 'jsonschema>=4.20,<5'
       - name: Catalog unit tests
         run: python -m unittest discover -s tests -p 'test_org_function_catalog.py' -v
-      - name: JSON schema syntax validation
+      - name: Validate catalog schema syntax
         run: python -m json.tool schemas/org-function-catalog.schema.json > /dev/null
+      - name: Generate and validate source-bound catalog
+        env:
+          ATC_CATALOG_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python scripts/org_function_catalog.py . --repository A-TownChain-Okosystems/atc-engineering --output /tmp/org-function-catalog.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+          schema = json.loads(Path("schemas/org-function-catalog.schema.json").read_text())
+          data = json.loads(Path("/tmp/org-function-catalog.json").read_text())
+          errors = sorted(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(data),
+                          key=lambda error: list(map(str, error.absolute_path)))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+          ids = [symbol["symbol_id"] for symbol in data["symbols"]]
+          if len(ids) != len(set(ids)):
+              raise SystemExit("duplicate symbol_id detected; overload/identity collision requires explicit resolution")
+          if any(file["status"] in {"UNSUPPORTED", "PARSE_ERROR", "SKIPPED"} and not file.get("reason") for file in data["files"]):
+              raise SystemExit("file-level exclusion without reason")
+          print(f"Schema valid: {len(data['files'])} files, {len(data['symbols'])} symbols, {len(data['exclusions'])} explicit exclusions")
+          print(f"Catalog status remains {data['status']}; schema validity does not imply completeness or VERIFIED.")
+          PY
       - name: Validate system requirements register
         run: |
           python -m json.tool schemas/system-requirements.schema.json > /dev/null
@@ -83,7 +111,3 @@ jobs:
           assert all(w.get('completion_evidence') for p in d['phases'] for w in p['work_items'])
           print(f"Validated {len(d['phases'])} phases and {len(ids)} work items")
           PY
-      - name: Generate a self-catalog smoke artifact
-        run: |
-          python scripts/org_function_catalog.py . --repository A-TownChain-Okosystems/atc-engineering --output /tmp/org-function-catalog.json
-          python -m json.tool /tmp/org-function-catalog.json > /dev/null
