@@ -13,6 +13,12 @@ class CatalogTests(unittest.TestCase):
     def test_git_blob_hash_matches_known_empty_blob(self):
         self.assertEqual(catalog.blob_sha(b""), "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391")
 
+    def test_symbol_id_does_not_depend_on_line_number(self):
+        first = catalog.extract_python("owner/repo", "example.py", "def top(x):\n    return x\n", "a" * 40, "b" * 40)[0]
+        shifted = catalog.extract_python("owner/repo", "example.py", "# inserted comment\ndef top(x):\n    return x\n", "c" * 40, "d" * 40)[0]
+        self.assertEqual(first["symbol_id"], shifted["symbol_id"])
+        self.assertNotEqual(first["source_start_line"], shifted["source_start_line"])
+
     def test_python_ast_finds_functions_and_methods_with_lines(self):
         source = "def top(x):\n    return x\n\nclass Thing:\n    def method(self):\n        pass\n"
         records = catalog.extract_python("owner/repo", "example.py", source, "a" * 40, "b" * 40)
@@ -20,6 +26,7 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(records[0]["source_start_line"], 1)
         self.assertEqual(records[2]["source_start_line"], 5)
         self.assertTrue(all(r["observed_commit_sha"] == "b" * 40 for r in records))
+        self.assertTrue(all("component_id" in r and "contract_refs" in r for r in records))
 
     def test_invalid_python_is_reported(self):
         with self.assertRaises(ValueError):
@@ -34,14 +41,34 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(records[0]["qualified_name"], "simple_hash")
         self.assertTrue(records[0]["limitations"])
 
-    def test_scan_indexes_unsupported_files_instead_of_silently_omitting(self):
+    def test_scan_indexes_unsupported_files_with_reason_coded_exclusion(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "image.bin").write_bytes(b"binary")
             result = catalog.scan(root, "owner/sample")
             self.assertEqual(len(result["files"]), 1)
             self.assertEqual(result["files"][0]["status"], "UNSUPPORTED")
+            self.assertEqual(result["exclusions"][0]["reason_code"], "UNSUPPORTED_FORMAT")
             self.assertTrue(result["limitations"])
+
+    def test_reconciliation_reports_added_removed_and_changed_symbols(self):
+        old = {"repository": "owner/repo", "observed_commit_sha": "a" * 40, "symbols": [
+            {"symbol_id": "one", "source_blob_sha": "x", "signature": "fn old()"},
+            {"symbol_id": "two", "source_blob_sha": "y", "signature": "fn changed()"},
+        ]}
+        current = {"repository": "owner/repo", "observed_commit_sha": "b" * 40, "symbols": [
+            {"symbol_id": "two", "source_blob_sha": "z", "signature": "fn changed()"},
+            {"symbol_id": "three", "source_blob_sha": "q", "signature": "fn new()"},
+        ], "exclusions": []}
+        report = catalog.reconcile(current, old)
+        self.assertEqual(report["added_symbol_ids"], ["three"])
+        self.assertEqual(report["removed_symbol_ids"], ["one"])
+        self.assertEqual(report["changed_symbol_ids"], ["two"])
+        self.assertEqual(report["status"], "RESIDUAL")
+
+    def test_reconciliation_rejects_wrong_repository_baseline(self):
+        with self.assertRaises(ValueError):
+            catalog.reconcile({"repository": "owner/a", "symbols": []}, {"repository": "owner/b", "symbols": []})
 
 
 if __name__ == "__main__":
