@@ -104,7 +104,7 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(len(result["files"]), 1)
             self.assertEqual(result["files"][0]["status"], "UNSUPPORTED")
             exclusion = result["exclusions"][0]
-            self.assertEqual(exclusion["reason_code"], "UNSUPPORTED_FORMAT")
+            self.assertEqual(exclusion["reason_code"], "UNCLASSIFIED_UNKNOWN_FORMAT")
             self.assertEqual(exclusion["category"], "unsupported_format")
             self.assertEqual(exclusion["repository"], "owner/sample")
             self.assertEqual(exclusion["source_blob_sha"], catalog.blob_sha(b"binary"))
