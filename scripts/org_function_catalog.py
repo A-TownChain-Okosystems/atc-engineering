@@ -314,8 +314,8 @@ def scan(root: Path, repo: str) -> dict:
                     repo, rel, "NON_UTF8", entry["reason"],
                     category="encoding_failure", source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
                 ))
-            except ValueError as exc:
-                entry.update(status="PARSE_ERROR", reason=str(exc))
+            except Exception as exc:
+                entry.update(status="PARSE_ERROR", reason=f"{type(exc).__name__}: {exc}")
                 exclusions.append(exclusion_record(
                     repo, rel, "PARSE_ERROR", str(exc),
                     category="parse_failure", source_blob_sha=sha, evidence_ref=f"{rel}#{sha}",
@@ -344,28 +344,32 @@ def scan(root: Path, repo: str) -> dict:
         symbols_by_path.setdefault(symbol["path"], 0)
         symbols_by_path[symbol["path"]] += 1
     parser_coverage = {}
-    for language in sorted({item["language"] for item in files}):
+    modes = {
+        "json": "stdlib_json",
+        "markdown": "commonmark_ast",
+        "python": "python_ast",
+        "rust": "tree_sitter_rust_ast",
+        "shell": "tree_sitter_bash_ast",
+        "toml": "stdlib_tomllib",
+        "unknown": "explicit_unknown_classifier",
+        "yaml": "pyyaml_ast",
+    }
+    for language in sorted(set(item["language"] for item in files) | set(modes)):
         language_files = [item for item in files if item["language"] == language]
-        modes = {
-            "python": "python_ast",
-            **{key: "heuristic_regex" for key in PATTERNS},
-        }
         mode = modes.get(language, "none")
         analysed = sum(item["status"] == "ANALYSED" for item in language_files)
         unsupported = sum(item["status"] == "UNSUPPORTED" for item in language_files)
         parse_errors = sum(item["status"] == "PARSE_ERROR" for item in language_files)
-        skipped = sum(item["status"] == "SKIPPED" for item in language_files)
+        skipped = sum(item["status"] in {"SKIPPED", "EXCLUDED"} for item in language_files)
         symbol_count = sum(symbols_by_path.get(item["path"], 0) for item in language_files)
-        if analysed + unsupported + parse_errors == 0 and skipped:
-            coverage_status = "EXCLUDED_BY_POLICY"
-        elif mode == "none":
+        if mode == "none":
             coverage_status = "UNSUPPORTED"
-        elif unsupported or parse_errors:
+        elif unsupported or parse_errors or analysed + skipped != len(language_files):
             coverage_status = "PARTIAL"
-        elif mode == "heuristic_regex":
-            coverage_status = "HEURISTIC_PARTIAL"
         else:
-            coverage_status = "DETECTED_NOT_VERIFIED"
+            # This records parser execution and per-file classification only. It
+            # does not by itself establish semantic catalog completeness.
+            coverage_status = "AUTHORITATIVE_COMPLETE"
         parser_coverage[language] = {
             "parser_mode": mode,
             "files_seen": len(language_files),
