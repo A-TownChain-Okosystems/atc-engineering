@@ -187,19 +187,188 @@
     }
   ],
   "required_follow_up": [
-    "Enumerate every non-archived organization repository from a complete live repository listing, including pagination and private visibility where permitted.",
-    "For each repository, pin the default-branch commit SHA and inventory workflow files, scripts, schemas, report producers, status readers/writers, and generated consumers.",
-    "Search each pinned Git tree for status constants, enum variants, comparisons, mappings, transition tables, serialization/deserialization, and artifact field names; do not rely on ranked code-search results alone.",
+    "Repository listing and default-branch SHA pinning completed for the 26 non-archived repositories visible to the authenticated account; seven archived repositories were excluded from the active scan but must be considered if they are in scope.",
+    "Code-search index is unavailable for 12 active repositories; inspect their pinned Git trees directly or record an explicit access/tooling blocker. Do not infer absence of consumers from no search results.",
+    "For each repository, inspect all relevant workflow files, scripts, schemas, report producers, status readers/writers, and generated consumers at the pinned SHA.",
     "Classify each hit as normative specification, producer, consumer, schema, test, documentation, unrelated homonym, or unknown; unknown classifications remain blockers.",
     "Fetch referenced workflow runs, jobs, steps, exit codes, logs, and artifacts and bind each evidence record to the exact source SHA.",
     "Add consumer-specific negative tests proving DETECTED and RECONCILED cannot be promoted to VERIFIED, then run exact-head CI after the complete audit inventory is updated."
   ],
   "closure_criteria": {
-    "repository_fleet_complete": false,
+    "repository_fleet_complete": true,
     "all_candidate_paths_directly_inspected": false,
     "all_status_readers_and_writers_classified": false,
     "exact_sha_evidence_bound_per_in_scope_repository": false,
     "negative_regressions_for_each_executable_consumer": false,
-    "audit_closure_allowed": false
+    "audit_closure_allowed": false,
+    "repository_fleet_complete_note": "Visible non-archived repository inventory and default branch SHAs are pinned for 26/26. This closes only inventory pagination/pinning for the accessible account, not status-consumer audit completeness."
+  },
+  "repository_inventory_snapshot": {
+    "source": "GitHub repositories API via authenticated connector, owner filter A-TownChain-Okosystems, page_size=100, page_offset=0; a second page at offset 100 returned zero records",
+    "captured_at": "2026-10-14",
+    "returned_repository_count": 33,
+    "active_non_archived_repository_count": 26,
+    "archived_repository_count": 7,
+    "private_repositories_visible": 1,
+    "default_branch": "main",
+    "coverage_note": "The listing is complete for the repositories visible to this authenticated account at the time of retrieval (33 total; 26 non-archived, 7 archived). It does not prove visibility into repositories inaccessible to the account, nor does listing alone classify status consumers.",
+    "active_repositories": [
+      {
+        "repository": "a-townchain-os",
+        "default_branch": "main",
+        "default_branch_sha": "a929fe77c65e3a6da4a2c5805f3e290291d47aaa",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "atclang",
+        "default_branch": "main",
+        "default_branch_sha": "27dc3678f67dc81180768be60ffd025e2fa6c9b9",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "a-townchain-os-docs",
+        "default_branch": "main",
+        "default_branch_sha": "1c4bfd2c9cd1c43deb0b88d3a4bfde94fc9d106c",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "atc-shivacore",
+        "default_branch": "main",
+        "default_branch_sha": "21c99769654ff5915c421c3446e62c2a29c22b40",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "a-townchain",
+        "default_branch": "main",
+        "default_branch_sha": "a5e689671b1870699c7a1750f8a166e83590a41c",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "globus-os",
+        "default_branch": "main",
+        "default_branch_sha": "3bf000143ec9bfad79d0bacc36b99b8111178b95",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "aurora-ai",
+        "default_branch": "main",
+        "default_branch_sha": "648e8bbbb94c0facb140a4613dcba29b47165072",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "genesis-engine",
+        "default_branch": "main",
+        "default_branch_sha": "8b7100e8a88f3c9bb6e24ddda31706902f125bb5",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "atc-sdk",
+        "default_branch": "main",
+        "default_branch_sha": "34eef345907935cdaf279e0546f230c03c86bb0c",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "atc-node",
+        "default_branch": "main",
+        "default_branch_sha": "a817db43a089d172dd4688f366286c60dbf71a0e",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "atc-contracts",
+        "default_branch": "main",
+        "default_branch_sha": "a7c8b417f482665ef30e94fcacae6469c28b1125",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "genesis-chronicles",
+        "default_branch": "main",
+        "default_branch_sha": "9710bd9b314ca4bce836589f5fc8649619fc5604",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "atc-launchpad",
+        "default_branch": "main",
+        "default_branch_sha": "bd1a48c69983247a8428f90a77edd061ba79316b",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "atc-marketplace",
+        "default_branch": "main",
+        "default_branch_sha": "5c3bab7da8a80d58af725b7dea2478ece2456f39",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "atc-compute",
+        "default_branch": "main",
+        "default_branch_sha": "89d833edf338085d6141b0c703ebf92a0db83a5e",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "atc-standards",
+        "default_branch": "main",
+        "default_branch_sha": "c362d15e77b4818208b41662cf5ceba6fb90e0f2",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "atc-vm",
+        "default_branch": "main",
+        "default_branch_sha": "21132a49355eb5fd6ea4b8a7b4e4deb5d9be60f0",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "atc-algorithm",
+        "default_branch": "main",
+        "default_branch_sha": "f25b43383433766c43df6c5c494ecb70cdb4a4b7",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "atc-zkp",
+        "default_branch": "main",
+        "default_branch_sha": "df9e694772ffc955129739805fc1692753dbea84",
+        "code_search_indexed": false
+      },
+      {
+        "repository": ".github",
+        "default_branch": "main",
+        "default_branch_sha": "af5d803dace369b83e4bffd2e4e6ba001d4aa000",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "demo-repository",
+        "default_branch": "main",
+        "default_branch_sha": "6fca8f6356751e7e820e85ebf1984584392189b8",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "atc-ide",
+        "default_branch": "main",
+        "default_branch_sha": "40a07acbbb2f240f0d409e97bd0262b8c63688b4",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "genesis-franchise-factory",
+        "default_branch": "main",
+        "default_branch_sha": "673fa560322b1449e8f23cc38bf839de1b246361",
+        "code_search_indexed": false
+      },
+      {
+        "repository": "atc-engineering",
+        "default_branch": "main",
+        "default_branch_sha": "b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "a-townchain-ecosystem",
+        "default_branch": "main",
+        "default_branch_sha": "c91c8c6fc60b1c28403c3125f728495e2efa124b",
+        "code_search_indexed": true
+      },
+      {
+        "repository": "atc-toolchain",
+        "default_branch": "main",
+        "default_branch_sha": "aaed3daad2f6823349bb8c89bbeb996a7911317e",
+        "code_search_indexed": false
+      }
+    ]
   }
 }
