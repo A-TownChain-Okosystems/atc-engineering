@@ -8,6 +8,9 @@ on:
       - "scripts/git_tree_manifest.py"
       - "scripts/validate_git_tree_inventory.py"
       - "tests/test_git_tree_manifest.py"
+      - "scripts/build_pr29_finding_remediation_ledger.py"
+      - "tests/test_pr29_finding_remediation_ledger.py"
+      - "docs/architecture/pr29-finding-remediation-ledger-contract.v1.json"
       - ".github/workflows/pinned-source-catalog-reconciliation.yml"
       - "docs/architecture/source-catalog-reconciliation.v1.json"
       - "docs/architecture/source-catalog-expected-tree-delta.v1.json"
@@ -16,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   pinned-inventory:
@@ -42,6 +46,9 @@ jobs:
       - name: Git-tree manifest validator regression tests
         run: python -m unittest discover -s tests -p 'test_git_tree_manifest.py' -v
 
+      - name: Per-finding remediation ledger regression tests
+        run: python -m unittest discover -s tests -p 'test_pr29_finding_remediation_ledger.py' -v
+
       - name: Verify pinned commits and selected generator identity
         shell: bash
         run: |
@@ -53,6 +60,24 @@ jobs:
             "$SOURCE_COMMIT" "$CATALOG_COMMIT" "$GENERATOR_COMMIT" "$generator_blob"
           test "${#generator_blob}" -eq 40
           mkdir -p reconciliation-artifacts
+
+      - name: Download and verify original 361-finding baseline artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reconciliation-artifacts/baseline-361
+          curl --fail --location --silent --show-error \\
+            -H "Authorization: Bearer ${GH_TOKEN}" \\
+            -H "Accept: application/vnd.github+json" \\
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/11896618352/zip" \\
+            -o /tmp/pr29-baseline-361.zip
+          echo "21cfc22c127113b9b928b773e2322ee90a421bef152244687cb536e937d2b7bf  /tmp/pr29-baseline-361.zip" | sha256sum --check
+          unzip -q /tmp/pr29-baseline-361.zip -d reconciliation-artifacts/baseline-361
+          test -s reconciliation-artifacts/baseline-361/independent-bidirectional-reconciliation.json
+          test -s reconciliation-artifacts/baseline-361/source-inventory.json
+          test -s reconciliation-artifacts/baseline-361/catalog-inventory.json
 
       - name: Generate separate inventories from exact Git trees
         shell: bash
@@ -432,6 +457,22 @@ jobs:
           # BLOCKED is a valid evidence result, not a CI crash. The artifact must
           # preserve blockers rather than masking them or claiming reconciliation.
           PY
+
+      - name: Build and enforce per-finding remediation ledger
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_pr29_finding_remediation_ledger.py \\
+            --ledger-contract docs/architecture/pr29-finding-remediation-ledger-contract.v1.json \\
+            --baseline-dir reconciliation-artifacts/baseline-361 \\
+            --source-inventory reconciliation-artifacts/source-inventory.json \\
+            --catalog-inventory reconciliation-artifacts/catalog-inventory.json \\
+            --current-reconciliation reconciliation-artifacts/independent-bidirectional-reconciliation.json \\
+            --tree-reconciliation reconciliation-artifacts/git-tree-reconciliation.json \\
+            --expected-deltas docs/architecture/source-catalog-expected-tree-delta.v1.json \\
+            --current-head-sha "$GENERATOR_COMMIT" \\
+            --output reconciliation-artifacts/pr29-finding-remediation-ledger.json
 
       - name: Validate artifact JSON and print provenance
         shell: bash
