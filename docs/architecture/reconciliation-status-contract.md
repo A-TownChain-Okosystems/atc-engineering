@@ -2,6 +2,8 @@
 
 Normative machine-readable contract: [reconciliation-status-contract.v1.json](reconciliation-status-contract.v1.json).
 
+The bounded consumer inventory is recorded in [reconciliation-status-consumer-audit.v1.json](reconciliation-status-consumer-audit.v1.json). It is explicitly marked partial; it is not organization-wide verification.
+
 ## Status meanings
 
 - `DETECTED` means findings or candidate declarations were observed. It does not establish resolution, complete scope, or success.
