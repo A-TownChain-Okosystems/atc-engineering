@@ -1,0 +1,205 @@
+{
+  "schema_version": "1.0.0",
+  "audit_id": "ATCE-RECONCILIATION-STATUS-CONSUMER-DISCOVERY-001",
+  "repository": "A-TownChain-Okosystems/atc-engineering",
+  "status": "PARTIAL",
+  "purpose": "Record organization-wide code-search discovery candidates for the PR #29 status-consumer audit. This is a candidate register, not a complete source-tree scan or VERIFIED claim.",
+  "discovery_method": {
+    "source": "GitHub code search across A-TownChain-Okosystems",
+    "queries": [
+      "\"DETECTED\" \"VERIFIED\"",
+      "\"RECONCILED\" \"VERIFIED\"",
+      "\"status\": \"DETECTED\"",
+      "\"status\": \"VERIFIED\"",
+      "\"RECONCILED\" workflow",
+      "\"DETECTED\" workflow"
+    ],
+    "limitations": [
+      "Search results are discovery signals and may be ranked, truncated, indexed incompletely, or limited to default-branch content.",
+      "Search does not prove absence of consumers in unreturned files, private/unindexed repositories, generated code, scripts, or dynamically constructed status mappings.",
+      "Each candidate requires direct file inspection at an exact commit and classification by status domain before the audit can be closed."
+    ]
+  },
+  "status_domains": [
+    {
+      "domain": "reconciliation report status",
+      "statuses": [
+        "DETECTED",
+        "RECONCILED",
+        "VERIFIED"
+      ],
+      "rule": "Apply the PR #29 normative contract. No implicit promotion between states."
+    },
+    {
+      "domain": "individual finding lifecycle",
+      "statuses": [
+        "DETECTED",
+        "CLASSIFIED",
+        "PLANNED",
+        "FIXED",
+        "VERIFIED",
+        "CLOSED",
+        "BLOCKED"
+      ],
+      "rule": "Finding remediation state is not interchangeable with reconciliation-report status."
+    },
+    {
+      "domain": "function-catalog discovery",
+      "statuses": [
+        "DETECTED",
+        "DOCUMENTED",
+        "IMPLEMENTED",
+        "VERIFIED",
+        "STALE"
+      ],
+      "rule": "Catalog record states must be interpreted under the catalog schema and must not be mapped automatically to reconciliation status."
+    },
+    {
+      "domain": "function semantic/test evidence",
+      "statuses": [
+        "DISCOVERED_NOT_SEMANTICALLY_VERIFIED",
+        "NOT_RECONCILED"
+      ],
+      "rule": "Discovery or test detection does not prove semantic correctness or reconciled test evidence."
+    },
+    {
+      "domain": "repository-specific specification/roadmap status",
+      "statuses": [
+        "OPEN",
+        "PLANNED",
+        "IMPLEMENTED",
+        "VERIFIED",
+        "BLOCKED"
+      ],
+      "rule": "Classify according to the owning repository's contract; do not assume a shared enum solely from matching strings."
+    }
+  ],
+  "candidates": [
+    {
+      "repository": "A-TownChain-Okosystems/atc-engineering",
+      "path": "scripts/org_function_catalog.py",
+      "observed_ref": "b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4",
+      "role_candidate": "producer",
+      "domain": "function-catalog discovery",
+      "discovery": "Search excerpt shows status DETECTED or RESIDUAL based on inventory deltas/exclusions and warns heuristic parser coverage is incomplete.",
+      "disposition": "REVIEWED_AS_RELEVANT",
+      "caveat": "Search ref is the default-branch revision, not the PR #29 head; PR branch version must be separately considered."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/atc-engineering",
+      "path": "crates/atc-findings/src/lib.rs",
+      "observed_ref": "b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4",
+      "role_candidate": "producer/consumer",
+      "domain": "individual finding lifecycle",
+      "discovery": "Finding lifecycle includes DETECTED through VERIFIED/CLOSED and is a separate domain.",
+      "disposition": "DOMAIN_SEPARATION_REQUIRED",
+      "caveat": "The exact PR #29 branch implementation is already listed in the bounded audit; the fleet default-branch result is not exact-head evidence."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/atc-algorithm",
+      "path": "docs/function-catalog.json",
+      "observed_ref": "f25b43383433766c43df6c5c494ecb70cdb4a4b7",
+      "role_candidate": "catalog/report producer",
+      "domain": "function semantic/test evidence",
+      "discovery": "Catalog reports 37 discovered functions, 18 tests detected, zero semantic contracts verified, and tests NOT_RECONCILED.",
+      "disposition": "REVIEW_REQUIRED",
+      "caveat": "Status is not the PR #29 reconciliation-report status; verify source SHA, schema, generator, and workflow consumers."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/atc-algorithm",
+      "path": "schemas/function-catalog.schema.json",
+      "observed_ref": "f25b43383433766c43df6c5c494ecb70cdb4a4b7",
+      "role_candidate": "schema/consumer",
+      "domain": "function semantic/test evidence",
+      "discovery": "Schema contains DISCOVERED_NOT_SEMANTICALLY_VERIFIED and test reconciliation state.",
+      "disposition": "REVIEW_REQUIRED",
+      "caveat": "Schema validates structure; it does not independently prove semantic verification."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/a-townchain-ecosystem",
+      "path": "tools/reconcile_component_function_catalog.py",
+      "observed_ref": "c91c8c6fc60b1c28403c3125f728495e2efa124b",
+      "role_candidate": "reconciliation producer",
+      "domain": "component/function catalog reconciliation",
+      "discovery": "Search excerpt explicitly states lexical matches are discovery evidence only and notes dynamic/generated/macro-expanded/conditional/indirect entrypoint limitations.",
+      "disposition": "REVIEW_REQUIRED",
+      "caveat": "Must inspect all callers, report schemas, and workflow consumers at the exact same commit."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/a-townchain-ecosystem",
+      "path": "tools/scan_public_symbols.py",
+      "observed_ref": "c91c8c6fc60b1c28403c3125f728495e2efa124b",
+      "role_candidate": "discovery producer",
+      "domain": "component/function catalog discovery",
+      "discovery": "Organization-wide symbol scanning candidate found.",
+      "disposition": "REVIEW_REQUIRED",
+      "caveat": "A scan result is not proof of complete inventory or VERIFIED status."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/globus-os",
+      "path": "ROADMAP.md",
+      "observed_ref": "3bf000143ec9bfad79d0bacc36b99b8111178b95",
+      "role_candidate": "status consumer/documentation",
+      "domain": "repository-specific specification/roadmap status",
+      "discovery": "Search excerpt says implementation status should only be updated from evidence tied to exact current SHA.",
+      "disposition": "REVIEW_REQUIRED",
+      "caveat": "Confirm exact workflow/scripts that read or write implementation status."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/atclang",
+      "path": "tools/ci_independent_audit.py",
+      "observed_ref": "27dc3678f67dc81180768be60ffd025e2fa6c9b9",
+      "role_candidate": "audit producer",
+      "domain": "repository-specific specification/roadmap status",
+      "discovery": "Independent audit script found in status-related code search.",
+      "disposition": "REVIEW_REQUIRED",
+      "caveat": "Search excerpt does not establish that it consumes reconciliation status; inspect before classifying as a true consumer."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/atc-standards",
+      "path": "standards/bug/ATC-STD-BUG-005.md",
+      "observed_ref": "c362d15e77b4818208b41662cf5ceba6fb90e0f2",
+      "role_candidate": "normative specification",
+      "domain": "individual finding lifecycle",
+      "discovery": "Status lifecycle references DETECTED and multiple later remediation states.",
+      "disposition": "DOMAIN_SEPARATION_REQUIRED",
+      "caveat": "Normative text is not executable consumer code; locate validators and workflows implementing it."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/.github",
+      "path": "AGENTS.md",
+      "observed_ref": "af5d803dace369b83e4bffd2e4e6ba001d4aa000",
+      "role_candidate": "organization-wide policy",
+      "domain": "repository-specific specification/roadmap status",
+      "discovery": "Search excerpt contains status vocabulary guidance.",
+      "disposition": "REVIEW_REQUIRED",
+      "caveat": "Policy consumers and repository-level enforcement workflows remain to be identified."
+    },
+    {
+      "repository": "A-TownChain-Okosystems/a-townchain-os-docs",
+      "path": "docs/standards/STANDARDS_REGISTRY.md",
+      "observed_ref": "1c4bfd2c9cd1c43deb0b88d3a4bfde94fc9d106c",
+      "role_candidate": "documentation/report",
+      "domain": "repository-specific specification/roadmap status",
+      "discovery": "Search excerpt includes specification statuses and registry records.",
+      "disposition": "REVIEW_REQUIRED",
+      "caveat": "Documentation references alone are not a machine consumer; find schema/validator/workflow links."
+    }
+  ],
+  "required_follow_up": [
+    "Enumerate every non-archived organization repository from a complete live repository listing, including pagination and private visibility where permitted.",
+    "For each repository, pin the default-branch commit SHA and inventory workflow files, scripts, schemas, report producers, status readers/writers, and generated consumers.",
+    "Search each pinned Git tree for status constants, enum variants, comparisons, mappings, transition tables, serialization/deserialization, and artifact field names; do not rely on ranked code-search results alone.",
+    "Classify each hit as normative specification, producer, consumer, schema, test, documentation, unrelated homonym, or unknown; unknown classifications remain blockers.",
+    "Fetch referenced workflow runs, jobs, steps, exit codes, logs, and artifacts and bind each evidence record to the exact source SHA.",
+    "Add consumer-specific negative tests proving DETECTED and RECONCILED cannot be promoted to VERIFIED, then run exact-head CI after the complete audit inventory is updated."
+  ],
+  "closure_criteria": {
+    "repository_fleet_complete": false,
+    "all_candidate_paths_directly_inspected": false,
+    "all_status_readers_and_writers_classified": false,
+    "exact_sha_evidence_bound_per_in_scope_repository": false,
+    "negative_regressions_for_each_executable_consumer": false,
+    "audit_closure_allowed": false
+  }
+}
