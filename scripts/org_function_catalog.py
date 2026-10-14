@@ -48,9 +48,9 @@ def git_sha(root: Path) -> str:
 def blob_sha(data: bytes) -> str:
     return hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
 
-def stable_symbol_id(repo: str, rel: str, kind: str, qualified_name: str) -> str:
-    """Identity deliberately excludes line numbers and mutable source content."""
-    identity = json.dumps([repo, rel, kind, qualified_name], ensure_ascii=False, separators=(",", ":"))
+def stable_symbol_id(repo: str, rel: str, kind: str, qualified_name: str, signature: str = "") -> str:
+    """Identity excludes line numbers and includes signature to distinguish overloads."""
+    identity = json.dumps([repo, rel, kind, qualified_name, signature.strip()], ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
 def classify(path: Path) -> str:
@@ -72,7 +72,7 @@ def classify(path: Path) -> str:
 def symbol_record(repo: str, rel: str, language: str, kind: str, name: str, start: int, end: int,
                   signature: str, visibility: str, source_sha: str, commit: str, limitations: list[str]) -> dict:
     return {
-        "schema_version": SCHEMA_VERSION, "symbol_id": stable_symbol_id(repo, rel, kind, name),
+        "schema_version": SCHEMA_VERSION, "symbol_id": stable_symbol_id(repo, rel, kind, name, signature),
         "repository": repo, "path": rel, "language": language, "symbol_kind": kind,
         "qualified_name": name, "signature": signature, "visibility": visibility, "summary": "",
         "parameters": [], "return_type": None, "errors": [], "side_effects": [],
