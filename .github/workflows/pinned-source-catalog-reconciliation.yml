@@ -375,8 +375,8 @@ jobs:
                             "expected_file_bindings": counts["expected_file_bindings"],
                             "unresolved_file_bindings": unresolved_file_bindings,
                             "source_exclusions": len(source), "catalog_exclusions": len(catalog)}, sort_keys=True))
-          if blocking:
-              raise SystemExit("Reconciliation BLOCKED: unresolved source/catalog differences require explicit review")
+          if blocking or any(parser_blockers.values()):
+              raise SystemExit("Reconciliation BLOCKED: unresolved inventory differences or incomplete authoritative parser coverage")
           PY
 
       - name: Independently compare source and catalog inventories in both directions
