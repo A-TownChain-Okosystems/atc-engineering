@@ -10,9 +10,9 @@ from jsonschema import Draft202012Validator, FormatChecker
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def validate(crate: str, schema_path: str) -> None:
+def validate(crate: str, schema_path: str, example: str) -> None:
     completed = subprocess.run(
-        ["cargo", "run", "--locked", "--quiet", "-p", crate, "--example", "evidence_schema_fixture"],
+        ["cargo", "run", "--locked", "--quiet", "-p", crate, "--example", example],
         cwd=ROOT,
         check=True,
         text=True,
@@ -32,5 +32,5 @@ def validate(crate: str, schema_path: str) -> None:
 
 
 if __name__ == "__main__":
-    validate("atc-evidence", "schemas/evidence/ATC-EVD-001.json")
-    validate("atc-findings", "schemas/findings/ATC-FND-001.json")
+    validate("atc-evidence", "schemas/evidence/ATC-EVD-001.json", "evidence_schema_fixture")
+    validate("atc-findings", "schemas/findings/ATC-FND-001.json", "finding_schema_fixture")
