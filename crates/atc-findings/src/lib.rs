@@ -187,7 +187,7 @@ impl FindingRegistry {
                 .map(|value| format!("\"{}\"", esc(value)))
                 .unwrap_or_else(|| "null".to_string());
             out.push_str(&format!(
-                "    {{\"id\":\"{}\",\"repository\":\"{}\",\"path\":{},\"code\":\"{}\",\"category\":\"{}\",\"severity\":\"{}\",\"state\":\"{}\",\"description\":\"{}\",\"root_cause\":\"{}\",\"implementation_plan\":\"{}\",\"iteration\":{}}}{}\\n",
+                "    {{\"id\":\"{}\",\"repository\":\"{}\",\"path\":{},\"code\":\"{}\",\"category\":\"{}\",\"severity\":\"{}\",\"state\":\"{}\",\"description\":\"{}\",\"root_cause\":\"{}\",\"implementation_plan\":\"{}\",\"iteration\":{}}}{}\n",
                 esc(&f.id),
                 esc(&f.repository),
                 path,
