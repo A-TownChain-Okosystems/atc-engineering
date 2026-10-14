@@ -1,0 +1,174 @@
+name: Pinned Source Catalog Reconciliation
+
+on:
+  pull_request:
+    paths:
+      - "scripts/org_function_catalog.py"
+      - ".github/workflows/pinned-source-catalog-reconciliation.yml"
+      - "docs/architecture/source-catalog-reconciliation.v1.json"
+      - "schemas/source-catalog-reconciliation.schema.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-inventory:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_COMMIT: b2ad23ee45a53de40ccfc1f1a1b4d37ca936d0e4
+      CATALOG_COMMIT: 5c27a52e476d6ca10ab3650e7d0370a20e741e70
+      EXPECTED_GENERATOR_BLOB: d664e47bee098589ff2bc9a2ff819d2bd604b587
+    steps:
+      - name: Checkout workflow revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify pinned commits and generator identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${SOURCE_COMMIT}^{commit}"
+          git cat-file -e "${CATALOG_COMMIT}^{commit}"
+          source_blob="$(git rev-parse "${SOURCE_COMMIT}:scripts/org_function_catalog.py")"
+          catalog_blob="$(git rev-parse "${CATALOG_COMMIT}:scripts/org_function_catalog.py")"
+          printf 'SOURCE_COMMIT=%s\nCATALOG_COMMIT=%s\nSOURCE_GENERATOR_BLOB=%s\nCATALOG_GENERATOR_BLOB=%s\n' \
+            "$SOURCE_COMMIT" "$CATALOG_COMMIT" "$source_blob" "$catalog_blob"
+          test "$source_blob" = "$EXPECTED_GENERATOR_BLOB"
+          test "$catalog_blob" = "$EXPECTED_GENERATOR_BLOB"
+          mkdir -p reconciliation-artifacts
+
+      - name: Generate separate inventories from exact Git trees
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/atce-source "$SOURCE_COMMIT"
+          git worktree add --detach /tmp/atce-catalog "$CATALOG_COMMIT"
+          python /tmp/atce-source/scripts/org_function_catalog.py /tmp/atce-source \
+            --repository A-TownChain-Okosystems/atc-engineering \
+            --output reconciliation-artifacts/source-inventory.json
+          python /tmp/atce-catalog/scripts/org_function_catalog.py /tmp/atce-catalog \
+            --repository A-TownChain-Okosystems/atc-engineering \
+            --output reconciliation-artifacts/catalog-inventory.json
+
+      - name: Produce deterministic identity-delta report
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          out = Path("reconciliation-artifacts")
+          source = json.loads((out / "source-inventory.json").read_text())
+          catalog = json.loads((out / "catalog-inventory.json").read_text())
+
+          def by_id(doc):
+              result = {}
+              duplicates = {}
+              for symbol in doc.get("symbols", []):
+                  key = symbol["symbol_id"]
+                  if key in result:
+                      duplicates.setdefault(key, [result[key]]).append(symbol)
+                  else:
+                      result[key] = symbol
+              return result, duplicates
+
+          src, src_dups = by_id(source)
+          cat, cat_dups = by_id(catalog)
+          source_ids, catalog_ids = set(src), set(cat)
+          source_only = sorted(source_ids - catalog_ids)
+          catalog_only = sorted(catalog_ids - source_ids)
+          common = sorted(source_ids & catalog_ids)
+          changed = sorted(key for key in common if (
+              src[key].get("path") != cat[key].get("path")
+              or src[key].get("source_blob_sha") != cat[key].get("source_blob_sha")
+              or src[key].get("signature") != cat[key].get("signature")
+              or src[key].get("source_start_line") != cat[key].get("source_start_line")
+              or src[key].get("source_end_line") != cat[key].get("source_end_line")
+          ))
+
+          def file_map(doc):
+              return {item["path"]: item for item in doc.get("files", [])}
+          sf, cf = file_map(source), file_map(catalog)
+          file_paths = sorted(set(sf) | set(cf))
+          file_deltas = [
+              {"path": path, "source_status": sf.get(path, {}).get("status", "ABSENT"),
+               "catalog_status": cf.get(path, {}).get("status", "ABSENT"),
+               "source_blob_sha": sf.get(path, {}).get("blob_sha"),
+               "catalog_blob_sha": cf.get(path, {}).get("blob_sha")}
+              for path in file_paths
+              if path not in sf or path not in cf
+              or sf[path].get("blob_sha") != cf[path].get("blob_sha")
+              or sf[path].get("status") != cf[path].get("status")
+          ]
+          report = {
+              "schema_version": "1.0.0",
+              "repository": "A-TownChain-Okosystems/atc-engineering",
+              "status": "DETECTED",
+              "source_commit_sha": source.get("observed_commit_sha"),
+              "catalog_commit_sha": catalog.get("observed_commit_sha"),
+              "generator_blob_sha": hashlib.sha1(
+                  b"blob " + str(len(Path("/tmp/atce-source/scripts/org_function_catalog.py").read_bytes())).encode() + b"\0"
+                  + Path("/tmp/atce-source/scripts/org_function_catalog.py").read_bytes()
+              ).hexdigest(),
+              "counts": {
+                  "source_files": len(source.get("files", [])),
+                  "catalog_files": len(catalog.get("files", [])),
+                  "source_symbols": len(source.get("symbols", [])),
+                  "catalog_symbols": len(catalog.get("symbols", [])),
+                  "source_only_symbol_ids": len(source_only),
+                  "catalog_only_symbol_ids": len(catalog_only),
+                  "changed_common_symbol_ids": len(changed),
+                  "duplicate_source_symbol_ids": len(src_dups),
+                  "duplicate_catalog_symbol_ids": len(cat_dups),
+                  "source_exclusions": len(source.get("exclusions", [])),
+                  "catalog_exclusions": len(catalog.get("exclusions", [])),
+                  "source_parse_errors": sum(1 for x in source.get("files", []) if x.get("status") == "PARSE_ERROR"),
+                  "catalog_parse_errors": sum(1 for x in catalog.get("files", []) if x.get("status") == "PARSE_ERROR"),
+                  "changed_file_bindings": len(file_deltas)
+              },
+              "source_only_symbol_ids": source_only,
+              "catalog_only_symbol_ids": catalog_only,
+              "changed_common_symbol_ids": changed,
+              "duplicate_source_symbol_ids": {k: [x.get("path") for x in v] for k, v in sorted(src_dups.items())},
+              "duplicate_catalog_symbol_ids": {k: [x.get("path") for x in v] for k, v in sorted(cat_dups.items())},
+              "changed_file_bindings": file_deltas,
+              "source_exclusions": source.get("exclusions", []),
+              "catalog_exclusions": catalog.get("exclusions", []),
+              "limitations": [
+                  "This compares two generated inventories from the pinned trees; it is not proof that every source declaration is captured.",
+                  "Non-Python extractors are heuristic and may miss declarations or report false positives.",
+                  "Matching symbol IDs across snapshots are not an independent source-to-canonical-catalog completeness proof.",
+                  "Exclusions require manual, reason-by-reason review; interface contracts and organization-wide ownership are outside this report.",
+                  "Status remains DETECTED regardless of zero deltas; no VERIFIED or RECONCILED promotion is performed."
+              ]
+          }
+          (out / "reconciliation-report.json").write_text(
+              json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+          )
+          print(json.dumps({"status": report["status"], "counts": report["counts"]}, sort_keys=True))
+          PY
+
+      - name: Validate artifact JSON and print provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool reconciliation-artifacts/source-inventory.json >/dev/null
+          python -m json.tool reconciliation-artifacts/catalog-inventory.json >/dev/null
+          python -m json.tool reconciliation-artifacts/reconciliation-report.json >/dev/null
+          sha256sum reconciliation-artifacts/*.json
+          printf 'Run: %s\nCommit: %s\n' "${GITHUB_RUN_ID}" "${GITHUB_SHA}"
+
+      - name: Upload pinned inventories and reconciliation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-source-catalog-reconciliation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reconciliation-artifacts/*.json
+          if-no-files-found: error
+          retention-days: 90
