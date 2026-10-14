@@ -165,15 +165,18 @@ def validate_document_format(language: str, text: str) -> None:
 
 def extract_tree_sitter(repo: str, rel: str, language: str, text: str, sha: str, commit: str) -> list[dict]:
     """Extract Rust/Bash function declarations from concrete syntax trees."""
-    from tree_sitter_language_pack import get_parser
+    from tree_sitter import Language, Parser
 
-    parser_language = {"rust": "rust", "shell": "bash"}.get(language)
-    if parser_language is None:
+    if language == "rust":
+        import tree_sitter_rust
+        grammar = Language(tree_sitter_rust.language())
+    elif language == "shell":
+        import tree_sitter_bash
+        grammar = Language(tree_sitter_bash.language())
+    else:
         raise ValueError(f"no tree-sitter grammar for {language}")
-    parser = get_parser(parser_language)
-    print(f"TREE_PARSER_START language={language} path={rel}", flush=True)
+    parser = Parser(grammar)
     tree = parser.parse(text.encode("utf-8"))
-    print(f"TREE_PARSER_OK language={language} path={rel}", flush=True)
     root = tree.root_node
     if root.has_error:
         raise ValueError(f"{parser_language} syntax tree contains ERROR or missing nodes")
