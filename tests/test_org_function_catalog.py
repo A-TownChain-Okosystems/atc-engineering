@@ -139,12 +139,12 @@ class CatalogTests(unittest.TestCase):
             (root / "lib.rs").write_text("pub fn visible() {}\n", encoding="utf-8")
             (root / "data.yaml").write_text("key: value\n", encoding="utf-8")
             result = catalog.scan(root, "owner/sample")
-            self.assertEqual(result["parser_coverage"]["rust"]["parser_mode"], "heuristic_regex")
-            self.assertEqual(result["parser_coverage"]["rust"]["status"], "HEURISTIC_PARTIAL")
+            self.assertEqual(result["parser_coverage"]["rust"]["parser_mode"], "tree_sitter_rust_ast")
+            self.assertEqual(result["parser_coverage"]["rust"]["status"], "AUTHORITATIVE_COMPLETE")
             self.assertEqual(result["parser_coverage"]["rust"]["symbols_detected"], 1)
-            self.assertEqual(result["parser_coverage"]["yaml"]["parser_mode"], "none")
-            self.assertEqual(result["parser_coverage"]["yaml"]["status"], "UNSUPPORTED")
-            self.assertEqual(result["parser_coverage"]["yaml"]["unsupported_files"], 1)
+            self.assertEqual(result["parser_coverage"]["yaml"]["parser_mode"], "pyyaml_ast")
+            self.assertEqual(result["parser_coverage"]["yaml"]["status"], "AUTHORITATIVE_COMPLETE")
+            self.assertEqual(result["parser_coverage"]["yaml"]["unsupported_files"], 0)
             self.assertEqual(result["status"], "DETECTED")
 
     def test_reconciliation_reports_added_removed_and_changed_symbols(self):
