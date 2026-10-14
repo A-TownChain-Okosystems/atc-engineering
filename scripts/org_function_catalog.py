@@ -231,6 +231,17 @@ def explicit_unknown_classification(rel: str) -> tuple[str, str] | None:
 def scan(root: Path, repo: str) -> dict:
     root, commit = root.resolve(), git_sha(root)
     files, symbols, limitations, exclusions = [], [], [], []
+
+    def record_symlink(rel_path: str, symlink_path: Path) -> None:
+        target_bytes = os.fsencode(os.readlink(symlink_path))
+        sha = blob_sha(target_bytes)
+        reason = "symlink target is inventoried as a Git blob but not followed or parsed"
+        files.append({"path": rel_path, "language": "unknown", "classification": "symlink",
+                      "blob_sha": sha, "status": "SKIPPED", "reason": reason})
+        exclusions.append(exclusion_record(
+            repo, rel_path, "SYMLINK_FILE_NOT_FOLLOWED", reason,
+            category="safety_boundary", source_blob_sha=sha, evidence_ref=f"{rel_path}#{sha}",
+        ))
     # Prune excluded build/cache directories explicitly and record each exclusion.
     # This records policy boundaries without scanning potentially large generated trees.
     for current_dir, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
@@ -247,19 +258,18 @@ def scan(root: Path, repo: str) -> dict:
                 ))
                 continue
             if candidate.is_symlink():
-                exclusions.append(exclusion_record(
-                    repo, rel_dir, "SYMLINK_NOT_FOLLOWED",
-                    "directory symlink is not followed to avoid scanning outside the repository tree",
-                    category="safety_boundary", evidence_ref="scan():candidate.is_symlink",
-                ))
+                record_symlink(rel_dir, candidate)
                 continue
             retained_dirs.append(dirname)
         dirnames[:] = retained_dirs
         for filename in sorted(filenames):
             path = current / filename
+            rel = path.relative_to(root).as_posix()
+            if path.is_symlink():
+                record_symlink(rel, path)
+                continue
             if not path.is_file():
                 continue
-            rel = path.relative_to(root).as_posix()
             # Git worktrees represent repository metadata as a root-level .git file.
             # It is not a tracked source file and must not enter the source census.
             if ".git" in Path(rel).parts:
