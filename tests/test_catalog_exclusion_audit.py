@@ -22,7 +22,7 @@ def exclusion(path, blob, reason="UNSUPPORTED_FORMAT", evidence=None):
     }
 
 
-class ExclusionAuditTests:
+class TestExclusionAudit:
     def test_matching_file_blob_and_path_evidence_pass(self):
         blob = "b" * 40
         report = audit_module.audit_inventory({
