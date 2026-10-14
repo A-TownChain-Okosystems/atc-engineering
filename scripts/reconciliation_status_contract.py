@@ -79,11 +79,21 @@ def validate_verification_claim(claim: dict[str, Any]) -> None:
         if not isinstance(item.get("step"), str) or not item["step"].strip():
             raise StatusContractError(f"evidence {index} requires a step identity")
         artifact_sha = item.get("artifact_sha256")
+        artifact_id = item.get("artifact_id")
         log_ref = item.get("log_reference")
         if artifact_sha is not None and (not isinstance(artifact_sha, str) or not SHA256.fullmatch(artifact_sha)):
             raise StatusContractError(f"evidence {index} artifact_sha256 is malformed")
-        if not artifact_sha and (not isinstance(log_ref, str) or not log_ref.strip()):
-            raise StatusContractError(f"evidence {index} requires an artifact hash or reproducible log reference")
+        artifact_evidence_valid = (
+            isinstance(artifact_id, (str, int))
+            and str(artifact_id).strip()
+            and isinstance(artifact_sha, str)
+            and SHA256.fullmatch(artifact_sha)
+        )
+        log_evidence_valid = isinstance(log_ref, str) and log_ref.startswith("https://") and len(log_ref) > 8
+        if not artifact_evidence_valid and not log_evidence_valid:
+            raise StatusContractError(
+                f"evidence {index} requires artifact_id plus SHA-256, or an HTTPS reproducible log_reference"
+            )
 
     for index, criterion in enumerate(criteria):
         refs = criterion["evidence_ids"]
