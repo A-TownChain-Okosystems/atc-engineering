@@ -155,6 +155,10 @@ def scan(root: Path, repo: str) -> dict:
             if not path.is_file():
                 continue
             rel = path.relative_to(root).as_posix()
+            # Git worktrees represent repository metadata as a root-level .git file.
+            # It is not a tracked source file and must not enter the source census.
+            if ".git" in Path(rel).parts:
+                continue
             try:
                 data = path.read_bytes()
             except (OSError, ValueError) as exc:
