@@ -139,7 +139,7 @@ def extract_heuristic(repo: str, rel: str, language: str, text: str, sha: str, c
         # binding to the captured declaration name, not match.start(), or a
         # preceding blank line can produce an empty/wrong signature.
         declaration_pos = match.start(name_group)
-        start = text.count("\\n", 0, declaration_pos) + 1
+        start = text.count("\n", 0, declaration_pos) + 1
         signature = lines[start - 1].strip() if start <= len(lines) else name
         vis = "public" if re.search(r"^\s*(?:pub\b|export\b|public\b)", signature) else "unknown"
         out.append(symbol_record(repo, rel, language, "function", name, start, start, signature, vis, sha, commit,
