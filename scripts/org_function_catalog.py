@@ -234,9 +234,51 @@ def scan(root: Path, repo: str) -> dict:
         limitations.append("repository commit SHA unavailable; output cannot be VERIFIED")
     if exclusions:
         limitations.append("one or more files or directories are explicitly excluded, unsupported, or have parse/read errors; catalog is not complete")
+
+    # Publish parser coverage by language instead of letting a successful scan imply
+    # complete extraction. Regex-based languages are explicitly heuristic; formats
+    # without an extractor remain visible as unsupported rather than silently omitted.
+    symbols_by_path = {}
+    for symbol in symbols:
+        symbols_by_path.setdefault(symbol["path"], 0)
+        symbols_by_path[symbol["path"]] += 1
+    parser_coverage = {}
+    for language in sorted({item["language"] for item in files}):
+        language_files = [item for item in files if item["language"] == language]
+        modes = {
+            "python": "python_ast",
+            **{key: "heuristic_regex" for key in PATTERNS},
+        }
+        mode = modes.get(language, "none")
+        analysed = sum(item["status"] == "ANALYSED" for item in language_files)
+        unsupported = sum(item["status"] == "UNSUPPORTED" for item in language_files)
+        parse_errors = sum(item["status"] == "PARSE_ERROR" for item in language_files)
+        skipped = sum(item["status"] == "SKIPPED" for item in language_files)
+        symbol_count = sum(symbols_by_path.get(item["path"], 0) for item in language_files)
+        if analysed + unsupported + parse_errors == 0 and skipped:
+            coverage_status = "EXCLUDED_BY_POLICY"
+        elif mode == "none":
+            coverage_status = "UNSUPPORTED"
+        elif unsupported or parse_errors:
+            coverage_status = "PARTIAL"
+        elif mode == "heuristic_regex":
+            coverage_status = "HEURISTIC_PARTIAL"
+        else:
+            coverage_status = "DETECTED_NOT_VERIFIED"
+        parser_coverage[language] = {
+            "parser_mode": mode,
+            "files_seen": len(language_files),
+            "files_excluded_by_policy": skipped,
+            "files_analysed": analysed,
+            "unsupported_files": unsupported,
+            "parse_errors": parse_errors,
+            "symbols_detected": symbol_count,
+            "status": coverage_status,
+        }
     return {"schema_version": SCHEMA_VERSION, "repository": repo, "observed_commit_sha": commit,
             "generated_at": datetime.now(timezone.utc).isoformat(), "status": "DETECTED",
             "files": files, "symbols": sorted(symbols, key=lambda s: (s["path"], s["source_start_line"], s["qualified_name"])),
+            "parser_coverage": parser_coverage,
             "exclusions": exclusions, "limitations": limitations}
 
 def reconcile(current: dict, baseline: dict) -> dict:
