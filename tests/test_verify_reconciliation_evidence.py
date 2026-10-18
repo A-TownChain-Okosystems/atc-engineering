@@ -1,7 +1,6 @@
 import hashlib
 import json
 import unittest
-from unittest.mock import Mock
 
 from scripts.verify_reconciliation_evidence import (
     EvidenceVerificationError,
