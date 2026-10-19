@@ -154,11 +154,23 @@ impl EvidenceRecord {
 }
 
 fn escape(value: &str) -> String {
-    value
-        .replace('\\', "\\\\")
-        .replace('"', "\\\"")
-        .replace('\n', "\\n")
-        .replace('\r', "\\r")
+    let mut escaped = String::with_capacity(value.len());
+    for ch in value.chars() {
+        match ch {
+            '"' => escaped.push_str("\\\""),
+            '\\' => escaped.push_str("\\\\"),
+            '\u{08}' => escaped.push_str("\\b"),
+            '\u{0C}' => escaped.push_str("\\f"),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            control if control <= '\u{1F}' => {
+                escaped.push_str(&format!("\\u{:04x}", control as u32));
+            }
+            other => escaped.push(other),
+        }
+    }
+    escaped
 }
 
 #[cfg(test)]
@@ -185,6 +197,22 @@ mod tests {
             EvidenceStatus::Pass,
         );
         assert!(record.validate().is_err());
+    }
+
+    #[test]
+    fn json_escaping_covers_every_json_control_character() {
+        let input: String = (0u8..=0x1f).map(char::from).collect();
+        let escaped = escape(&input);
+        assert!(!escaped.chars().any(|ch| ch <= '\u{1f}'));
+        for control in 0u32..=0x1f {
+            let ch = char::from_u32(control).unwrap();
+            assert!(!escaped.contains(ch));
+        }
+        assert!(escaped.contains("\\u0000"));
+        assert!(escaped.contains("\\b"));
+        assert!(escaped.contains("\\f"));
+        assert!(escaped.contains("\\t"));
+        assert!(escaped.contains("\\u001f"));
     }
 
     #[test]
