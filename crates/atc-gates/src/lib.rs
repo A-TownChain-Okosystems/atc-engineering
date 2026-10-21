@@ -82,11 +82,12 @@ pub struct ReadinessInput {
 }
 
 pub fn evaluate(input: &ReadinessInput) -> GateDecision {
-    if input.evidence.iter().any(|e| e.status.is_blocking()) {
-        return GateDecision::Block;
-    }
-    if input.requested_state == DerivedState::ProductionReady
-        && (!input.sod.valid() || !input.sod.human_approval)
+    // Every ALLOW report is authoritative readiness evidence. Never permit a
+    // positive decision when separation of duties is invalid or approval is absent,
+    // regardless of the requested target state.
+    if input.evidence.iter().any(|e| e.status.is_blocking())
+        || !input.sod.valid()
+        || !input.sod.human_approval
     {
         return GateDecision::Block;
     }
@@ -161,6 +162,38 @@ mod tests {
                 human_approval: true,
             },
             requested_state: DerivedState::ProductionReady,
+        };
+        assert_eq!(evaluate(&input), GateDecision::Block);
+    }
+
+    #[test]
+    fn testnet_requires_valid_separation_of_duties() {
+        let input = ReadinessInput {
+            evidence: vec![EvidenceCheck {
+                control_id: "SEC-001".into(),
+                status: EvidenceStatus::Pass,
+            }],
+            sod: SeparationOfDuties {
+                coder: "same".into(),
+                validator: "same".into(),
+                auditor: "auditor".into(),
+                release_authority: "release".into(),
+                human_approval: true,
+            },
+            requested_state: DerivedState::TestnetReady,
+        };
+        assert_eq!(evaluate(&input), GateDecision::Block);
+    }
+
+    #[test]
+    fn testnet_requires_human_approval() {
+        let input = ReadinessInput {
+            evidence: vec![EvidenceCheck {
+                control_id: "SEC-001".into(),
+                status: EvidenceStatus::Pass,
+            }],
+            sod: sod(false),
+            requested_state: DerivedState::TestnetReady,
         };
         assert_eq!(evaluate(&input), GateDecision::Block);
     }

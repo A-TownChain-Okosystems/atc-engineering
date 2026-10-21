@@ -38,6 +38,7 @@ jobs:
         run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 
   verify:
+    name: Build, test and bind evidence
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,16 +72,16 @@ jobs:
       - name: Release build
         run: cargo build --locked --release
 
-      - name: Audit gate report
+      - name: Emit gate report for evidence (does not authorize readiness)
         shell: bash
         run: |
           set -euo pipefail
-          cargo run --locked -p atc-audit-cli -- . --gate | tee artifacts/gate-report.txt
+          cargo run --locked -p atc-audit-cli -- . --gate-evidence | tee artifacts/gate-report.txt
           mapfile -t reports < <(grep '^GATE_REPORT ' artifacts/gate-report.txt | sed 's/^GATE_REPORT //')
           test "${#reports[@]}" -eq 1
           printf '%s\n' "${reports[0]}" > artifacts/gate-report.json
 
-      - name: Validate gate evidence and bind it to this run
+      - name: Validate build provenance and bind it to this run
         shell: bash
         env:
           EXPECTED_SHA: ${{ github.sha }}
@@ -108,7 +109,7 @@ jobs:
           sha256sum target/release/atc-audit-cli artifacts/gate-report.json artifacts/evidence-manifest.json > artifacts/SHA256SUMS
           test -s artifacts/SHA256SUMS
 
-      - name: Upload gate evidence
+      - name: Upload build and gate evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -116,3 +117,37 @@ jobs:
           path: artifacts/
           if-no-files-found: error
           retention-days: 30
+
+  readiness-gate:
+    name: Readiness authorization (fail closed)
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - name: Download build and gate evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: atc-engineering-gate-evidence
+          path: artifacts
+
+      - name: Require explicit readiness authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("artifacts/gate-report.json").read_text(encoding="utf-8"))
+          manifest = json.loads(Path("artifacts/evidence-manifest.json").read_text(encoding="utf-8"))
+          if report.get("decision") != "ALLOW":
+              raise SystemExit("BLOCKED: readiness gate decision is not ALLOW")
+          if manifest.get("readiness_authorized") is not True:
+              raise SystemExit("BLOCKED: evidence manifest does not authorize readiness")
+          if report.get("blocking_controls") != []:
+              raise SystemExit("BLOCKED: gate report contains blocking controls")
+          if report.get("sod_valid") is not True:
+              raise SystemExit("BLOCKED: valid separation of duties is absent")
+          if report.get("human_approval") is not True:
+              raise SystemExit("BLOCKED: explicit human approval is absent")
+          print("READINESS AUTHORIZED: gate report and evidence manifest agree")
+          PY
