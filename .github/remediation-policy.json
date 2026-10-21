@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "mode": "fail-closed",
+  "automatic_source_mutations": false,
+  "allowed_automatic_classes": [],
+  "requires_human_review": [
+    "compiler-or-test-failure",
+    "dependency-or-security",
+    "cryptography",
+    "consensus",
+    "protocol-or-standard",
+    "vm",
+    "kernel-or-tcb",
+    "permissions",
+    "merge-conflict",
+    "unknown"
+  ],
+  "verification": {
+    "require_exact_head_sha": true,
+    "require_run_job_step_logs": true,
+    "require_fresh_required_checks": true,
+    "merge_automatically": false,
+    "weaken_gates": false,
+    "delete_tests": false,
+    "force_push": false
+  }
+}
