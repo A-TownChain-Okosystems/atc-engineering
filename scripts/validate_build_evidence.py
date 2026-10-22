@@ -14,6 +14,31 @@ MANIFEST_SCHEMA = "atc.build-evidence/v1"
 FULL_SHA = re.compile(r"[0-9a-f]{40}")
 
 
+def validate_event_identity(event_name: str, event_ref: str, expected_sha: str,
+                            checked_out_sha: str, pr_head_sha: str) -> str:
+    """Validate event-specific identity and return the normalized PR-head field."""
+    if not FULL_SHA.fullmatch(expected_sha):
+        raise ValueError("expected source SHA is not a full 40-character SHA")
+    if not FULL_SHA.fullmatch(checked_out_sha) or checked_out_sha != expected_sha:
+        raise ValueError("checked-out HEAD does not match the workflow event SHA")
+    if not event_ref:
+        raise ValueError("workflow event ref is missing")
+
+    if event_name == "push":
+        if not event_ref.startswith("refs/heads/") or event_ref == "refs/heads/":
+            raise ValueError("push event ref must identify a branch under refs/heads/")
+        if pr_head_sha:
+            raise ValueError("PR head SHA must be absent for a push event without PR context")
+        return "N/A (push event: no PR-head context)"
+    if event_name == "pull_request":
+        if not FULL_SHA.fullmatch(pr_head_sha):
+            raise ValueError("pull_request event requires a full 40-character PR head SHA")
+        return pr_head_sha
+    if pr_head_sha:
+        raise ValueError("PR head SHA is only valid when a pull_request event provides PR context")
+    return f"N/A ({event_name} event: no PR-head context)"
+
+
 def validate_report(report_path: Path, expected_sha: str, checked_out_sha: str,
                     run_id: str, run_attempt: str) -> dict:
     """Validate all inputs before any evidence manifest is emitted."""
@@ -36,14 +61,22 @@ def validate_report(report_path: Path, expected_sha: str, checked_out_sha: str,
 
 def build_manifest(report_path: Path, binary_path: Path, expected_sha: str,
                    checked_out_sha: str, run_id: str, run_attempt: str,
-                   repository: str, workflow_ref: str, report: dict) -> dict:
+                   repository: str, workflow_ref: str, report: dict,
+                   event_name: str = "", event_ref: str = "",
+                   pr_head_sha: str = "") -> dict:
     if not binary_path.is_file():
         raise ValueError("expected release binary is missing")
+    normalized_pr_head = (validate_event_identity(event_name, event_ref, expected_sha,
+                                                   checked_out_sha, pr_head_sha)
+                          if event_name else (pr_head_sha or "N/A (event context not supplied)"))
     return {
         "schema_version": MANIFEST_SCHEMA,
         "repository": repository,
         "source_sha": expected_sha,
         "checked_out_sha": checked_out_sha,
+        "event_name": event_name or "unspecified",
+        "event_ref": event_ref or workflow_ref,
+        "pr_head_sha": normalized_pr_head,
         "release_binary_path": str(binary_path),
         "release_binary_sha256": hashlib.sha256(binary_path.read_bytes()).hexdigest(),
         "workflow_ref": workflow_ref,
@@ -65,6 +98,9 @@ def main() -> int:
     parser.add_argument("--run-attempt", required=True)
     parser.add_argument("--repository", required=True)
     parser.add_argument("--workflow-ref", required=True)
+    parser.add_argument("--event-name", required=True)
+    parser.add_argument("--event-ref", required=True)
+    parser.add_argument("--pr-head-sha", default="")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -73,7 +109,8 @@ def main() -> int:
                                  args.run_id, args.run_attempt)
         manifest = build_manifest(args.report, args.binary, args.expected_sha,
                                   args.checked_out_sha, args.run_id, args.run_attempt,
-                                  args.repository, args.workflow_ref, report)
+                                  args.repository, args.workflow_ref, report,
+                                  args.event_name, args.event_ref, args.pr_head_sha)
     except (ValueError, OSError) as exc:
         raise SystemExit(f"BLOCKED: {exc}") from exc
 
