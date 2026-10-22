@@ -53,11 +53,22 @@ jobs:
       - name: Record build identity
         id: build_identity
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          EXPECTED_SHA: ${{ github.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
         run: |
           set -euo pipefail
-          [[ "${GITHUB_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          checked_out_sha="$(git rev-parse HEAD)"
+          test "$checked_out_sha" = "$EXPECTED_SHA"
           mkdir -p artifacts
-          printf '%s\n' "${GITHUB_SHA}" > artifacts/source-sha.txt
+          printf '%s\n' "$EXPECTED_SHA" > artifacts/source-sha.txt
+          printf '%s\n' "$checked_out_sha" > artifacts/checked-out-sha.txt
+          printf '%s\n' "$EVENT_NAME" > artifacts/event-name.txt
+          printf '%s\n' "$EVENT_REF" > artifacts/event-ref.txt
+          printf '%s\n' "$PR_HEAD_SHA" > artifacts/pr-head-sha.txt
 
       - name: Format check
         run: cargo fmt --all -- --check
@@ -106,7 +117,14 @@ jobs:
 
           test -s artifacts/evidence-manifest.json
           cp target/release/atc-audit-cli artifacts/atc-audit-cli
-          sha256sum target/release/atc-audit-cli artifacts/atc-audit-cli artifacts/gate-report.json artifacts/evidence-manifest.json > artifacts/SHA256SUMS
+          # Hash only files included in the uploaded artifact; paths are relative
+          # to artifacts/ because upload-artifact strips the parent directory.
+          (
+            cd artifacts
+            sha256sum atc-audit-cli gate-report.json evidence-manifest.json \
+              source-sha.txt checked-out-sha.txt event-name.txt event-ref.txt pr-head-sha.txt > SHA256SUMS
+            sha256sum --check SHA256SUMS
+          )
           test -s artifacts/SHA256SUMS
 
       - name: Upload gate evidence
