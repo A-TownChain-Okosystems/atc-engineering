@@ -43,6 +43,7 @@ Die Regressionstests müssen mindestens abdecken:
 `decision: ALLOW` ist keine eigenständige organisatorische Freigabe. `sod_valid: false` oder `human_approval: false` bleiben explizite offene Governance-Bedingungen. CI-Erfolg und Governance-Freigabe müssen getrennt berichtet werden.
 
 Statuszuordnung:
+
 - `CI_VERIFIED`: alle anwendbaren technischen Checks bestehen auf dem exakt ausgewiesenen Commit, einschließlich Run-/Job-/Step- und Artefaktnachweis.
 - `VERIFIED`: zusätzlich sind sämtliche fachlichen Abnahmekriterien und anwendbaren Governance-Bedingungen nachgewiesen.
 - `BLOCKED`: erforderliche Evidenz, Event-Kontext oder Freigaben fehlen.
