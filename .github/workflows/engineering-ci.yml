@@ -2,7 +2,7 @@ name: engineering-ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'ci/**']
   # Validate stacked/feature-branch PRs as well as PRs targeting main.
   pull_request:
   workflow_dispatch:
@@ -105,7 +105,8 @@ jobs:
             --output artifacts/evidence-manifest.json
 
           test -s artifacts/evidence-manifest.json
-          sha256sum target/release/atc-audit-cli artifacts/gate-report.json artifacts/evidence-manifest.json > artifacts/SHA256SUMS
+          cp target/release/atc-audit-cli artifacts/atc-audit-cli
+          sha256sum target/release/atc-audit-cli artifacts/atc-audit-cli artifacts/gate-report.json artifacts/evidence-manifest.json > artifacts/SHA256SUMS
           test -s artifacts/SHA256SUMS
 
       - name: Upload gate evidence
