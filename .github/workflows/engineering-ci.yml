@@ -63,12 +63,24 @@ jobs:
           [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]
           checked_out_sha="$(git rev-parse HEAD)"
           test "$checked_out_sha" = "$EXPECTED_SHA"
+          test -n "$EVENT_REF"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            [[ "$EVENT_REF" == refs/heads/* ]]
+            test -z "$PR_HEAD_SHA"
+            normalized_pr_head="N/A (push event: no PR-head context)"
+          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+            [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+            normalized_pr_head="$PR_HEAD_SHA"
+          else
+            test -z "$PR_HEAD_SHA"
+            normalized_pr_head="N/A ($EVENT_NAME event: no PR-head context)"
+          fi
           mkdir -p artifacts
           printf '%s\n' "$EXPECTED_SHA" > artifacts/source-sha.txt
           printf '%s\n' "$checked_out_sha" > artifacts/checked-out-sha.txt
           printf '%s\n' "$EVENT_NAME" > artifacts/event-name.txt
           printf '%s\n' "$EVENT_REF" > artifacts/event-ref.txt
-          printf '%s\n' "$PR_HEAD_SHA" > artifacts/pr-head-sha.txt
+          printf '%s\n' "$normalized_pr_head" > artifacts/pr-head-sha.txt
 
       - name: Format check
         run: cargo fmt --all -- --check
@@ -99,6 +111,9 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
           REPOSITORY: ${{ github.repository }}
           WORKFLOW_REF: ${{ github.workflow_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
         run: |
           set -euo pipefail
           test -s artifacts/gate-report.txt
@@ -113,6 +128,9 @@ jobs:
             --run-attempt "$RUN_ATTEMPT" \
             --repository "$REPOSITORY" \
             --workflow-ref "$WORKFLOW_REF" \
+            --event-name "$EVENT_NAME" \
+            --event-ref "$EVENT_REF" \
+            --pr-head-sha "$PR_HEAD_SHA" \
             --output artifacts/evidence-manifest.json
 
           test -s artifacts/evidence-manifest.json
