@@ -38,6 +38,17 @@ Die Regressionstests müssen mindestens abdecken:
 - ungültige SHA oder abweichenden Checkout-SHA;
 - fehlenden Gate-Report, falsches Schema und fehlendes Release-Binary.
 
+## Reproduzierbares Push-Evidence-Verfahren
+
+1. Den Commit auf den Zielbranch pushen und den daraus entstandenen GitHub Actions-Lauf anhand des Push-Events ermitteln. Ein PR-Lauf oder ein Merge-Ref-Lauf ist kein Ersatz.
+2. Den aktuellen Branch-HEAD erneut über GitHub lesen. Der Lauf ist nur zulässig, wenn `event == push`, `event_ref == refs/heads/<branch>`, `head_sha == current branch HEAD` und der ausgecheckte SHA identisch sind.
+3. Run-ID, Attempt, erforderliche Jobs und Steps sowie deren Abschlussstatus und Logs erfassen. Bei fehlenden oder mehrdeutigen Daten bleibt der Status `BLOCKED`.
+4. Das Artefakt desselben Laufs herunterladen. GitHub-Artefakt-Digest mit dem heruntergeladenen ZIP vergleichen und `SHA256SUMS` gegen sämtliche erwarteten Dateien prüfen. Manifest, Binärdatei und Gate-Report müssen zu genau demselben Lauf und Commit gehören.
+5. Vor der Cross-Repository-Übergabe den Quell-SHA mit dem freigegebenen `atc-engineering/main`-HEAD und dem kanonischen Census vergleichen. Bei abweichendem Census-SHA den Consumer nicht als erfolgreich werten; Census zuerst aktualisieren und die Prüfungen auf dem neuen Head erneut ausführen.
+6. Die Consumer-Ausführung separat mit der unabhängig geprüften Run-ID und dem erwarteten SHA nachweisen. Erst wenn Herkunft, Integrität, Census-Bindung und alle erforderlichen Jobs erfolgreich sind, darf `E2E_VERIFIED` vergeben werden.
+
+Das Auslösen eines Workflows allein ist kein Verifikationsnachweis. Dieser Abschnitt dokumentiert das Verfahren und ersetzt keine tatsächlichen Run-/Artefakt-Ergebnisse.
+
 ## Governance und Freigabe
 
 `decision: ALLOW` ist keine eigenständige organisatorische Freigabe. `sod_valid: false` oder `human_approval: false` bleiben explizite offene Governance-Bedingungen. CI-Erfolg und Governance-Freigabe müssen getrennt berichtet werden.
