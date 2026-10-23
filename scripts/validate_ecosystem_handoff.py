@@ -71,7 +71,7 @@ def validate(manifest_path: Path, expected_repository: str, expected_sha: str,
             raise ValueError(f"{hash_field} must be a full SHA-256 digest")
         path = Path(path_value)
         if not path.is_absolute():
-            path = artifact_root / path
+            path = Path.cwd() / path
         if digest(path) != expected_digest:
             raise ValueError(f"{hash_field} does not match file bytes")
 
