@@ -28,6 +28,8 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Build evidence negative regression tests
         run: python3 tests/test_validate_build_evidence.py
+      - name: Ecosystem handoff integrity regression tests
+        run: python3 tests/test_validate_ecosystem_handoff.py
       - name: Test workspace
         run: cargo test --locked --workspace --all-features
       - name: Install JSON Schema validator
@@ -135,6 +137,11 @@ jobs:
 
           test -s artifacts/evidence-manifest.json
           cp target/release/atc-audit-cli artifacts/atc-audit-cli
+          python3 scripts/validate_ecosystem_handoff.py \
+            --manifest artifacts/evidence-manifest.json \
+            --repository "$REPOSITORY" \
+            --expected-sha "$EXPECTED_SHA" \
+            --artifact-root artifacts
           # Hash only files included in the uploaded artifact; paths are relative
           # to artifacts/ because upload-artifact strips the parent directory.
           (
