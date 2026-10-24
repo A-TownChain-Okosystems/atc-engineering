@@ -2,7 +2,7 @@ name: engineering-ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'ci/**']
   # Validate stacked/feature-branch PRs as well as PRs targeting main.
   pull_request:
   workflow_dispatch:
@@ -28,6 +28,8 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Build evidence negative regression tests
         run: python3 tests/test_validate_build_evidence.py
+      - name: Ecosystem handoff integrity regression tests
+        run: python3 tests/test_validate_ecosystem_handoff.py
       - name: Test workspace
         run: cargo test --locked --workspace --all-features
       - name: Install JSON Schema validator
@@ -53,11 +55,34 @@ jobs:
       - name: Record build identity
         id: build_identity
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          EXPECTED_SHA: ${{ github.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
         run: |
           set -euo pipefail
-          [[ "${GITHUB_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          checked_out_sha="$(git rev-parse HEAD)"
+          test "$checked_out_sha" = "$EXPECTED_SHA"
+          test -n "$EVENT_REF"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            [[ "$EVENT_REF" == refs/heads/* ]]
+            test -z "$PR_HEAD_SHA"
+            normalized_pr_head="N/A (push event: no PR-head context)"
+          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+            [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+            normalized_pr_head="$PR_HEAD_SHA"
+          else
+            test -z "$PR_HEAD_SHA"
+            normalized_pr_head="N/A ($EVENT_NAME event: no PR-head context)"
+          fi
           mkdir -p artifacts
-          printf '%s\n' "${GITHUB_SHA}" > artifacts/source-sha.txt
+          printf '%s\n' "$EXPECTED_SHA" > artifacts/source-sha.txt
+          printf '%s\n' "$checked_out_sha" > artifacts/checked-out-sha.txt
+          printf '%s\n' "$EVENT_NAME" > artifacts/event-name.txt
+          printf '%s\n' "$EVENT_REF" > artifacts/event-ref.txt
+          printf '%s\n' "$normalized_pr_head" > artifacts/pr-head-sha.txt
 
       - name: Format check
         run: cargo fmt --all -- --check
@@ -88,6 +113,9 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
           REPOSITORY: ${{ github.repository }}
           WORKFLOW_REF: ${{ github.workflow_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
         run: |
           set -euo pipefail
           test -s artifacts/gate-report.txt
@@ -102,10 +130,26 @@ jobs:
             --run-attempt "$RUN_ATTEMPT" \
             --repository "$REPOSITORY" \
             --workflow-ref "$WORKFLOW_REF" \
+            --event-name "$EVENT_NAME" \
+            --event-ref "$EVENT_REF" \
+            --pr-head-sha "$PR_HEAD_SHA" \
             --output artifacts/evidence-manifest.json
 
           test -s artifacts/evidence-manifest.json
-          sha256sum target/release/atc-audit-cli artifacts/gate-report.json artifacts/evidence-manifest.json > artifacts/SHA256SUMS
+          cp target/release/atc-audit-cli artifacts/atc-audit-cli
+          python3 scripts/validate_ecosystem_handoff.py \
+            --manifest artifacts/evidence-manifest.json \
+            --repository "$REPOSITORY" \
+            --expected-sha "$EXPECTED_SHA" \
+            --artifact-root artifacts
+          # Hash only files included in the uploaded artifact; paths are relative
+          # to artifacts/ because upload-artifact strips the parent directory.
+          (
+            cd artifacts
+            sha256sum atc-audit-cli gate-report.json evidence-manifest.json \
+              source-sha.txt checked-out-sha.txt event-name.txt event-ref.txt pr-head-sha.txt > SHA256SUMS
+            sha256sum --check SHA256SUMS
+          )
           test -s artifacts/SHA256SUMS
 
       - name: Upload gate evidence
