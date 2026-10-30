@@ -82,7 +82,9 @@ pub struct ReadinessInput {
 }
 
 pub fn evaluate(input: &ReadinessInput) -> GateDecision {
-    if input.evidence.iter().any(|e| e.status.is_blocking()) {
+    // An empty collection is not proof that every required control passed.
+    // Required controls omitted by an upstream producer must never become ALLOW.
+    if input.evidence.is_empty() || input.evidence.iter().any(|e| e.status.is_blocking()) {
         return GateDecision::Block;
     }
     if input.requested_state == DerivedState::ProductionReady
@@ -107,66 +109,87 @@ mod tests {
         }
     }
 
+    fn check(control_id: &str, status: EvidenceStatus) -> EvidenceCheck {
+        EvidenceCheck {
+            control_id: control_id.into(),
+            status,
+        }
+    }
+
+    fn input(evidence: Vec<EvidenceCheck>, sod: SeparationOfDuties) -> ReadinessInput {
+        ReadinessInput {
+            evidence,
+            sod,
+            requested_state: DerivedState::ProductionReady,
+        }
+    }
+
     #[test]
-    fn missing_evidence_blocks() {
-        let input = ReadinessInput {
-            evidence: vec![EvidenceCheck {
-                control_id: "SEC-001".into(),
-                status: EvidenceStatus::Missing,
-            }],
-            sod: sod(true),
-            requested_state: DerivedState::TestnetReady,
-        };
-        assert_eq!(evaluate(&input), GateDecision::Block);
+    fn empty_evidence_blocks_even_with_valid_sod_and_approval() {
+        assert_eq!(evaluate(&input(Vec::new(), sod(true))), GateDecision::Block);
+    }
+
+    #[test]
+    fn missing_required_evidence_blocks_partial_collection() {
+        let evidence = vec![
+            check("SEC-001", EvidenceStatus::Pass),
+            check("GOV-002", EvidenceStatus::Missing),
+        ];
+        assert_eq!(evaluate(&input(evidence, sod(true))), GateDecision::Block);
+    }
+
+    #[test]
+    fn unknown_evidence_type_blocks() {
+        let evidence = vec![
+            check("SEC-001", EvidenceStatus::Pass),
+            check("UNKNOWN-999", EvidenceStatus::Unknown),
+        ];
+        assert_eq!(evaluate(&input(evidence, sod(true))), GateDecision::Block);
+    }
+
+    #[test]
+    fn failed_evidence_blocks() {
+        let evidence = vec![
+            check("SEC-001", EvidenceStatus::Pass),
+            check("SEC-002", EvidenceStatus::Fail),
+        ];
+        assert_eq!(evaluate(&input(evidence, sod(true))), GateDecision::Block);
     }
 
     #[test]
     fn production_requires_human_approval() {
-        let input = ReadinessInput {
-            evidence: vec![EvidenceCheck {
-                control_id: "SEC-001".into(),
-                status: EvidenceStatus::Pass,
-            }],
-            sod: sod(false),
-            requested_state: DerivedState::ProductionReady,
-        };
-        assert_eq!(evaluate(&input), GateDecision::Block);
+        assert_eq!(
+            evaluate(&input(vec![check("SEC-001", EvidenceStatus::Pass)], sod(false))),
+            GateDecision::Block
+        );
     }
 
     #[test]
-    fn all_controls_pass_allows() {
-        let input = ReadinessInput {
-            evidence: vec![EvidenceCheck {
-                control_id: "SEC-001".into(),
-                status: EvidenceStatus::Pass,
-            }],
-            sod: sod(true),
-            requested_state: DerivedState::ProductionReady,
+    fn invalid_separation_of_duties_blocks_production() {
+        let invalid_sod = SeparationOfDuties {
+            coder: "same".into(),
+            validator: "same".into(),
+            auditor: "auditor".into(),
+            release_authority: "release".into(),
+            human_approval: true,
         };
-        assert_eq!(evaluate(&input), GateDecision::Allow);
+        assert_eq!(
+            evaluate(&input(vec![check("SEC-001", EvidenceStatus::Pass)], invalid_sod)),
+            GateDecision::Block
+        );
     }
 
     #[test]
-    fn duplicate_principals_block_production() {
-        let input = ReadinessInput {
-            evidence: vec![EvidenceCheck {
-                control_id: "SEC-001".into(),
-                status: EvidenceStatus::Pass,
-            }],
-            sod: SeparationOfDuties {
-                coder: "same".into(),
-                validator: "same".into(),
-                auditor: "auditor".into(),
-                release_authority: "release".into(),
-                human_approval: true,
-            },
-            requested_state: DerivedState::ProductionReady,
-        };
-        assert_eq!(evaluate(&input), GateDecision::Block);
+    fn complete_passing_evidence_and_valid_approval_allow() {
+        let evidence = vec![
+            check("SEC-001", EvidenceStatus::Pass),
+            check("GOV-002", EvidenceStatus::Pass),
+        ];
+        assert_eq!(evaluate(&input(evidence, sod(true))), GateDecision::Allow);
     }
 
     #[test]
-    fn empty_role_blocks_production() {
+    fn empty_role_is_invalid() {
         let mut roles = sod(true);
         roles.coder.clear();
         assert!(!roles.valid());
