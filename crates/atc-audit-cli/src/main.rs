@@ -226,26 +226,14 @@ fn main() {
                 std::process::exit(2);
             }
         };
-        let evidence = if report.findings.is_empty() {
-            vec![EvidenceCheck {
-                control_id: "AUDIT-REPOSITORY".into(),
-                status: EvidenceStatus::Pass,
-            }]
-        } else {
-            report
-                .findings
-                .iter()
-                .map(|finding| EvidenceCheck {
-                    control_id: finding.code.to_string(),
-                    status: match finding.kind {
-                        FindingKind::Security | FindingKind::Error => EvidenceStatus::Fail,
-                        FindingKind::Consistency | FindingKind::Connectivity => {
-                            EvidenceStatus::Unknown
-                        }
-                    },
-                })
-                .collect()
-        };
+        let evidence = vec![EvidenceCheck {
+            control_id: "AUDIT-REPOSITORY".into(),
+            status: if report.findings.is_empty() {
+                EvidenceStatus::Pass
+            } else {
+                EvidenceStatus::Fail
+            },
+        }];
         let sod = SeparationOfDuties {
             coder: env_value("ATC_CODER", ""),
             validator: env_value("ATC_VALIDATOR", ""),
@@ -254,6 +242,7 @@ fn main() {
             human_approval: env_bool("ATC_HUMAN_APPROVAL"),
         };
         let gate = GateReport::from_input(&ReadinessInput {
+            required_controls: vec!["AUDIT-REPOSITORY".into()],
             evidence,
             sod,
             requested_state: state,
