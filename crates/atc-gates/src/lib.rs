@@ -1,5 +1,5 @@
 //! Deterministic engineering release gates.
-//! \`UNKNOWN\` is never promoted: missing evidence is a blocking condition.
+//! `UNKNOWN` is never promoted: missing evidence is a blocking condition.
 
 mod report;
 pub use report::GateReport;
