@@ -1,7 +1,7 @@
 //! Stable, machine-readable gate reporting.
 //! The report intentionally exposes no secret material and is suitable for CI evidence.
 
-use crate::{evaluate, GateDecision, ReadinessInput};
+use crate::{blocking_controls, evaluate, GateDecision, ReadinessInput};
 
 pub const REPORT_SCHEMA_VERSION: &str = "atc.gate-report/v1";
 
@@ -17,18 +17,11 @@ pub struct GateReport {
 
 impl GateReport {
     pub fn from_input(input: &ReadinessInput) -> Self {
-        let blocking_controls = input
-            .evidence
-            .iter()
-            .filter(|e| e.status.is_blocking())
-            .map(|e| e.control_id.clone())
-            .collect();
-
         Self {
             schema_version: REPORT_SCHEMA_VERSION,
             decision: evaluate(input),
             requested_state: input.requested_state.as_str(),
-            blocking_controls,
+            blocking_controls: blocking_controls(input),
             sod_valid: input.sod.valid(),
             human_approval: input.sod.human_approval,
         }
@@ -74,9 +67,20 @@ mod tests {
     use crate::{EvidenceCheck, EvidenceStatus, SeparationOfDuties};
     use atc_core::DerivedState;
 
+    fn sod() -> SeparationOfDuties {
+        SeparationOfDuties {
+            coder: "coder".into(),
+            validator: "validator".into(),
+            auditor: "auditor".into(),
+            release_authority: "release".into(),
+            human_approval: true,
+        }
+    }
+
     #[test]
     fn report_preserves_blocking_controls() {
         let input = ReadinessInput {
+            required_controls: vec!["SEC-001".into(), "GOV-002".into()],
             evidence: vec![
                 EvidenceCheck {
                     control_id: "SEC-001".into(),
@@ -87,13 +91,7 @@ mod tests {
                     status: EvidenceStatus::Unknown,
                 },
             ],
-            sod: SeparationOfDuties {
-                coder: "coder".into(),
-                validator: "validator".into(),
-                auditor: "auditor".into(),
-                release_authority: "release".into(),
-                human_approval: true,
-            },
+            sod: sod(),
             requested_state: DerivedState::TestnetReady,
         };
         let report = GateReport::from_input(&input);
@@ -103,19 +101,46 @@ mod tests {
     }
 
     #[test]
-    fn json_is_versioned_and_deterministic() {
+    fn report_exposes_missing_required_controls() {
         let input = ReadinessInput {
+            required_controls: vec!["SEC-001".into(), "GOV-002".into()],
             evidence: vec![EvidenceCheck {
                 control_id: "SEC-001".into(),
                 status: EvidenceStatus::Pass,
             }],
-            sod: SeparationOfDuties {
-                coder: "coder".into(),
-                validator: "validator".into(),
-                auditor: "auditor".into(),
-                release_authority: "release".into(),
-                human_approval: true,
-            },
+            sod: sod(),
+            requested_state: DerivedState::TestnetReady,
+        };
+        let report = GateReport::from_input(&input);
+        assert_eq!(report.decision, GateDecision::Block);
+        assert_eq!(report.blocking_controls, vec!["GOV-002"]);
+    }
+
+    #[test]
+    fn empty_evidence_report_is_blocked_and_explained() {
+        let input = ReadinessInput {
+            required_controls: vec!["SEC-001".into()],
+            evidence: vec![],
+            sod: sod(),
+            requested_state: DerivedState::ProductionReady,
+        };
+        let report = GateReport::from_input(&input);
+        assert_eq!(report.decision, GateDecision::Block);
+        assert!(report
+            .blocking_controls
+            .contains(&"EVIDENCE_LIST_EMPTY".to_string()));
+        assert!(report.blocking_controls.contains(&"SEC-001".to_string()));
+    }
+
+    #[test]
+    fn json_is_versioned_and_deterministic() {
+        let input = ReadinessInput {
+            required_controls: vec!["SEC-001".into()],
+            evidence: vec![EvidenceCheck {
+                control_id: "SEC-001".into(),
+                status: EvidenceStatus::Pass,
+            }],
+            sod: sod(),
             requested_state: DerivedState::ProductionReady,
         };
         assert_eq!(GateReport::from_input(&input).to_json(), "{\"schema_version\":\"atc.gate-report/v1\",\"decision\":\"ALLOW\",\"requested_state\":\"PRODUCTION_READY\",\"blocking_controls\":[],\"sod_valid\":true,\"human_approval\":true}");
