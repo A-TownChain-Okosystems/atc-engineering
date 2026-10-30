@@ -228,9 +228,11 @@ fn main() {
         };
         let evidence_status = if report.findings.is_empty() {
             EvidenceStatus::Pass
-        } else if report.findings.iter().any(|finding| {
-            matches!(finding.kind, FindingKind::Security | FindingKind::Error)
-        }) {
+        } else if report
+            .findings
+            .iter()
+            .any(|finding| matches!(finding.kind, FindingKind::Security | FindingKind::Error))
+        {
             EvidenceStatus::Fail
         } else {
             EvidenceStatus::Unknown
