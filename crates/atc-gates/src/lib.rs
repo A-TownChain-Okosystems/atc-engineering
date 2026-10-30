@@ -92,11 +92,7 @@ pub struct ReadinessInput {
 /// evidence status remain blocking.
 pub(crate) fn blocking_controls(input: &ReadinessInput) -> Vec<String> {
     let mut blocking = BTreeSet::new();
-    let required: BTreeSet<&str> = input
-        .required_controls
-        .iter()
-        .map(String::as_str)
-        .collect();
+    let required: BTreeSet<&str> = input.required_controls.iter().map(String::as_str).collect();
 
     if input.evidence.is_empty() {
         blocking.insert("EVIDENCE_LIST_EMPTY".to_string());
