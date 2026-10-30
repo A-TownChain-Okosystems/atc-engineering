@@ -226,13 +226,18 @@ fn main() {
                 std::process::exit(2);
             }
         };
+        let evidence_status = if report.findings.is_empty() {
+            EvidenceStatus::Pass
+        } else if report.findings.iter().any(|finding| {
+            matches!(finding.kind, FindingKind::Security | FindingKind::Error)
+        }) {
+            EvidenceStatus::Fail
+        } else {
+            EvidenceStatus::Unknown
+        };
         let evidence = vec![EvidenceCheck {
             control_id: "AUDIT-REPOSITORY".into(),
-            status: if report.findings.is_empty() {
-                EvidenceStatus::Pass
-            } else {
-                EvidenceStatus::Fail
-            },
+            status: evidence_status,
         }];
         let sod = SeparationOfDuties {
             coder: env_value("ATC_CODER", ""),
