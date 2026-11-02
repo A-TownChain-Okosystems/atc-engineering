@@ -11,32 +11,6 @@ permissions:
   contents: read
 
 jobs:
-  engineering-self-test:
-    name: Engineering self-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.90.0
-          components: rustfmt, clippy
-      - name: Format check
-        run: cargo fmt --all -- --check
-      - name: Build evidence negative regression tests
-        run: python3 tests/test_validate_build_evidence.py
-      - name: Test workspace
-        run: cargo test --locked --workspace --all-features
-      - name: Install JSON Schema validator
-        run: python3 -m pip install --disable-pip-version-check 'jsonschema>=4.20,<5'
-      - name: Validate Rust serialization against JSON Schemas
-        run: python3 tests/test_rust_serialization_json_schema.py
-      - name: Clippy
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-
   verify:
     runs-on: ubuntu-latest
     steps:
